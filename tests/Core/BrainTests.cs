@@ -218,6 +218,7 @@ namespace CommanderLayer.Tests
             Assert.Equal(OperationStatus.Active, state.Operations[0].Status);
             Assert.NotEmpty(tasks);                            // ...and tasks its force
             Assert.Empty(state.Proposals);                     // no longer proposed (covered)
+            Assert.Empty(state.ConfirmedObjectives);           // confirmation consumed — authorises one open
         }
 
         [Fact]

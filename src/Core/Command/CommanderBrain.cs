@@ -126,6 +126,9 @@ namespace CommanderLayer.Core.Command
                 // Set the starting phase now so the op tasks the right families on its very first tick.
                 op.CombatPhase = PhaseGates.ActivePhase(initial, initial, new ForceState(FighterStrength(op, state)), state.Doctrine);
                 state.Operations.Add(op);
+                // Consume any Assisted confirmation — it authorises ONE open. If this op later fails with the
+                // threat still up, the brain re-proposes rather than silently re-launching (review SHOULD-FIX).
+                state.ConfirmedObjectives.Remove(obj.Id);
                 state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.OperationStarted,
                     $"{obj.Kind} ({squadIds.Count} squad{(squadIds.Count == 1 ? "" : "s")})", op.Id));
             }
