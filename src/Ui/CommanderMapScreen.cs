@@ -20,8 +20,9 @@ namespace CommanderLayer.Ui
             Action<string> onClearOrder, Action<CommanderLayer.Core.Command.CommanderMode> onSetMode = null,
             Action onConfirmProposal = null, Action<string> onToggleOpManual = null)
         {
+            // Left-docked, fixed size, tall enough that all sections fit without compressing (the jerk).
             _container = UiFactory.Panel("CommanderScreen", parent, new Color(0f, 0f, 0f, 0f));
-            UiFactory.AnchorTopLeft(_container, new Vector2(360f, 520f), new Vector2(90f, 90f));
+            UiFactory.AnchorTopLeft(_container, new Vector2(430f, 840f), new Vector2(24f, 70f));
 
             var header = UiFactory.Panel("DragBar", _container, theme.TabBackground);
             header.anchorMin = new Vector2(0f, 1f);

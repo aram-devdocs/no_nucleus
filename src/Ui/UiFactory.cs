@@ -84,10 +84,21 @@ namespace CommanderLayer.Ui
                 btn.onClick.AddListener(onClick);
             }
 
-            var label = Label(name + "_label", rt, text, 15f, theme.Text, TextAlignmentOptions.Center);
+            var label = Label(name + "_label", rt, text, 14f, theme.Text, TextAlignmentOptions.Center);
             Stretch(label.rectTransform);
             label.margin = new Vector4(4f, 0f, 4f, 0f);
+            label.enableWordWrapping = false;          // buttons are single-line — never reflow their height
+            label.overflowMode = TextOverflowModes.Ellipsis;
             return btn;
+        }
+
+        /// <summary>Pin a control to an exact size (atomic sizing) so changing its text never resizes it.</summary>
+        public static LayoutElement Fixed(GameObject go, float width, float height)
+        {
+            var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+            le.preferredWidth = width; le.minWidth = width; le.flexibleWidth = 0f;
+            le.preferredHeight = height; le.minHeight = height; le.flexibleHeight = 0f;
+            return le;
         }
 
         public static VerticalLayoutGroup VerticalLayout(string name, Transform parent, float spacing, RectOffset padding)
