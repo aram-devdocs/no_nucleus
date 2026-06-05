@@ -87,11 +87,9 @@ namespace CommanderLayer.Game
                 o => _capture.IsHeldByUs(o.Position));
             foreach (var t in reissue) _cmds.Execute(t);
             _committed = _mgr.CommittedUnitIds(roster);
-            RefreshAirIntent();
 
-            // EXPERIMENTAL autonomous commander (default off — "do nothing = game runs"). When enabled it
-            // generates objectives from fog-of-war intel and tasks auto-formed squads. Validate in playtest
-            // before relying on it; may overlap with manual orders until operations subsume them (later).
+            // Autonomous commander (on by default — "do nothing = the side fights"). Generates objectives
+            // from fog-of-war intel and tasks auto-formed squads. Coexists with manual orders.
             if (Plugin.EnableAutoCommander)
             {
                 var known = _intel.KnownEnemiesNear(new Vec3(0f, 0f, 0f), float.MaxValue); // all tracked enemies
@@ -112,12 +110,15 @@ namespace CommanderLayer.Game
                 _prodService.Drain(_prodQueue);
             }
 
+            // Publish aircraft ingress zones AFTER the brain runs so they reflect fresh operation phases.
+            RefreshAirIntent();
             _debug.Tick();   // S0 instrumentation (no-op unless CommanderDebug)
         }
 
-        // Publish the Air-domain order points as aircraft ingress zones (consumed by the NoTarget patch).
-        // SEAD-before-strike: withhold a zone while known enemy air defenses remain there, so aircraft
-        // only ingress once SAMs/AAA are suppressed by the order's ground/sea element.
+        // Publish aircraft ingress zones (consumed by the NoTarget patch) from BOTH layers:
+        //  • manual Air-domain orders — SEAD-before-strike: withhold while air defenses remain (ground softens first);
+        //  • autonomous operations whose combined-arms phase engages aircraft (recon/air-superiority/SEAD/strike),
+        //    so jets join the auto war while ground holds back for the assault phase.
         private void RefreshAirIntent()
         {
             var zones = new List<Vec3>();
@@ -128,6 +129,12 @@ namespace CommanderLayer.Game
                 var threat = ThreatAssessor.Assess(_intel.KnownEnemiesNear(o.Order.Position, _cfg.ThreatRadius));
                 if (OrderPlanner.SeadPending(o.Order, threat)) continue; // hold aircraft until air defenses fall
                 zones.Add(o.Order.Position);
+            }
+            foreach (var op in _auto.Operations)
+            {
+                if (op.Status != OperationStatus.Active) continue;
+                if (!Families.ActiveInPhase(op.CombatPhase).Contains(RoleFamily.AirCombat)) continue;
+                zones.Add(op.Objective.Position);
             }
             AircraftIntent.SetZones(zones);
         }
