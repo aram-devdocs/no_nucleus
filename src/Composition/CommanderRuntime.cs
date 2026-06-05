@@ -31,9 +31,11 @@ namespace CommanderLayer.Composition
         private DynamicMap _lastMap;
         private Button _cmdButton;
         private Text _cmdLabel;
+        private Color _cmdLabelColor = Color.white;
         private OrderKind? _armed;
         private AssignmentPreview _hoverPreview;
         private bool _firstTick = true;
+        private bool _loggedPanel;
         private float _nextManage;
         private GUIStyle _fallbackStyle;
 
@@ -105,7 +107,13 @@ namespace CommanderLayer.Composition
             _screen?.Render(_service.Orders, faction, _armed, _hoverPreview);
             _overlay?.Render(_service.Orders, PositionsById());
 
-            if (_cmdLabel != null) _cmdLabel.color = ModalOpen ? new Color(0.4f, 1f, 0.5f) : Color.white;
+            if (_cmdLabel != null) _cmdLabel.color = ModalOpen ? new Color(0.4f, 1f, 0.5f) : _cmdLabelColor;
+
+            if (ModalOpen && !_loggedPanel)
+            {
+                _loggedPanel = true;
+                Plugin.Log?.LogInfo("[panel] " + _screen.DebugInfo());
+            }
         }
 
         private Dictionary<string, Vec3> PositionsById()
@@ -132,7 +140,13 @@ namespace CommanderLayer.Composition
             btn.enabled = true;
             btn.gameObject.SetActive(true);
             _cmdLabel = btn.GetComponentInChildren<Text>(includeInactive: true);
-            if (_cmdLabel != null) { _cmdLabel.text = "CMD"; _cmdLabel.enabled = true; _cmdLabel.gameObject.SetActive(true); }
+            if (_cmdLabel != null)
+            {
+                _cmdLabel.text = "CMD";
+                _cmdLabel.enabled = true;
+                _cmdLabel.gameObject.SetActive(true);
+                _cmdLabelColor = _cmdLabel.color; // keep the game's native color; only override to green when open
+            }
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => _screen?.Toggle());
             _cmdButton = btn;

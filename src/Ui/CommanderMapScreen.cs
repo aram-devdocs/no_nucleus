@@ -55,5 +55,11 @@ namespace CommanderLayer.Ui
 
         public void Render(IReadOnlyList<OrderState> orders, FactionInfo faction, OrderKind? armed, AssignmentPreview preview)
             => _panel.Render(orders, faction, armed, preview);
+
+        public string DebugInfo()
+        {
+            var p = _panel.Root;
+            return $"container active={_container.gameObject.activeInHierarchy} size={_container.rect.size} | panel size={(p != null ? p.rect.size.ToString() : "null")}";
+        }
     }
 }

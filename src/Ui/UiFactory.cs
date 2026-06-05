@@ -144,7 +144,7 @@ namespace CommanderLayer.Ui
             h.childControlWidth = true;
             h.childControlHeight = true;
             h.childForceExpandWidth = true;
-            h.childForceExpandHeight = false;
+            h.childForceExpandHeight = true; // fill the row height, else children collapse to 0px and vanish
             return h;
         }
 
