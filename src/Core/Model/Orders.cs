@@ -117,5 +117,9 @@ namespace CommanderLayer.Core.Model
         public float ThreatRadius { get; set; } = 3000f;
         public bool AutoReassign { get; set; } = true;
         public float ManagementIntervalSeconds { get; set; } = 3f;
+        /// <summary>Force-sizing: how many times the known threat count an Attack/Defend should outnumber.</summary>
+        public float ForceRatio { get; set; } = 1.5f;
+        /// <summary>Force-sizing floor: smallest force an offensive order commits even with no known threat.</summary>
+        public int MinForce { get; set; } = 1;
     }
 }

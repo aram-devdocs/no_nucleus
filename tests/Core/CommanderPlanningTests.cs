@@ -57,6 +57,13 @@ namespace CommanderLayer.Tests
         private static CommanderOrder Attack(Vec3 p, string target = null) => new CommanderOrder("o1", OrderKind.Attack, p, 0f, DomainSet.All, target);
         private static CommanderConfig Cfg() => new CommanderConfig { MaxUnitsPerOrder = 3, SelectionRadius = 5000f };
 
+        // A threat of n known (non-armor, non-AD) enemies — enough to let force-sizing select the full
+        // suitable set in filter-focused tests (RequiredForce scales with threat.Count).
+        private static ThreatPicture Threat(int n) =>
+            ThreatAssessor.Assess(Enumerable.Range(0, n).Select(i =>
+                new EnemyView("e" + i, P(0, 0), UnitClass.GroundVehicle,
+                    new UnitCapability(Role.Infantry, true, false, false, false, false), true, 1f, 0)).ToList());
+
         // ---------- RoleClassifier ----------
         [Fact]
         public void Classifier_maps_generated_enums_to_roles()
@@ -93,7 +100,7 @@ namespace CommanderLayer.Tests
                 Aircraft("jet", P(20, 0)),                      // not commandable → excluded
                 Ground("far", VehicleType.MBT, P(99999, 0)),   // out of range → excluded
             };
-            var plan = OrderPlanner.Plan(Attack(P(0, 0)), roster, ThreatPicture.Empty, Cfg());
+            var plan = OrderPlanner.Plan(Attack(P(0, 0)), roster, Threat(2), Cfg());
             var ids = plan.Tasks.Select(t => t.UnitId).ToList();
             Assert.Equal(new[] { "mbt", "art" }, ids);            // only suitable+in-range, sorted by distance
             Assert.All(plan.Tasks, t => Assert.Equal(TaskVerb.MoveTo, t.Verb));
@@ -119,7 +126,7 @@ namespace CommanderLayer.Tests
                 Ground("truck", VehicleType.TRUCK, P(50, 0)), // excluded
             };
             var order = new CommanderOrder("d1", OrderKind.Defend, P(0, 0), 0f);
-            var plan = OrderPlanner.Plan(order, roster, ThreatPicture.Empty, Cfg());
+            var plan = OrderPlanner.Plan(order, roster, Threat(2), Cfg());
             var ids = plan.Tasks.Select(t => t.UnitId).OrderBy(x => x).ToList();
             Assert.Equal(new[] { "mbt", "sam" }, ids);
         }
@@ -202,7 +209,8 @@ namespace CommanderLayer.Tests
         public void Planner_respects_max_units()
         {
             var roster = Enumerable.Range(0, 10).Select(i => Ground("u" + i, VehicleType.MBT, P(i, 0))).Cast<UnitView>().ToList();
-            var plan = OrderPlanner.Plan(Attack(P(0, 0)), roster, ThreatPicture.Empty, new CommanderConfig { MaxUnitsPerOrder = 3, SelectionRadius = 5000f });
+            // Heavy threat so force-sizing wants more than the cap — the cap must still bind at MaxUnitsPerOrder.
+            var plan = OrderPlanner.Plan(Attack(P(0, 0)), roster, Threat(10), new CommanderConfig { MaxUnitsPerOrder = 3, SelectionRadius = 5000f });
             Assert.Equal(3, plan.Tasks.Count);
         }
 
@@ -220,6 +228,95 @@ namespace CommanderLayer.Tests
             mgr2.AddOrder(new CommanderOrder("o2", OrderKind.Attack, P(0, 0), 0f, DomainSet.Land),
                 new List<UnitView> { Ground("truck", VehicleType.TRUCK, P(100, 0)) }, ThreatPicture.Empty);
             Assert.Equal(OrderStatus.Failed, mgr2.Orders[0].Status);
+        }
+
+        // ---------- P0: force-sizing ----------
+        private static CommanderConfig SizingCfg() =>
+            new CommanderConfig { MaxUnitsPerOrder = 6, SelectionRadius = 5000f, ForceRatio = 1.5f, MinForce = 1, AutoReassign = true };
+
+        [Fact]
+        public void RequiredForce_sizes_attack_to_threat_and_caps()
+        {
+            var cfg = SizingCfg();
+            Assert.Equal(1, OrderPlanner.RequiredForce(ThreatPicture.Empty, OrderKind.Attack, cfg)); // 0 threat -> MinForce
+            Assert.Equal(3, OrderPlanner.RequiredForce(Threat(2), OrderKind.Attack, cfg));            // ceil(2*1.5)=3
+            Assert.Equal(6, OrderPlanner.RequiredForce(Threat(10), OrderKind.Attack, cfg));           // capped at Max
+        }
+
+        [Fact]
+        public void RequiredForce_nonattack_is_threat_independent()
+        {
+            var cfg = SizingCfg();
+            Assert.Equal(6, OrderPlanner.RequiredForce(Threat(1), OrderKind.Resupply, cfg));
+            Assert.Equal(6, OrderPlanner.RequiredForce(ThreatPicture.Empty, OrderKind.Move, cfg));
+        }
+
+        [Fact]
+        public void Selection_caps_to_required_force_not_everyone()
+        {
+            var roster = Enumerable.Range(0, 5).Select(i => Ground("u" + i, VehicleType.MBT, P(i * 10, 0))).Cast<UnitView>().ToList();
+            // 5 suitable units, light threat (1) -> ceil(1*1.5)=2 selected, not all 5.
+            var plan = OrderPlanner.Plan(Attack(P(0, 0)), roster, Threat(1), SizingCfg());
+            Assert.Equal(2, plan.Tasks.Count);
+        }
+
+        // ---------- P0: cross-order exclusivity (derived committed set) ----------
+        [Fact]
+        public void Committed_unit_is_not_assigned_to_a_second_order()
+        {
+            var mgr = new AssignmentManager(SizingCfg());
+            var roster = new List<UnitView> { Ground("mbt1", VehicleType.MBT, P(100, 0)), Ground("mbt2", VehicleType.MBT, P(120, 0)) };
+            mgr.AddOrder(new CommanderOrder("a", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land), roster, ThreatPicture.Empty); // takes nearest mbt1
+            var b = mgr.AddOrder(new CommanderOrder("b", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land), roster, ThreatPicture.Empty);
+            Assert.Equal(new[] { "mbt2" }, b.Tasks.Select(t => t.UnitId).ToArray());     // mbt1 committed to A
+        }
+
+        [Fact]
+        public void Clearing_an_order_frees_its_units()
+        {
+            var mgr = new AssignmentManager(SizingCfg());
+            var roster = new List<UnitView> { Ground("mbt1", VehicleType.MBT, P(100, 0)) };
+            mgr.AddOrder(new CommanderOrder("a", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land), roster, ThreatPicture.Empty);
+            Assert.Contains("mbt1", mgr.CommittedUnitIds(roster));
+            mgr.Clear("a");
+            Assert.DoesNotContain("mbt1", mgr.CommittedUnitIds(roster));
+        }
+
+        [Fact]
+        public void Dead_unit_releases_its_commitment()
+        {
+            var mgr = new AssignmentManager(SizingCfg());
+            var roster = new List<UnitView> { Ground("mbt1", VehicleType.MBT, P(100, 0)) };
+            mgr.AddOrder(new CommanderOrder("a", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land), roster, ThreatPicture.Empty);
+            Assert.Contains("mbt1", mgr.CommittedUnitIds(roster));
+            Assert.DoesNotContain("mbt1", mgr.CommittedUnitIds(new List<UnitView>())); // gone from roster -> released
+        }
+
+        [Fact]
+        public void Reassignment_does_not_poach_a_committed_unit()
+        {
+            var mgr = new AssignmentManager(SizingCfg());
+            // Units far from the order so A doesn't auto-complete (stays Active, holding mbt1).
+            var roster = new List<UnitView> { Ground("mbt1", VehicleType.MBT, P(3000, 0)), Ground("mbt2", VehicleType.MBT, P(3100, 0)) };
+            mgr.AddOrder(new CommanderOrder("a", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land), roster, ThreatPicture.Empty); // mbt1
+            mgr.AddOrder(new CommanderOrder("b", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land), roster, ThreatPicture.Empty); // mbt2
+
+            // mbt2 dies; B reassigns but must not steal mbt1 (still committed to active A).
+            mgr.Tick(new List<UnitView> { Ground("mbt1", VehicleType.MBT, P(3000, 0)) }, _ => ThreatPicture.Empty);
+            var a = mgr.Orders.First(o => o.Order.Id == "a");
+            var b = mgr.Orders.First(o => o.Order.Id == "b");
+            Assert.Contains("mbt1", a.AssignedUnitIds);
+            Assert.DoesNotContain("mbt1", b.AssignedUnitIds);
+        }
+
+        [Fact]
+        public void SelectUnits_excludes_given_ids()
+        {
+            var roster = new List<UnitView> { Ground("mbt1", VehicleType.MBT, P(100, 0)), Ground("mbt2", VehicleType.MBT, P(120, 0)) };
+            var order = new CommanderOrder("o", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land);
+            var sel = OrderPlanner.SelectUnits(order, roster, SizingCfg(), Threat(5), new HashSet<string> { "mbt1" });
+            Assert.DoesNotContain(sel, u => u.Id == "mbt1");
+            Assert.Contains(sel, u => u.Id == "mbt2");
         }
 
         [Fact]

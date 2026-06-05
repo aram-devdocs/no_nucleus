@@ -63,7 +63,8 @@ namespace CommanderLayer.Game
             float r = radius > 0f ? radius : _cfg.SelectionRadius;
             var threat = ThreatAssessor.Assess(_intel.KnownEnemiesNear(world, r));
             var order = new CommanderOrder("preview", kind, world, r, domains);
-            return OrderPlanner.Preview(order, LastRoster, threat, _cfg);
+            // Honor cross-order exclusivity in the preview so the hover shows only *available* units.
+            return OrderPlanner.Preview(order, LastRoster, threat, _cfg, _mgr.CommittedUnitIds(LastRoster));
         }
 
         /// <summary>Management tick (throttled by the runtime): validate/reassign/complete, re-issue tasks.</summary>

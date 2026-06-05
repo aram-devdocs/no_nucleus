@@ -27,7 +27,8 @@ namespace CommanderLayer.Core.Planning
         /// <summary>Plan a new order, record assignments, and return the initial tasks to execute.</summary>
         public TaskPlan AddOrder(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat)
         {
-            var plan = OrderPlanner.Plan(order, roster, threat, _cfg);
+            // Exclude units already committed to other Active orders — one unit, one order.
+            var plan = OrderPlanner.Plan(order, roster, threat, _cfg, Committed(null, AliveSet(roster)));
             var state = new OrderState(order);
             Record(state, plan);
             // An Air-domain order steers aircraft via the AI patch (not commandable units), so an empty
@@ -107,7 +108,7 @@ namespace CommanderLayer.Core.Planning
                 // Reassign if we've lost the whole assignment and auto-reassign is on.
                 if (_cfg.AutoReassign && s.AssignedUnitIds.Count == 0)
                 {
-                    var plan = OrderPlanner.Plan(s.Order, roster, threat, _cfg);
+                    var plan = OrderPlanner.Plan(s.Order, roster, threat, _cfg, Committed(s, alive));
                     Record(s, plan);
                     foreach (var t in plan.Tasks) toIssue.Add(t);
                     s.Status = plan.IsEmpty ? OrderStatus.Failed : OrderStatus.Active;
@@ -142,6 +143,33 @@ namespace CommanderLayer.Core.Planning
         }
 
         public void ClearAll() => _orders.Clear();
+
+        /// <summary>
+        /// Units committed to Active orders, intersected with the live roster — derived fresh, so units that
+        /// die or whose order completed/failed/was cleared release automatically (no leak). Used to keep a
+        /// new/previewed/reassigned order from poaching another order's units.
+        /// </summary>
+        public HashSet<string> CommittedUnitIds(IReadOnlyList<UnitView> roster) => Committed(null, AliveSet(roster));
+
+        private HashSet<string> Committed(OrderState self, HashSet<string> alive)
+        {
+            var set = new HashSet<string>();
+            foreach (var o in _orders)
+            {
+                if (ReferenceEquals(o, self) || o.Status != OrderStatus.Active) continue;
+                foreach (var id in o.AssignedUnitIds)
+                    if (alive == null || alive.Contains(id)) set.Add(id);
+            }
+            return set;
+        }
+
+        private static HashSet<string> AliveSet(IReadOnlyList<UnitView> roster)
+        {
+            var alive = new HashSet<string>();
+            foreach (var u in roster)
+                if (u != null && !u.Disabled) alive.Add(u.Id);
+            return alive;
+        }
 
         private static void Record(OrderState state, TaskPlan plan)
         {

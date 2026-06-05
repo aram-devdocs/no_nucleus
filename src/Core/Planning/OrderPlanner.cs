@@ -13,11 +13,12 @@ namespace CommanderLayer.Core.Planning
     public static class OrderPlanner
     {
         public static IReadOnlyList<UnitView> SelectUnits(CommanderOrder order, IReadOnlyList<UnitView> roster,
-            CommanderConfig cfg, ThreatPicture threat = null)
+            CommanderConfig cfg, ThreatPicture threat = null, IReadOnlyCollection<string> excludeIds = null)
         {
             float radius = order.Radius > 0f ? order.Radius : cfg.SelectionRadius;
             var inRange = roster
                 .Where(u => u != null && !u.Disabled && u.Commandable)
+                .Where(u => excludeIds == null || !excludeIds.Contains(u.Id)) // never poach units committed elsewhere
                 .Where(u => Suitable(u, order.Kind, order.Domains))
                 .Select(u => (u, dist: u.Position.HorizontalDistanceTo(order.Position)))
                 .Where(x => x.dist <= radius);
@@ -29,12 +30,31 @@ namespace CommanderLayer.Core.Planning
                 ? inRange.OrderByDescending(x => x.u.AntiSurface).ThenBy(x => x.dist)
                 : inRange.OrderBy(x => x.dist);
 
-            return ordered.Take(cfg.MaxUnitsPerOrder).Select(x => x.u).ToList();
+            // Force-sizing: take *enough*, not everyone. Attack/Defend scale to the known threat; other
+            // kinds are bounded only by the suitable filter + the hard cap.
+            return ordered.Take(RequiredForce(threat, order.Kind, cfg)).Select(x => x.u).ToList();
         }
 
-        public static TaskPlan Plan(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat, CommanderConfig cfg)
+        /// <summary>
+        /// How many units an order should commit. Attack/Defend size to the known (fog-of-war) threat —
+        /// outnumber it by the doctrine ratio, floored at MinForce — so we send a right-sized force, not the
+        /// whole neighbourhood. Other kinds (Move/Capture/Resupply/Build) are threat-independent and bounded
+        /// only by the suitable filter and the hard cap. Always ≤ MaxUnitsPerOrder.
+        /// </summary>
+        public static int RequiredForce(ThreatPicture threat, OrderKind kind, CommanderConfig cfg)
         {
-            var selected = SelectUnits(order, roster, cfg, threat);
+            int max = cfg.MaxUnitsPerOrder;
+            if (kind != OrderKind.Attack && kind != OrderKind.Defend) return max;
+            int known = threat?.Count ?? 0;
+            int want = (int)System.Math.Ceiling(known * cfg.ForceRatio);
+            if (want < cfg.MinForce) want = cfg.MinForce;
+            return want > max ? max : want;
+        }
+
+        public static TaskPlan Plan(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat,
+            CommanderConfig cfg, IReadOnlyCollection<string> excludeIds = null)
+        {
+            var selected = SelectUnits(order, roster, cfg, threat, excludeIds);
             var tasks = new List<UnitTask>(selected.Count);
             foreach (var u in selected)
             {
@@ -58,9 +78,10 @@ namespace CommanderLayer.Core.Planning
         }
 
         /// <summary>Live "what would happen" without mutating state — for the hover preview.</summary>
-        public static AssignmentPreview Preview(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat, CommanderConfig cfg)
+        public static AssignmentPreview Preview(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat,
+            CommanderConfig cfg, IReadOnlyCollection<string> excludeIds = null)
         {
-            return new AssignmentPreview(SelectUnits(order, roster, cfg, threat), threat);
+            return new AssignmentPreview(SelectUnits(order, roster, cfg, threat, excludeIds), threat);
         }
 
         /// <summary>
