@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using CommanderLayer.Core.Model;
 using CommanderLayer.Core.Ports;
 using CommanderLayer.Game;
+using CommanderLayer.Game.Generated;
 using CommanderLayer.Patches;
 using CommanderLayer.Ui;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Gen = CommanderLayer.Core.Generated;
 
 namespace CommanderLayer.Composition
 {
@@ -131,10 +131,10 @@ namespace CommanderLayer.Composition
             EnsureCanvas();
             EnsureScreen();
 
-            var rightButtons = AccessTools.Field(typeof(VirtualMFD), Gen.GameRef.VirtualMFD_rightButtons).GetValue(mfd) as List<Button>;
-            var rightScreens = AccessTools.Field(typeof(VirtualMFD), Gen.GameRef.VirtualMFD_rightScreens).GetValue(mfd) as List<MFDScreen>;
-            var leftButtons = AccessTools.Field(typeof(VirtualMFD), Gen.GameRef.VirtualMFD_leftButtons).GetValue(mfd) as List<Button>;
-            var leftScreens = AccessTools.Field(typeof(VirtualMFD), Gen.GameRef.VirtualMFD_leftScreens).GetValue(mfd) as List<MFDScreen>;
+            var rightButtons = GameSdk.VirtualMFD_rightButtons(mfd);
+            var rightScreens = GameSdk.VirtualMFD_rightScreens(mfd);
+            var leftButtons = GameSdk.VirtualMFD_leftButtons(mfd);
+            var leftScreens = GameSdk.VirtualMFD_leftScreens(mfd);
 
             var btn = FindBlankButton(rightButtons, rightScreens) ?? FindBlankButton(leftButtons, leftScreens);
             if (btn == null) { Plugin.Log?.LogWarning("No blank MFD bezel button available for CMD."); return; }
