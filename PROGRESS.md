@@ -13,7 +13,7 @@ Gates per phase: ① Spec approved · ② Quality green · ③ Review clean · �
 load Commander Debug, open map, arm an order, hover, place two overlapping orders; paste the BepInEx log
 (esp. `[S0:*]` lines) + a screenshot. Meanwhile the loop builds P1/P2 pure-Core (no playtest needed).
 | P0.5 — sandbox + terrain | Backlog | depends on S0 terrain probe |
-| P1 — squads + operations + brain | ①②③ ✔ · awaiting ④ playtest | brain wired flag-gated (EnableAutoCommander off). Review B1/B2/S1/S2 fixed (5bfefd7): ops complete+free squads, objectives pruned, diff tasking, auto excludes manual-committed. 54 Core. Deferred: S3 focus-fire TargetId (P4), S4 executor O(n²). ④ = enable flag + observe autonomous slice |
+| P1 — squads + operations + brain | ①②③ ✔ · awaiting ④ playtest | brain wired flag-gated (EnableAutoCommander off). Review B1/B2/S1/S2 fixed (5bfefd7): ops complete+free squads, objectives pruned, diff tasking, auto excludes manual-committed. **+ autonomy ladder: brain honors per-op/per-squad Manual (8bae8d8); + proximity-aware MatchSquads — nearest suitable squad (81f8284).** 116 Core. Deferred: S3 focus-fire TargetId (P4), S4 executor O(n²). ④ = enable flag + observe autonomous slice |
 | P2 — combined-arms sequencing | ✅ gates + integration | PhaseGates (924fe32) + operations advance CombatPhase cursor, task per-phase — armor holds while artillery/aircraft soften (07d4fbc). 60 Core. Pure+tested; activation playtest-gated with P1 |
 | P3 — economy/production | Backlog | depends on S0 convoy spike |
 | P4 — intel board + reports | Backlog | |
@@ -52,9 +52,18 @@ All behind `EnableAutoCommander` (off). Pure-Core tested, Game adapters contract
 - **The S0 playtest** (one run) unblocks S0 findings + P0/P0.5 acceptance + the P6.2/HUD render targets.
 DestroyTarget TargetId deferred (executor ignores it; id-space mismatch per review S3).
 
-**The entire verifiable-without-the-game backlog is now DONE** (P0–P4 logic, production loop, P5 HQ
-readout, P6.1 asset SDK, P6.2 contracts + harvest probe). All further progress needs a BepInEx playtest
-log from the user — there are no more buildable requirements that can be closed by code alone.
+**The entire verifiable-without-the-game backlog is now DONE** (P0–P4 logic + autonomy-ladder Manual +
+proximity matching, production loop, P5 HQ readout, P6.1 asset SDK, P6.2 contracts + harvest probe).
+All further progress needs a BepInEx playtest log from the user — there are no more buildable requirements
+that can be closed by code alone.
+
+**↳ THE ONE PLAYTEST that unblocks everything** (set `Commander/CommanderDebug=true` AND
+`EnableAutoCommander=true` in the F1 config, load Commander Debug, open the map, play ~1 min, paste the
+full BepInEx log + a screenshot). It resolves: S0 findings (`[S0:UID]`/`[S0:KILL]`/`[S0:TERRAIN]`), P0/P0.5
+acceptance, **P5** (does the AUTO COMMANDER readout populate?), and the **`[S0:UI]` harvest data** that
+tells the P6.2 render exactly which native components are cloneable. **Blocked on the user** — see the
+session summary for the two UX decisions (Assisted confirm-flow; cockpit-HUD footprint) the assistant
+won't guess.
 
 ## S0 findings (filled after the playtest)
 | Unknown | Result | Detail |
