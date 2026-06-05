@@ -14,7 +14,7 @@ load Commander Debug, open map, arm an order, hover, place two overlapping order
 (esp. `[S0:*]` lines) + a screenshot. Meanwhile the loop builds P1/P2 pure-Core (no playtest needed).
 | P0.5 — sandbox + terrain | Backlog | depends on S0 terrain probe |
 | P1 — squads + operations + brain | ①②③ ✔ · awaiting ④ playtest | brain wired flag-gated (EnableAutoCommander off). Review B1/B2/S1/S2 fixed (5bfefd7): ops complete+free squads, objectives pruned, diff tasking, auto excludes manual-committed. 54 Core. Deferred: S3 focus-fire TargetId (P4), S4 executor O(n²). ④ = enable flag + observe autonomous slice |
-| P2 — combined-arms sequencing | Next (after P1 review fixes) | PhaseGates/CombatDoctrine/OperationPhases; generalize SeadPending; thresholds from RiskTolerance |
+| P2 — combined-arms sequencing | Gates ✔ · integration next | ThreatPicture counts + Doctrine thresholds + PhaseGates (Recon→AirSup→SEAD→Strike→Assault→Capture→Hold) pure+tested (924fe32). 59 Core. Next: operations carry a CombatPhase cursor, advance via gates, task per-phase |
 | P3 — economy/production | Backlog | depends on S0 convoy spike |
 | P4 — intel board + reports | Backlog | |
 | P5 — autonomy UI + HUD | Backlog | |
