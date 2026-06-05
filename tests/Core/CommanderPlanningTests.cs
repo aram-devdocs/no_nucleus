@@ -269,6 +269,21 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void Sead_pending_holds_aircraft_until_air_defenses_cleared()
+        {
+            var airOrder = new CommanderOrder("a", OrderKind.Attack, P(0, 0), 5000f, DomainSet.All);
+            var sam = new EnemyView("sam", P(0, 0), UnitClass.GroundVehicle,
+                new UnitCapability(Role.GroundAirDefense, false, true, false, false, true), true, 2f, 0);
+            var withAD = ThreatAssessor.Assess(new List<EnemyView> { sam });
+
+            Assert.True(OrderPlanner.SeadPending(airOrder, withAD));         // SAM present -> hold aircraft
+            Assert.False(OrderPlanner.SeadPending(airOrder, ThreatPicture.Empty)); // cleared -> release
+            // A ground-only order is never SEAD-gated (it has no aircraft to hold).
+            var groundOrder = new CommanderOrder("g", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Land);
+            Assert.False(OrderPlanner.SeadPending(groundOrder, withAD));
+        }
+
+        [Fact]
         public void Air_order_is_active_even_with_no_commandable_units()
         {
             var mgr = new AssignmentManager(Cfg());

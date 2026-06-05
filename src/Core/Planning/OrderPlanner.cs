@@ -57,6 +57,14 @@ namespace CommanderLayer.Core.Planning
             return new AssignmentPreview(SelectUnits(order, roster, cfg), threat);
         }
 
+        /// <summary>
+        /// SEAD-before-strike: an Air-domain order's aircraft must not ingress while known enemy air
+        /// defenses (SAM/AAA) remain in the area — suppress first. True = hold the air wave. (The ground/sea
+        /// part of the order does the suppressing; once the air-defense threat clears, aircraft are released.)
+        /// </summary>
+        public static bool SeadPending(CommanderOrder order, ThreatPicture threat)
+            => (order.Domains & DomainSet.Air) != 0 && threat != null && threat.HasAirDefense;
+
         public static bool Suitable(UnitView u, OrderKind kind, DomainSet domains)
         {
             var dom = Model.Domains.Of(u.Role);

@@ -79,13 +79,18 @@ namespace CommanderLayer.Game
         }
 
         // Publish the Air-domain order points as aircraft ingress zones (consumed by the NoTarget patch).
+        // SEAD-before-strike: withhold a zone while known enemy air defenses remain there, so aircraft
+        // only ingress once SAMs/AAA are suppressed by the order's ground/sea element.
         private void RefreshAirIntent()
         {
             var zones = new List<Vec3>();
             foreach (var o in _mgr.Orders)
             {
                 if (o.Status == OrderStatus.Complete || o.Status == OrderStatus.Failed) continue;
-                if ((o.Order.Domains & DomainSet.Air) != 0) zones.Add(o.Order.Position);
+                if ((o.Order.Domains & DomainSet.Air) == 0) continue;
+                var threat = ThreatAssessor.Assess(_intel.KnownEnemiesNear(o.Order.Position, _cfg.ThreatRadius));
+                if (OrderPlanner.SeadPending(o.Order, threat)) continue; // hold aircraft until air defenses fall
+                zones.Add(o.Order.Position);
             }
             AircraftIntent.SetZones(zones);
         }
