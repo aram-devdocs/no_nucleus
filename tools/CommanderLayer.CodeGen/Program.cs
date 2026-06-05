@@ -109,6 +109,23 @@ var deps = new List<Dep>
     new("GameAssets", "missileWarningSprite", "field", Public: true, Asset: true),     // threat: missile warning
     new("GameAssets", "warheadSprite", "field", Public: true, Asset: true),  // threat/strike icon
 
+    // ---- P6: native UI components the mod clones/configures so its UI IS the game's UI. BetterBorder is
+    //         already used LIVE (frames our panel) — guarding it here means a game rename fails the contract
+    //         instead of silently breaking the panel. The toggles + group are the P6.2 harvest targets
+    //         (clone a live instance, rebind onValueChanged); their public surface is asserted to exist. ----
+    new("NuclearOption.UI.BetterBorder", "BorderThickness", "property", Public: true),
+    new("NuclearOption.UI.BetterBorder", "FillColor",       "property", Public: true),
+    new("NuclearOption.UI.BetterBorder", "color",           "property", Public: true),
+    new("NuclearOption.UI.BaseToggle", "isOn",                 "property", Public: true),
+    new("NuclearOption.UI.BaseToggle", "onValueChanged",       "field",    Public: true),
+    new("NuclearOption.UI.BaseToggle", "SetIsOnWithoutNotify", "method",   Public: true),
+    new("NuclearOption.UI.BoxToggle",    null, "type"),
+    new("NuclearOption.UI.SliderToggle", null, "type"),
+    new("NuclearOption.UI.BetterToggleGroup", "SetIndex", "method", Public: true),
+    new("NuclearOption.UI.BetterToggleGroup", "GetIndex", "method", Public: true),
+    new("NuclearOption.UI.BetterToggleGroup", "SetFlags", "method", Public: true),
+    new("NuclearOption.UI.BetterToggleGroup", "GetFlags", "method", Public: true),
+
     // ---- Reuse: game role data the classifier reads (fog-of-war intel uses trackingDatabase) ----
     new("FactionHQ", "trackingDatabase", "field", Public: true),
     new("RoleIdentity", "antiSurface", "field", Public: true),

@@ -67,6 +67,18 @@ namespace CommanderLayer.GameContract.Tests
             if (!Game.Type("GameAssets").Fields.Any(x => x.Name == "targetUnitSpriteFriendly" && x.IsPublic)) fail.Add("GameAssets.targetUnitSpriteFriendly (field,public)");
             if (!Game.Type("GameAssets").Fields.Any(x => x.Name == "missileWarningSprite" && x.IsPublic)) fail.Add("GameAssets.missileWarningSprite (field,public)");
             if (!Game.Type("GameAssets").Fields.Any(x => x.Name == "warheadSprite" && x.IsPublic)) fail.Add("GameAssets.warheadSprite (field,public)");
+            if (!Game.Type("NuclearOption.UI.BetterBorder").Properties.Any(x => x.Name == "BorderThickness" && x.GetMethod != null && x.GetMethod.IsPublic)) fail.Add("NuclearOption.UI.BetterBorder.BorderThickness (property,public)");
+            if (!Game.Type("NuclearOption.UI.BetterBorder").Properties.Any(x => x.Name == "FillColor" && x.GetMethod != null && x.GetMethod.IsPublic)) fail.Add("NuclearOption.UI.BetterBorder.FillColor (property,public)");
+            if (!Game.Type("NuclearOption.UI.BetterBorder").Properties.Any(x => x.Name == "color" && x.GetMethod != null && x.GetMethod.IsPublic)) fail.Add("NuclearOption.UI.BetterBorder.color (property,public)");
+            if (!Game.Type("NuclearOption.UI.BaseToggle").Properties.Any(x => x.Name == "isOn" && x.GetMethod != null && x.GetMethod.IsPublic)) fail.Add("NuclearOption.UI.BaseToggle.isOn (property,public)");
+            if (!Game.Type("NuclearOption.UI.BaseToggle").Fields.Any(x => x.Name == "onValueChanged" && x.IsPublic)) fail.Add("NuclearOption.UI.BaseToggle.onValueChanged (field,public)");
+            if (!Game.Type("NuclearOption.UI.BaseToggle").Methods.Any(x => x.Name == "SetIsOnWithoutNotify" && x.IsPublic)) fail.Add("NuclearOption.UI.BaseToggle.SetIsOnWithoutNotify (method,public)");
+            if (Game.Module.GetType("NuclearOption.UI.BoxToggle") == null && Game.Module.GetTypes().All(t => t.Name != "NuclearOption.UI.BoxToggle")) fail.Add("NuclearOption.UI.BoxToggle (type)");
+            if (Game.Module.GetType("NuclearOption.UI.SliderToggle") == null && Game.Module.GetTypes().All(t => t.Name != "NuclearOption.UI.SliderToggle")) fail.Add("NuclearOption.UI.SliderToggle (type)");
+            if (!Game.Type("NuclearOption.UI.BetterToggleGroup").Methods.Any(x => x.Name == "SetIndex" && x.IsPublic)) fail.Add("NuclearOption.UI.BetterToggleGroup.SetIndex (method,public)");
+            if (!Game.Type("NuclearOption.UI.BetterToggleGroup").Methods.Any(x => x.Name == "GetIndex" && x.IsPublic)) fail.Add("NuclearOption.UI.BetterToggleGroup.GetIndex (method,public)");
+            if (!Game.Type("NuclearOption.UI.BetterToggleGroup").Methods.Any(x => x.Name == "SetFlags" && x.IsPublic)) fail.Add("NuclearOption.UI.BetterToggleGroup.SetFlags (method,public)");
+            if (!Game.Type("NuclearOption.UI.BetterToggleGroup").Methods.Any(x => x.Name == "GetFlags" && x.IsPublic)) fail.Add("NuclearOption.UI.BetterToggleGroup.GetFlags (method,public)");
             if (!Game.Type("FactionHQ").Fields.Any(x => x.Name == "trackingDatabase" && x.IsPublic)) fail.Add("FactionHQ.trackingDatabase (field,public)");
             if (!Game.Type("RoleIdentity").Fields.Any(x => x.Name == "antiSurface" && x.IsPublic)) fail.Add("RoleIdentity.antiSurface (field,public)");
             if (!Game.Type("RoleIdentity").Fields.Any(x => x.Name == "antiAir" && x.IsPublic)) fail.Add("RoleIdentity.antiAir (field,public)");
