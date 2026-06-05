@@ -57,6 +57,19 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void Tick_emits_battle_feed_events()
+        {
+            var state = new CommanderState(SquadCfg(), null, Cfg());
+            var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
+
+            CommanderBrain.Tick(new WorldSnapshot(roster, new List<EnemyView> { E("e1", P(5000, 0)) }, 0f, null, 10f), state);
+            Assert.Contains(state.Log.Recent(20), e => e.Kind == ReportKind.OperationStarted);
+
+            CommanderBrain.Tick(new WorldSnapshot(roster, new List<EnemyView>(), 0f, null, 20f), state); // threat dies
+            Assert.Contains(state.Log.Recent(20), e => e.Kind == ReportKind.ObjectiveComplete);
+        }
+
+        [Fact]
         public void Tick_softens_with_artillery_before_committing_armor()
         {
             var state = new CommanderState(SquadCfg(), new Doctrine { RiskTolerance = 0f }, Cfg());

@@ -93,7 +93,7 @@ namespace CommanderLayer.Game
             if (Plugin.EnableAutoCommander)
             {
                 var known = _intel.KnownEnemiesNear(new Vec3(0f, 0f, 0f), float.MaxValue); // all tracked enemies
-                var snapshot = new WorldSnapshot(roster, known, 0f, _committed); // exclude manually-owned units
+                var snapshot = new WorldSnapshot(roster, known, 0f, _committed, UnityEngine.Time.unscaledTime);
                 foreach (var t in CommanderBrain.Tick(snapshot, _auto)) _cmds.Execute(t);
             }
 

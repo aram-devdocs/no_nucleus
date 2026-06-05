@@ -16,6 +16,8 @@ namespace CommanderLayer.Core.Command
         public Doctrine Doctrine { get; }
         public BrainConfig BrainConfig { get; }
         public AutonomyLevel Autonomy { get; set; } = AutonomyLevel.Auto;
+        /// <summary>The battle feed — the brain appends events (op started/phase changed/completed) here.</summary>
+        public BattleLog Log { get; } = new BattleLog();
         /// <summary>Last objective each unit was tasked toward — so the brain only re-issues on change (no spam).</summary>
         public Dictionary<string, string> LastObjectiveByUnit { get; } = new Dictionary<string, string>();
 

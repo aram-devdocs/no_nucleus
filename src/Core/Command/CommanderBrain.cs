@@ -50,12 +50,21 @@ namespace CommanderLayer.Core.Command
                 {
                     op.Status = OperationStatus.Complete;
                     op.Phase = OrderPhase.Complete;
+                    state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.ObjectiveComplete, $"Secured: {op.Objective.Kind}", op.Id));
                     continue;
                 }
-                if (op.SquadIds.Count == 0) { op.Status = OperationStatus.Failed; continue; }
+                if (op.SquadIds.Count == 0)
+                {
+                    op.Status = OperationStatus.Failed;
+                    state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.Blocked, $"{op.Objective.Kind}: lost the force", op.Id));
+                    continue;
+                }
                 // Advance the combined-arms cursor: air superiority -> SEAD -> soften -> assault, per gates.
+                var prevPhase = op.CombatPhase;
                 op.CombatPhase = PhaseGates.ActivePhase(current, op.InitialThreat ?? current,
                     new ForceState(FighterStrength(op, state)), state.Doctrine);
+                if (op.CombatPhase != prevPhase)
+                    state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.PhaseChanged, $"-> {op.CombatPhase}", op.Id));
             }
 
             // 2. Free squads from terminal operations (B1), then drop the terminal ops and prune auto
@@ -95,6 +104,8 @@ namespace CommanderLayer.Core.Command
                 // Set the starting phase now so the op tasks the right families on its very first tick.
                 op.CombatPhase = PhaseGates.ActivePhase(initial, initial, new ForceState(FighterStrength(op, state)), state.Doctrine);
                 state.Operations.Add(op);
+                state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.OperationStarted,
+                    $"{obj.Kind} ({squadIds.Count} squad{(squadIds.Count == 1 ? "" : "s")})", op.Id));
             }
 
             // 5. Issue tasking — only when a unit's target objective CHANGED, so we don't re-spam SetDestination

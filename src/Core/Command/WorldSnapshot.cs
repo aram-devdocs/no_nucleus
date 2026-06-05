@@ -14,14 +14,17 @@ namespace CommanderLayer.Core.Command
         public float Funds { get; }
         /// <summary>Units the MANUAL layer already committed — the autonomous brain must not poach them.</summary>
         public IReadOnlyCollection<string> CommittedUnitIds { get; }
+        /// <summary>Game time (seconds) — stamped onto battle-feed events.</summary>
+        public float Time { get; }
 
         public WorldSnapshot(IReadOnlyList<UnitView> roster, IReadOnlyList<EnemyView> knownEnemies, float funds = 0f,
-            IReadOnlyCollection<string> committedUnitIds = null)
+            IReadOnlyCollection<string> committedUnitIds = null, float time = 0f)
         {
             Roster = roster ?? new List<UnitView>();
             KnownEnemies = knownEnemies ?? new List<EnemyView>();
             Funds = funds;
             CommittedUnitIds = committedUnitIds ?? new List<string>();
+            Time = time;
         }
     }
 }
