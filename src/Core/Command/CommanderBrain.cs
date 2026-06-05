@@ -23,6 +23,61 @@ namespace CommanderLayer.Core.Command
     public static class CommanderBrain
     {
         /// <summary>
+        /// One autonomous decision tick (pure): reconcile squads against the live roster, generate objectives
+        /// from fog-of-war intel, spin up operations for uncovered objectives with a matched force, prune
+        /// terminal/forceless operations, and emit the per-unit tasking to execute. Mutates <paramref
+        /// name="state"/>; returns the tasks the executor should issue. Never adds faction objectives (the
+        /// stampede trap) — tasking is always the assigned squads' own units. With no enemies + no objectives
+        /// it returns nothing, preserving "do nothing = the game still runs".
+        /// </summary>
+        public static IReadOnlyList<UnitTask> Tick(WorldSnapshot snapshot, CommanderState state)
+        {
+            var tasks = new List<UnitTask>();
+            if (state.Autonomy == AutonomyLevel.Manual) return tasks; // player took the whole commander
+
+            state.Squads.Reconcile(snapshot.Roster);
+
+            // Drop operations whose squads are gone (disbanded/dead) so their objectives can be re-planned.
+            foreach (var op in state.Operations)
+            {
+                if (op.IsTerminal) continue;
+                op.SquadIds.RemoveAll(sid => state.Squads.ById(sid) == null);
+                if (op.SquadIds.Count == 0) op.Status = OperationStatus.Failed;
+            }
+
+            // New objectives from known enemy clusters not already covered.
+            foreach (var obj in GenerateObjectives(snapshot.KnownEnemies, state.Objectives, state.BrainConfig))
+                state.Objectives.Add(obj);
+
+            // Open an operation for each uncovered objective, matching a suitable free force.
+            foreach (var obj in state.Objectives)
+            {
+                if (state.OperationFor(obj.Id) != null) continue;
+                var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
+                if (squadIds.Count == 0) continue; // no force available — production request comes in P3
+                var op = new Operation(state.NextOperationId(), obj, squadIds) { Status = OperationStatus.Active };
+                foreach (var sid in squadIds) state.Squads.ById(sid).AssignedOperationId = op.Id;
+                state.Operations.Add(op);
+            }
+
+            // Issue tasking: each active operation moves/attacks with its assigned squads' units.
+            foreach (var op in state.Operations)
+            {
+                if (op.Status != OperationStatus.Active) continue;
+                var verb = op.Objective.TargetId != null && op.Objective.Kind == ObjectiveKind.DestroyTarget
+                    ? TaskVerb.AttackTarget : TaskVerb.MoveTo;
+                foreach (var sid in op.SquadIds)
+                {
+                    var squad = state.Squads.ById(sid);
+                    if (squad == null) continue;
+                    foreach (var uid in squad.MemberUnitIds)
+                        tasks.Add(new UnitTask(uid, verb, op.Objective.Position, op.Objective.TargetId));
+                }
+            }
+            return tasks;
+        }
+
+        /// <summary>
         /// Generate DestroyTarget objectives for known enemy clusters that no existing objective already
         /// covers. Highest strategic-priority enemies seed clusters first; deterministic.
         /// </summary>

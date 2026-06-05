@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CommanderLayer.Core.Command;
 using CommanderLayer.Core.Model;
 using CommanderLayer.Core.Planning;
 
@@ -18,6 +19,7 @@ namespace CommanderLayer.Game
         private readonly GameProduction _production = new GameProduction();
         private readonly GameCapture _capture = new GameCapture();
         private readonly CommanderDebugProbe _debug = new CommanderDebugProbe();
+        private readonly CommanderState _auto = new CommanderState();
         private int _counter;
 
         public CommanderService(CommanderConfig cfg)
@@ -84,6 +86,17 @@ namespace CommanderLayer.Game
             foreach (var t in reissue) _cmds.Execute(t);
             _committed = _mgr.CommittedUnitIds(roster);
             RefreshAirIntent();
+
+            // EXPERIMENTAL autonomous commander (default off — "do nothing = game runs"). When enabled it
+            // generates objectives from fog-of-war intel and tasks auto-formed squads. Validate in playtest
+            // before relying on it; may overlap with manual orders until operations subsume them (later).
+            if (Plugin.EnableAutoCommander)
+            {
+                var known = _intel.KnownEnemiesNear(new Vec3(0f, 0f, 0f), float.MaxValue); // all tracked enemies
+                foreach (var t in CommanderBrain.Tick(new WorldSnapshot(roster, known), _auto))
+                    _cmds.Execute(t);
+            }
+
             _debug.Tick();   // S0 instrumentation (no-op unless CommanderDebug)
         }
 

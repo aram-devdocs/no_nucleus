@@ -21,6 +21,48 @@ namespace CommanderLayer.Tests
         }
 
         private static BrainConfig Cfg() => new BrainConfig { ClusterRadius = 3000f, CoverageRadius = 4000f, MaxSquadsPerOperation = 2 };
+        private static SquadConfig SquadCfg() => new SquadConfig { FormRadius = 4000f, MaxSquadSize = 5 };
+
+        private static UnitView U(string id, Role role, Vec3 pos) =>
+            new UnitView(id, id, pos, UnitClass.GroundVehicle, false, true,
+                new UnitCapability(role, true, false, false, false, false), 1f, 0f, 1);
+
+        [Fact]
+        public void Tick_generates_operation_and_tasks_from_threat()
+        {
+            var state = new CommanderState(SquadCfg(), null, Cfg());
+            var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)), U("a2", Role.Armor, P(100, 0)) };
+            var known = new List<EnemyView> { E("e1", P(5000, 0)) };
+
+            var tasks = CommanderBrain.Tick(new WorldSnapshot(roster, known), state);
+
+            Assert.Single(state.Objectives);
+            Assert.Single(state.Operations);
+            Assert.Equal(OperationStatus.Active, state.Operations[0].Status);
+            Assert.Equal(2, tasks.Count);                                  // both armor units tasked
+            Assert.All(tasks, t => Assert.Equal(TaskVerb.MoveTo, t.Verb));
+        }
+
+        [Fact]
+        public void Tick_with_no_enemies_does_nothing()
+        {
+            var state = new CommanderState(SquadCfg(), null, Cfg());
+            var tasks = CommanderBrain.Tick(new WorldSnapshot(new List<UnitView>(), new List<EnemyView>()), state);
+            Assert.Empty(state.Objectives);
+            Assert.Empty(state.Operations);
+            Assert.Empty(tasks);
+        }
+
+        [Fact]
+        public void Tick_does_nothing_when_commander_is_manual()
+        {
+            var state = new CommanderState(SquadCfg(), null, Cfg()) { Autonomy = AutonomyLevel.Manual };
+            var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
+            var known = new List<EnemyView> { E("e1", P(5000, 0)) };
+            var tasks = CommanderBrain.Tick(new WorldSnapshot(roster, known), state);
+            Assert.Empty(tasks);
+            Assert.Empty(state.Operations);
+        }
 
         [Fact]
         public void GenerateObjectives_clusters_nearby_enemies_into_one()
