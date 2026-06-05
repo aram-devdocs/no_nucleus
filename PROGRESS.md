@@ -33,9 +33,9 @@ file wiring myself during integration windows.
 - **WIRING CYCLE (mine, in progress):**
   - ✅ BattleLog → brain emits feed (9c0b130).
   - ✅ ThreatBoard+TargetPrioritizer → brain GenerateObjectives, consolidated clustering, ranked (b0d64b4). 112 Core.
-  - TODO: Production gap-fill — brain detects force gaps → ProductionPlanner → ProductionQueue; new
-    GameProductionService drains queue via CmdPurchaseConvoy + builds ConvoyCatalog from faction.GetConvoyGroups
-    (auto-production partly S0-gated: convoy contents unknown → fallback name→roles table).
+  - ✅ Production needs: brain emits RequiredComposition per unfielded objective (0100074). 113 Core.
+  - In flight (agent): GameProductionService (Game catalog from convoy groups via name-heuristic + drain
+    via CmdPurchaseConvoy). On land: I wire CommanderService to plan(ProductionNeeds)->queue->drain.
   - TODO: HqView + Proposals consumed by the UI (P5 HQ panel surface).
 - Then P6 codegen native UI (mine). Then playtest. (DestroyTarget TargetId deferred — executor ignores it; id-space mismatch per review S3.)
 
