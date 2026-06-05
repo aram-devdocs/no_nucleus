@@ -83,8 +83,21 @@ namespace CommanderLayer.Ui
             _onToggleSquadManual = onToggleSquadManual;
             _onBuyConvoy = onBuyConvoy;
             _root = UiFactory.Panel("CommanderPanel", parent, theme.PanelBackground);
-            var layout = UiFactory.VerticalLayout("Layout", _root, 6f, new RectOffset(10, 10, 10, 10));
-            UiFactory.Stretch((RectTransform)layout.transform);
+            // Scrollable content: a clipped viewport + a content column whose height fits its children, so the
+            // many sections never compress (the jerk) — they extend and the panel scrolls instead.
+            var viewport = UiFactory.Panel("Viewport", _root, new Color(0f, 0f, 0f, 0f));
+            UiFactory.Stretch(viewport);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var layout = UiFactory.VerticalLayout("Layout", viewport, 6f, new RectOffset(10, 10, 10, 10));
+            var lrt = (RectTransform)layout.transform;
+            lrt.anchorMin = new Vector2(0f, 1f); lrt.anchorMax = new Vector2(1f, 1f);
+            lrt.pivot = new Vector2(0.5f, 1f); lrt.anchoredPosition = Vector2.zero; lrt.sizeDelta = Vector2.zero;
+            var fitter = layout.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var scroll = _root.gameObject.AddComponent<ScrollRect>();
+            scroll.content = lrt; scroll.viewport = viewport;
+            scroll.horizontal = false; scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 24f;
 
             _title = UiFactory.Label("Title", layout.transform, "COMMANDER", 18f, theme.Accent);
             UiFactory.PreferredHeight(_title.gameObject, 24f);
