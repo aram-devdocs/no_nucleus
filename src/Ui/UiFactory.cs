@@ -178,17 +178,42 @@ namespace CommanderLayer.Ui
             return _ringSprite;
         }
 
-        public static Image Ring(string name, Transform parent, Color color)
+        public static Image Ring(string name, Transform parent, Color color, bool dashed = false)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             go.transform.SetParent(parent, false);
             var img = go.GetComponent<Image>();
-            img.sprite = RingSprite();
+            img.sprite = dashed ? DashedRingSprite() : RingSprite();
             img.type = Image.Type.Simple;
             img.color = color;
             img.raycastTarget = false;
             ((RectTransform)go.transform).pivot = new Vector2(0.5f, 0.5f);
             return img;
+        }
+
+        private static Sprite _dashedRingSprite;
+
+        /// <summary>A dashed anti-aliased ring (white; tint via Image.color) — reads as a "range" cue.</summary>
+        public static Sprite DashedRingSprite()
+        {
+            if (_dashedRingSprite != null) return _dashedRingSprite;
+            const int n = 128, dashes = 32;
+            float c = (n - 1) / 2f, outer = c, inner = c - 4f; // 4px band
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var px = new Color[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c));
+                    bool band = d <= outer && d >= inner;
+                    float ang = Mathf.Atan2(y - c, x - c) * Mathf.Rad2Deg + 180f; // dash gaps around circumference
+                    bool on = (int)(ang / (360f / dashes)) % 2 == 0;
+                    px[y * n + x] = new Color(1f, 1f, 1f, band && on ? 1f : 0f);
+                }
+            tex.SetPixels(px);
+            tex.Apply();
+            _dashedRingSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+            return _dashedRingSprite;
         }
     }
 }

@@ -16,13 +16,30 @@ namespace CommanderLayer.Ui
         private readonly IMapProjection _projection;
         private readonly List<Image> _markers = new List<Image>();
         private readonly List<Image> _lines = new List<Image>();
-        private Image _hoverRing;
+        private readonly List<Image> _hoverLines = new List<Image>();
+        private Image _hoverRing;     // outer = unit pull radius
+        private Image _hoverRingInner; // inner = area-of-operations (threat-assessment) radius
         private Image _hoverDot;
+
+        // Ring on-screen size is local-RectTransform units (mapDisplayFactor is a fractional scalar), clamped
+        // independently per ring so neither collapses (the playtest "tiny ring") nor explodes across zoom.
+        private const float RingMinLocal = 60f;
+        private const float RingMaxLocal = 6000f;
 
         public MapOverlay(Transform iconLayer, IMapProjection projection)
         {
-            _layer = iconLayer;
             _projection = projection;
+            // Draw our overlay in a child container pinned as the FIRST sibling of the icon layer, so the
+            // game's own unit icons/labels render ON TOP of us — our markers add context, never bury info.
+            var go = new GameObject("CommanderOverlay", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(iconLayer, false);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.localPosition = Vector3.zero;
+            rt.localScale = Vector3.one;
+            rt.SetAsFirstSibling();
+            _layer = rt;
         }
 
         public void Render(IReadOnlyList<OrderState> orders, IReadOnlyDictionary<string, Vec3> unitPositions)
@@ -48,32 +65,53 @@ namespace CommanderLayer.Ui
             for (int i = li; i < _lines.Count; i++) _lines[i].gameObject.SetActive(false);
         }
 
-        /// <summary>Show the placement ring (range) at a world point, tinted by kind / can-place.</summary>
-        public void SetHover(Vec3 world, float rangeMeters, OrderKind kind, bool canPlace)
+        /// <summary>
+        /// Show the placement preview at a world point: an outer ring (unit pull radius), an inner ring
+        /// (area of operations / threat radius), a centre dot, and a faint line to every unit that would be
+        /// assigned (<paramref name="previewUnits"/>) so the player sees exactly who responds.
+        /// </summary>
+        public void SetHover(Vec3 world, float pullMeters, float aoMeters, OrderKind kind, bool canPlace,
+            IReadOnlyList<Vec3> previewUnits = null)
         {
             EnsureHover();
             Vec3 local = _projection.WorldToMapLocal(world);
-            float diam = 2f * rangeMeters * _projection.MapScale;
-
-            var rt = (RectTransform)_hoverRing.transform;
-            rt.localPosition = new Vector3(local.X, local.Y, 0f);
-            rt.sizeDelta = new Vector2(diam, diam);
-            // Ring keeps the distinct per-order color when placeable; the game's native HUD-hostile color
-            // signals "can't place here" so the cue reads like the rest of the game.
+            var center = new Vector3(local.X, local.Y, 0f);
             Color c = canPlace ? OrderColors.For(kind) : NativeColors.Hostile;
-            c.a = 0.85f; _hoverRing.color = c;
-            _hoverRing.gameObject.SetActive(true);
+
+            SizeRing(_hoverRing, center, pullMeters, c, 0.85f);
+            SizeRing(_hoverRingInner, center, aoMeters, c, 0.5f);
 
             var dt = (RectTransform)_hoverDot.transform;
-            dt.localPosition = new Vector3(local.X, local.Y, 0f);
+            dt.localPosition = center;
             _hoverDot.color = canPlace ? NativeColors.Friendly : NativeColors.Hostile;
             _hoverDot.gameObject.SetActive(true);
+
+            // Lines to the units that would be assigned.
+            int hi = 0;
+            if (previewUnits != null)
+            {
+                foreach (var uw in previewUnits)
+                    DrawLine(HoverLine(hi++), local, _projection.WorldToMapLocal(uw), NativeColors.Friendly);
+            }
+            for (int i = hi; i < _hoverLines.Count; i++) _hoverLines[i].gameObject.SetActive(false);
+        }
+
+        private void SizeRing(Image ring, Vector3 center, float meters, Color color, float alpha)
+        {
+            float diam = Mathf.Clamp(2f * meters * _projection.MapScale, RingMinLocal, RingMaxLocal);
+            var rt = (RectTransform)ring.transform;
+            rt.localPosition = center;
+            rt.sizeDelta = new Vector2(diam, diam);
+            color.a = alpha; ring.color = color;
+            ring.gameObject.SetActive(true);
         }
 
         public void ClearHover()
         {
             if (_hoverRing != null) _hoverRing.gameObject.SetActive(false);
+            if (_hoverRingInner != null) _hoverRingInner.gameObject.SetActive(false);
             if (_hoverDot != null) _hoverDot.gameObject.SetActive(false);
+            foreach (var l in _hoverLines) l.gameObject.SetActive(false);
         }
 
         /// <summary>Hide all overlay graphics (e.g. when the map closes).</summary>
@@ -86,10 +124,8 @@ namespace CommanderLayer.Ui
 
         private void EnsureHover()
         {
-            if (_hoverRing == null)
-            {
-                _hoverRing = UiFactory.Ring("CmdHoverRing", _layer, Color.white);
-            }
+            if (_hoverRing == null) _hoverRing = UiFactory.Ring("CmdHoverRing", _layer, Color.white, dashed: true);
+            if (_hoverRingInner == null) _hoverRingInner = UiFactory.Ring("CmdHoverRingInner", _layer, Color.white, dashed: true);
             if (_hoverDot == null)
             {
                 _hoverDot = UiFactory.LineImage("CmdHoverDot", _layer, Color.white);
@@ -97,6 +133,13 @@ namespace CommanderLayer.Ui
                 rt.pivot = new Vector2(0.5f, 0.5f);
                 rt.sizeDelta = new Vector2(10f, 10f);
             }
+        }
+
+        private Image HoverLine(int i)
+        {
+            while (_hoverLines.Count <= i) _hoverLines.Add(UiFactory.LineImage("CmdHoverLine" + _hoverLines.Count, _layer, Color.white));
+            _hoverLines[i].gameObject.SetActive(true);
+            return _hoverLines[i];
         }
 
         private Image Marker(int i)

@@ -23,8 +23,10 @@ namespace CommanderLayer.Ui
         private readonly TextMeshProUGUI _rangeLabel;
         private readonly TextMeshProUGUI _ordersHeader;
         private readonly Transform _ordersContainer;
-        private readonly Image _airImg, _landImg, _seaImg;
+        private readonly List<DomToggle> _domToggles = new List<DomToggle>();
         private readonly Image _attackImg, _defendImg, _captureImg, _resupplyImg, _buildImg, _moveImg;
+
+        private struct DomToggle { public Image Img; public TextMeshProUGUI Label; public DomainSet Bit; public string Name; }
         private readonly Action<string> _onClearOrder;
         private readonly List<RowWidgets> _rows = new List<RowWidgets>();
 
@@ -50,12 +52,13 @@ namespace CommanderLayer.Ui
             _status = UiFactory.Label("Status", layout.transform, "", 13f, theme.Muted);
             UiFactory.PreferredHeight(_status.gameObject, 32f);
 
-            // Domain toggles
+            // Domain toggles (checkbox-style: "[x] AIR" on, "[ ] AIR" off; single accent so state is obvious)
+            UiFactory.Label("DomHint", layout.transform, "DOMAINS (who may be tasked)", 11f, theme.Muted);
             var domRow = UiFactory.HorizontalLayout("Domains", layout.transform, 6f);
             UiFactory.PreferredHeight(domRow.gameObject, 26f);
-            _airImg = ToggleButton(domRow.transform, "AIR", () => Flip(DomainSet.Air));
-            _landImg = ToggleButton(domRow.transform, "LAND", () => Flip(DomainSet.Land));
-            _seaImg = ToggleButton(domRow.transform, "SEA", () => Flip(DomainSet.Sea));
+            AddToggle(domRow.transform, "AIR", DomainSet.Air);
+            AddToggle(domRow.transform, "LAND", DomainSet.Land);
+            AddToggle(domRow.transform, "SEA", DomainSet.Sea);
 
             // Range stepper
             var rangeRow = UiFactory.HorizontalLayout("Range", layout.transform, 6f);
@@ -108,8 +111,16 @@ namespace CommanderLayer.Ui
             else if (armed.HasValue)
             {
                 int n = preview != null ? preview.Count : 0;
-                string can = n > 0 ? $"{n} unit(s) will respond" : "no units in range — widen range or domains";
-                _status.text = $"{armed.Value}: click the map  ·  {can}";
+                if (n > 0)
+                {
+                    string names = string.Join(", ", preview.Assignable.Take(4).Select(u => u.Name));
+                    if (n > 4) names += $" +{n - 4}";
+                    _status.text = $"{armed.Value} → {n} will respond: {names}";
+                }
+                else
+                {
+                    _status.text = $"{armed.Value}: no units available — widen range/domains (or all are tasked)";
+                }
             }
             else
             {
@@ -158,17 +169,24 @@ namespace CommanderLayer.Ui
             return " · " + list;
         }
 
-        private Image ToggleButton(Transform parent, string text, Action onClick)
-            => UiFactory.Button("Dom_" + text, parent, text, _theme, () => onClick()).GetComponent<Image>();
+        private void AddToggle(Transform parent, string name, DomainSet bit)
+        {
+            var btn = UiFactory.Button("Dom_" + name, parent, name, _theme, () => Flip(bit));
+            var lbl = btn.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true);
+            _domToggles.Add(new DomToggle { Img = btn.GetComponent<Image>(), Label = lbl, Bit = bit, Name = name });
+        }
 
         private void Flip(DomainSet bit) { _domains ^= bit; RefreshControls(); }
         private void StepRange(int delta) { _rangeKm = Mathf.Clamp(_rangeKm + delta, 1, 20); RefreshControls(); }
 
         private void RefreshControls()
         {
-            _airImg.color = (_domains & DomainSet.Air) != 0 ? OrderColors.Defend : _theme.ButtonIdle;
-            _landImg.color = (_domains & DomainSet.Land) != 0 ? OrderColors.Resupply : _theme.ButtonIdle;
-            _seaImg.color = (_domains & DomainSet.Sea) != 0 ? OrderColors.Attack : _theme.ButtonIdle;
+            foreach (var t in _domToggles)
+            {
+                bool on = (_domains & t.Bit) != 0;
+                t.Img.color = on ? _theme.Accent : _theme.ButtonIdle;             // single accent = ON, dim = OFF
+                if (t.Label != null) t.Label.text = (on ? "[x] " : "[ ] ") + t.Name; // unambiguous checkbox glyph
+            }
             if (_rangeLabel != null) _rangeLabel.text = $"{_rangeKm}.0 km";
         }
 

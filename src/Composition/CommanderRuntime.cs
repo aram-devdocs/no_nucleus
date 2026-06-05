@@ -84,7 +84,8 @@ namespace CommanderLayer.Composition
                 bool isBuild = _armed.Value == OrderKind.Build;
                 _hoverPreview = isBuild ? null : _service.PreviewAt(_armed.Value, hover, _screen.Domains, _screen.RangeMeters);
                 bool canPlace = isBuild || (_hoverPreview != null && _hoverPreview.CanPlace);
-                _overlay?.SetHover(hover, _screen.RangeMeters, _armed.Value, canPlace);
+                _overlay?.SetHover(hover, _screen.RangeMeters, _service.Config.ThreatRadius, _armed.Value, canPlace,
+                    PreviewPositions(_hoverPreview));
 
                 if (Input.GetMouseButtonDown(0))
                 {
@@ -130,6 +131,15 @@ namespace CommanderLayer.Composition
             var dict = new Dictionary<string, string>();
             foreach (var u in _service.LastRoster) dict[u.Id] = u.Name;
             return dict;
+        }
+
+        // Positions of the units a hover preview would assign — drawn as lines so the player sees who responds.
+        private static List<Vec3> PreviewPositions(AssignmentPreview preview)
+        {
+            if (preview == null) return null;
+            var list = new List<Vec3>(preview.Assignable.Count);
+            foreach (var u in preview.Assignable) list.Add(u.Position);
+            return list;
         }
 
         public void AttachCmdButton(VirtualMFD mfd)
