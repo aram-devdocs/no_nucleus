@@ -144,6 +144,49 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void Tick_yields_a_manual_operation_but_keeps_tasking_the_rest()
+        {
+            // Two separate threats -> two operations. Flip the first op to Manual; the brain must stop
+            // tasking its units (player drives that slice) yet keep tasking the Auto operation (the rest).
+            // One squad per op so each threat gets its own (MatchSquads ignores proximity, so a larger cap
+            // would let the first op grab both armor squads).
+            var state = new CommanderState(SquadCfg(), null,
+                new BrainConfig { ClusterRadius = 3000f, CoverageRadius = 4000f, MaxSquadsPerOperation = 1 });
+            var roster = new List<UnitView>
+            {
+                U("a1", Role.Armor, P(0, 0)),
+                U("b1", Role.Armor, P(60000, 0)),
+            };
+            var known = new List<EnemyView> { E("e1", P(5000, 0)), E("e2", P(65000, 0)) };
+            CommanderBrain.Tick(new WorldSnapshot(roster, known), state);
+            Assert.Equal(2, state.Operations.Count);
+
+            // Take the slice nearest a1's objective to Manual.
+            var manualOp = state.Operations.OrderBy(o => o.Objective.Position.HorizontalDistanceTo(P(0, 0))).First();
+            var autoOp = state.Operations.First(o => o.Id != manualOp.Id);
+            manualOp.Autonomy = AutonomyLevel.Manual;
+            // Forget prior tasking so a re-task would show up if the brain wrongly drove the Manual op.
+            state.LastObjectiveByUnit.Clear();
+
+            var tasks = CommanderBrain.Tick(new WorldSnapshot(roster, known), state);
+            var manualUnits = manualOp.SquadIds.SelectMany(sid => state.Squads.ById(sid).MemberUnitIds).ToHashSet();
+            var autoUnits = autoOp.SquadIds.SelectMany(sid => state.Squads.ById(sid).MemberUnitIds).ToHashSet();
+            Assert.DoesNotContain(tasks, t => manualUnits.Contains(t.UnitId)); // AI yielded the manual slice
+            Assert.Contains(tasks, t => autoUnits.Contains(t.UnitId));         // ...and kept driving the rest
+        }
+
+        [Fact]
+        public void MatchSquads_excludes_manual_owned_squads()
+        {
+            var obj = new Objective("o", ObjectiveKind.DestroyTarget, P(0, 0), ObjectiveSource.Auto);
+            var manual = Sq("armorManual", RoleFamily.Armor, 5);
+            manual.Autonomy = AutonomyLevel.Manual;                      // player owns it
+            var squads = new List<Squad> { manual, Sq("armorAuto", RoleFamily.Armor, 1) };
+            var chosen = CommanderBrain.MatchSquads(obj, squads, Cfg());
+            Assert.Equal(new[] { "armorAuto" }, chosen.ToArray());       // manual squad never auto-pulled
+        }
+
+        [Fact]
         public void GenerateObjectives_clusters_nearby_enemies_into_one()
         {
             var known = new List<EnemyView> { E("e1", P(0, 0)), E("e2", P(500, 0)), E("e3", P(50000, 0)) };

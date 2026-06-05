@@ -60,6 +60,8 @@ namespace CommanderLayer.Core.Command
                     continue;
                 }
                 // Advance the combined-arms cursor: air superiority -> SEAD -> soften -> assault, per gates.
+                // Skip for a player-driven (Manual) operation — the player sequences its phases (autonomy ladder).
+                if (op.Autonomy == AutonomyLevel.Manual) continue;
                 var prevPhase = op.CombatPhase;
                 op.CombatPhase = PhaseGates.ActivePhase(current, op.InitialThreat ?? current,
                     new ForceState(FighterStrength(op, state)), state.Doctrine);
@@ -122,6 +124,7 @@ namespace CommanderLayer.Core.Command
             foreach (var op in state.Operations)
             {
                 if (op.Status != OperationStatus.Active) continue;
+                if (op.Autonomy == AutonomyLevel.Manual) continue; // player drives this slice — brain yields it
                 var active = Families.ActiveInPhase(op.CombatPhase); // only this phase's families engage
                 var verb = op.Objective.TargetId != null && op.Objective.Kind == ObjectiveKind.DestroyTarget
                     ? TaskVerb.AttackTarget : TaskVerb.MoveTo;
@@ -129,6 +132,7 @@ namespace CommanderLayer.Core.Command
                 {
                     var squad = state.Squads.ById(sid);
                     if (squad == null || !active.Contains(squad.Family)) continue; // not this phase's turn — hold back
+                    if (squad.Autonomy == AutonomyLevel.Manual) continue;          // player drives this squad directly
                     foreach (var uid in squad.MemberUnitIds)
                     {
                         tasked.Add(uid);
@@ -224,7 +228,9 @@ namespace CommanderLayer.Core.Command
         {
             var suitable = Families.SuitableFor(objective.Kind);
             return (squads ?? new List<Squad>())
-                .Where(s => s != null && !s.IsEmpty && s.AssignedOperationId == null && suitable.Contains(s.Family))
+                .Where(s => s != null && !s.IsEmpty && s.AssignedOperationId == null
+                    && s.Autonomy != AutonomyLevel.Manual // player-owned squad — never auto-pulled into an op
+                    && suitable.Contains(s.Family))
                 .OrderByDescending(s => s.Strength).ThenBy(s => s.Id)
                 .Take(cfg.MaxSquadsPerOperation)
                 .Select(s => s.Id)
