@@ -187,6 +187,24 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void MatchSquads_prefers_the_nearest_suitable_squad_when_positions_known()
+        {
+            var obj = new Objective("o", ObjectiveKind.DestroyTarget, P(0, 0), ObjectiveSource.Auto);
+            var near = Sq("near", RoleFamily.Armor, 1);   // weaker, but close
+            var far = Sq("far", RoleFamily.Armor, 3);     // stronger, but across the map
+            var positions = new Dictionary<string, Vec3>();
+            foreach (var id in near.MemberUnitIds) positions[id] = P(1000, 0);
+            foreach (var id in far.MemberUnitIds) positions[id] = P(50000, 0);
+            var cfg = new BrainConfig { ClusterRadius = 3000f, CoverageRadius = 4000f, MaxSquadsPerOperation = 1 };
+
+            var chosen = CommanderBrain.MatchSquads(obj, new List<Squad> { far, near }, cfg, positions);
+            Assert.Equal(new[] { "near" }, chosen.ToArray());   // proximity beats raw strength
+
+            var noPos = CommanderBrain.MatchSquads(obj, new List<Squad> { far, near }, cfg);
+            Assert.Equal(new[] { "far" }, noPos.ToArray());     // without positions, strongest-first (back-compat)
+        }
+
+        [Fact]
         public void GenerateObjectives_clusters_nearby_enemies_into_one()
         {
             var known = new List<EnemyView> { E("e1", P(0, 0)), E("e2", P(500, 0)), E("e3", P(50000, 0)) };

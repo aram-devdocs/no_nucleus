@@ -91,11 +91,15 @@ namespace CommanderLayer.Core.Command
                          state.HomeBase, state.Doctrine))
                 state.Objectives.Add(obj);
 
-            // 4. Open an operation for each uncovered objective, matching a suitable free force.
+            // 4. Open an operation for each uncovered objective, matching a suitable free force. Squad
+            //    positions (member centroids) let MatchSquads send the NEAREST suitable squad, not a
+            //    cross-map one — combined arms that engages locally instead of streaming across the theater.
+            var positions = new Dictionary<string, Vec3>();
+            foreach (var u in snapshot.Roster) if (u != null) positions[u.Id] = u.Position;
             foreach (var obj in state.Objectives)
             {
                 if (state.OperationFor(obj.Id) != null) continue;
-                var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
+                var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig, positions);
                 if (squadIds.Count == 0) continue; // no force available — production request comes in P3
                 var initial = ThreatNear(snapshot, obj.Position, coverage); // baseline for the soften gate
                 var op = new Operation(state.NextOperationId(), obj, squadIds)
@@ -221,20 +225,35 @@ namespace CommanderLayer.Core.Command
         }
 
         /// <summary>
-        /// Pick the squad ids best suited to an objective: matching family, not empty, not already assigned;
-        /// strongest first, capped. (Proximity ordering is added once squad positions are threaded in.)
+        /// Pick the squad ids best suited to an objective: matching family, not empty, not already assigned,
+        /// not player-owned (Manual). When <paramref name="positions"/> (unit id -> world position) is given,
+        /// order by the NEAREST squad first (centroid of its members), then strongest, then id — so a local
+        /// threat draws the local force, not a stronger one across the map. With no positions, falls back to
+        /// strongest-first (unchanged). Capped at <see cref="BrainConfig.MaxSquadsPerOperation"/>.
         /// </summary>
-        public static IReadOnlyList<string> MatchSquads(Objective objective, IReadOnlyList<Squad> squads, BrainConfig cfg)
+        public static IReadOnlyList<string> MatchSquads(Objective objective, IReadOnlyList<Squad> squads, BrainConfig cfg,
+            IReadOnlyDictionary<string, Vec3> positions = null)
         {
             var suitable = Families.SuitableFor(objective.Kind);
-            return (squads ?? new List<Squad>())
+            var candidates = (squads ?? new List<Squad>())
                 .Where(s => s != null && !s.IsEmpty && s.AssignedOperationId == null
                     && s.Autonomy != AutonomyLevel.Manual // player-owned squad — never auto-pulled into an op
-                    && suitable.Contains(s.Family))
-                .OrderByDescending(s => s.Strength).ThenBy(s => s.Id)
-                .Take(cfg.MaxSquadsPerOperation)
-                .Select(s => s.Id)
-                .ToList();
+                    && suitable.Contains(s.Family));
+            var ranked = positions == null
+                ? candidates.OrderByDescending(s => s.Strength).ThenBy(s => s.Id)
+                : candidates.OrderBy(s => SquadDistance(s, objective.Position, positions))
+                            .ThenByDescending(s => s.Strength).ThenBy(s => s.Id);
+            return ranked.Take(cfg.MaxSquadsPerOperation).Select(s => s.Id).ToList();
+        }
+
+        // Horizontal distance from a squad's member centroid to a point. Unpositioned squads sort last.
+        private static float SquadDistance(Squad s, Vec3 target, IReadOnlyDictionary<string, Vec3> positions)
+        {
+            float sumX = 0f, sumZ = 0f; int n = 0;
+            foreach (var id in s.MemberUnitIds)
+                if (positions.TryGetValue(id, out var p)) { sumX += p.X; sumZ += p.Z; n++; }
+            if (n == 0) return float.MaxValue;
+            return new Vec3(sumX / n, 0f, sumZ / n).HorizontalDistanceTo(target);
         }
     }
 }
