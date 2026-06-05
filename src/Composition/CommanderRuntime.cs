@@ -218,27 +218,11 @@ namespace CommanderLayer.Composition
         private static bool IsPointerOverUi()
             => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-        // Frame the panel with the game's own procedural border component (NuclearOption.UI.BetterBorder)
-        // so it reads as a native window. Guarded — a styling failure must never break the working panel.
+        // Frame the panel with the game's own procedural border via the native-UI component library
+        // (NativeUi.Border -> NuclearOption.UI.BetterBorder) so it reads as a native window. The library call
+        // is itself guarded — a styling failure must never break the working panel.
         private static void TryAddNativeBorder(RectTransform panel, Color accent)
-        {
-            if (panel == null) return;
-            try
-            {
-                var go = new GameObject("NativeBorder", typeof(RectTransform));
-                go.transform.SetParent(panel, false);
-                UiFactory.Stretch((RectTransform)go.transform);
-                var border = go.AddComponent<NuclearOption.UI.BetterBorder>();
-                border.BorderThickness = 2f;
-                border.color = new Color(accent.r, accent.g, accent.b, 0.9f); // border = faction accent
-                border.FillColor = new Color(0f, 0f, 0f, 0f);                 // transparent fill (panel bg shows)
-                border.raycastTarget = false;
-            }
-            catch (System.Exception e)
-            {
-                Plugin.Log?.LogWarning("Native border styling skipped: " + e.Message);
-            }
-        }
+            => CommanderLayer.Ui.Native.NativeUi.Border(panel, accent);
 
         // Capture the game's own visual resources (font, HUD colors, map/threat icons) from the single
         // codegen'd source of truth — NativeAssets, a typed snapshot of GameAssets — and mirror them into
