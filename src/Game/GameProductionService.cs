@@ -29,7 +29,7 @@ namespace CommanderLayer.Game
                 foreach (var g in groups)
                 {
                     if (g == null) continue;
-                    options.Add(new ConvoyOption(g.Name, g.GetCost(), DeliversFor(g.Name)));
+                    options.Add(new ConvoyOption(g.Name, g.GetCost(), DeliversFor(g.Name), ContentsOf(g)));
                 }
             }
             return new ConvoyCatalog(options);
@@ -57,6 +57,21 @@ namespace CommanderLayer.Game
                 player.CmdPurchaseConvoy(req.ConvoyName);
                 Plugin.Log?.LogInfo($"Production purchase: {req.ConvoyName} (cost {req.Cost:0}, funds {hq.factionFunds:0})");
             }
+        }
+
+        /// <summary>Real, human-readable contents of a convoy from the game's own data
+        /// (<c>ConvoyGroup.Constituents</c> → unit name × count), e.g. "3× MBT, 1× SAM". Empty if unreadable.</summary>
+        private static string ContentsOf(Faction.ConvoyGroup g)
+        {
+            if (g?.Constituents == null || g.Constituents.Count == 0) return "";
+            var parts = new List<string>();
+            foreach (var c in g.Constituents)
+            {
+                if (c?.Type == null) continue;
+                string nm = !string.IsNullOrEmpty(c.Type.unitName) ? c.Type.unitName : c.Type.name;
+                parts.Add(c.Count > 1 ? $"{c.Count}× {nm}" : nm);
+            }
+            return string.Join(", ", parts);
         }
 
         /// <summary>

@@ -162,13 +162,13 @@ namespace CommanderLayer.Tests
         public void Queue_describe_renders_building_lines()
         {
             var q = new ProductionQueue();
-            q.Enqueue(new PurchaseRequest("Armor convoy", 1200f, "Bravo", RoleFamily.Armor));
-            q.Enqueue(new PurchaseRequest("AA convoy", 800f, null, RoleFamily.AirDefense));
+            q.Enqueue(new PurchaseRequest("Armor convoy", 1200f, "Bravo", RoleFamily.Armor, "3× MBT", manual: true));
+            q.Enqueue(new PurchaseRequest("AA convoy", 800f, null, RoleFamily.AirDefense)); // AI, no contents/squad
 
             var lines = q.Describe();
             Assert.Equal(2, lines.Count);
-            Assert.Equal("BUILDING · Armor convoy → Bravo · 1200", lines[0]); // named squad
-            Assert.Equal("BUILDING · AA convoy · 800", lines[1]);             // no squad suffix when unassigned
+            Assert.Equal("BUILD(you) Armor convoy [3× MBT] · 1200 → Bravo", lines[0]); // player buy, contents, squad
+            Assert.Equal("BUILD(AI) AA convoy · 800", lines[1]);                        // AI buy, no contents/squad
         }
 
         // ---------- helpers ----------

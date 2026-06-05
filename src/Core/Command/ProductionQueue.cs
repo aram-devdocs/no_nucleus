@@ -13,13 +13,20 @@ namespace CommanderLayer.Core.Command
         public float Cost { get; }
         public string ForSquadId { get; }
         public RoleFamily ForRole { get; }
+        /// <summary>Real contents for display, e.g. "3× MBT". Empty when unknown.</summary>
+        public string Contents { get; }
+        /// <summary>True if the player queued this buy; false if the autonomous commander did (source).</summary>
+        public bool Manual { get; }
 
-        public PurchaseRequest(string convoyName, float cost, string forSquadId, RoleFamily forRole)
+        public PurchaseRequest(string convoyName, float cost, string forSquadId, RoleFamily forRole,
+            string contents = "", bool manual = false)
         {
             ConvoyName = convoyName;
             Cost = cost;
             ForSquadId = forSquadId;
             ForRole = forRole;
+            Contents = contents ?? "";
+            Manual = manual;
         }
     }
 
@@ -50,11 +57,15 @@ namespace CommanderLayer.Core.Command
             return head;
         }
 
-        /// <summary>One status line per pending buy, e.g. "BUILDING · Armor convoy → Bravo · 1200" (or no
-        /// squad suffix when the buy isn't tied to a named squad yet).</summary>
+        /// <summary>One status line per pending buy: source (you/AI), name, real contents, cost, and target
+        /// squad if any — e.g. "BUILD(you) Armor column [3× MBT] · 1200 → Bravo".</summary>
         public IReadOnlyList<string> Describe() =>
-            _pending.Select(r => string.IsNullOrEmpty(r.ForSquadId)
-                ? $"BUILDING · {r.ConvoyName} · {r.Cost:0}"
-                : $"BUILDING · {r.ConvoyName} → {r.ForSquadId} · {r.Cost:0}").ToList();
+            _pending.Select(r =>
+            {
+                string src = r.Manual ? "you" : "AI";
+                string contents = string.IsNullOrEmpty(r.Contents) ? "" : $" [{r.Contents}]";
+                string squad = string.IsNullOrEmpty(r.ForSquadId) ? "" : $" → {r.ForSquadId}";
+                return $"BUILD({src}) {r.ConvoyName}{contents} · {r.Cost:0}{squad}";
+            }).ToList();
     }
 }

@@ -37,9 +37,12 @@ namespace CommanderLayer.Core.Command
         public int Strength { get; }
         public SquadStatus Status { get; }
         public string AssignedOperationId { get; }
+        public AutonomyLevel Autonomy { get; }
+        /// <summary>What the squad is doing right now, e.g. "DestroyTarget — Strike" or "Reserve". For the UI.</summary>
+        public string Activity { get; }
 
         public SquadView(string id, string name, RoleFamily family, int strength, SquadStatus status,
-            string assignedOperationId)
+            string assignedOperationId, AutonomyLevel autonomy, string activity)
         {
             Id = id;
             Name = name;
@@ -47,6 +50,8 @@ namespace CommanderLayer.Core.Command
             Strength = strength;
             Status = status;
             AssignedOperationId = assignedOperationId;
+            Autonomy = autonomy;
+            Activity = activity ?? "";
         }
     }
 
@@ -95,7 +100,8 @@ namespace CommanderLayer.Core.Command
 
             var squads = state.Squads.Squads
                 .Select(s => new SquadView(
-                    s.Id, s.Name, s.Family, s.Strength, s.Status, s.AssignedOperationId))
+                    s.Id, s.Name, s.Family, s.Strength, s.Status, s.AssignedOperationId, s.Autonomy,
+                    SquadActivity(s, state)))
                 .ToList();
 
             var productionLines = production != null
@@ -108,6 +114,19 @@ namespace CommanderLayer.Core.Command
 
             return new HqSnapshot(operations, squads, productionLines, recent, state.Autonomy,
                 state.Proposals.ToList());
+        }
+
+        /// <summary>What a squad is doing: its operation's objective + combat phase if engaged, else its
+        /// status (Reserve/Forming/Ready). Manual squads are flagged as player-held.</summary>
+        private static string SquadActivity(Squad s, CommanderState state)
+        {
+            if (s.Autonomy == AutonomyLevel.Manual) return "YOURS (manual)";
+            if (!string.IsNullOrEmpty(s.AssignedOperationId))
+            {
+                var op = state.Operations.Find(o => o.Id == s.AssignedOperationId);
+                if (op != null) return $"{op.Objective.Kind} — {op.CombatPhase}";
+            }
+            return s.Status.ToString();
         }
     }
 }

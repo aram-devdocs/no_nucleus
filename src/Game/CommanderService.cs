@@ -107,13 +107,15 @@ namespace CommanderLayer.Game
                         foreach (var kv in need.Items) gap.Add(kv.Key, kv.Value);
                     foreach (var opt in ProductionPlanner.Plan(gap, _prodService.Catalog(), hq.factionFunds))
                     {
-                        _prodQueue.Enqueue(new PurchaseRequest(opt.Name, opt.Cost, null, RoleFamily.Armor));
+                        _prodQueue.Enqueue(new PurchaseRequest(opt.Name, opt.Cost, null, RoleFamily.Armor, opt.Contents, manual: false));
                         _auto.Log.Append(new ReportEvent(UnityEngine.Time.unscaledTime,
-                            ReportKind.ProductionQueued, $"Buying {opt.Name} ({opt.Cost:0})", null));
+                            ReportKind.ProductionQueued, $"AI buying {opt.Name}", null));
                     }
                 }
-                _prodService.Drain(_prodQueue);
             }
+
+            // Drain the production queue every tick (manual buys go through even when the commander is OFF).
+            _prodService.Drain(_prodQueue);
 
             // Publish aircraft ingress zones AFTER the brain runs so they reflect fresh operation phases.
             RefreshAirIntent();
@@ -187,6 +189,33 @@ namespace CommanderLayer.Game
         public void ConfirmTopProposal()
         {
             if (_auto.Proposals.Count > 0) _auto.ConfirmProposal(_auto.Proposals[0].RefId);
+        }
+
+        // ---- Manual production (buy troops) ----
+        /// <summary>The buyable convoy menu (name + cost + real contents) for the build UI.</summary>
+        public Core.Command.ConvoyCatalog BuildCatalog() => _prodService.Catalog();
+        /// <summary>Current faction funds (0 if no HQ) so the build UI can grey out unaffordable buys.</summary>
+        public float Funds() => GameManager.GetLocalHQ(out var hq) && hq != null ? hq.factionFunds : 0f;
+        /// <summary>Player queues a convoy buy by name; it drains (when affordable) like an AI buy but is
+        /// tagged as yours. Works in any mode.</summary>
+        public void BuyConvoy(string name)
+        {
+            foreach (var o in _prodService.Catalog().Options)
+                if (o.Name == name)
+                {
+                    _prodQueue.Enqueue(new PurchaseRequest(o.Name, o.Cost, null, RoleFamily.Armor, o.Contents, manual: true));
+                    _auto.Log.Append(new ReportEvent(UnityEngine.Time.unscaledTime, ReportKind.ProductionQueued, $"You queued {o.Name}", null));
+                    return;
+                }
+        }
+
+        // ---- Squad management ----
+        /// <summary>Take a single squad off the AI (Manual) or hand it back (Auto) — the player owns those
+        /// units while Manual (brain never tasks or re-assigns them).</summary>
+        public void ToggleSquadManual(string squadId)
+        {
+            var s = _auto.Squads.ById(squadId);
+            if (s != null) s.Autonomy = s.Autonomy == AutonomyLevel.Manual ? AutonomyLevel.Auto : AutonomyLevel.Manual;
         }
 
         /// <summary>Take a single operation Manual (AI yields that slice) or hand it back to Auto — the per-op

@@ -15,11 +15,16 @@ namespace CommanderLayer.Core.Command
         /// <summary>The role families + counts this convoy provides when it arrives.</summary>
         public Composition Delivers { get; }
 
-        public ConvoyOption(string name, float cost, Composition delivers)
+        /// <summary>Human-readable real contents for display, e.g. "3× MBT, 1× SAM" (from the game's convoy
+        /// constituents). Empty when unknown.</summary>
+        public string Contents { get; }
+
+        public ConvoyOption(string name, float cost, Composition delivers, string contents = "")
         {
             Name = name;
             Cost = cost;
             Delivers = delivers ?? new Composition();
+            Contents = contents ?? "";
         }
 
         public override string ToString() => $"{Name} ({Cost:0}) -> {Delivers}";
