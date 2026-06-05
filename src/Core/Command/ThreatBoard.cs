@@ -30,33 +30,41 @@ namespace CommanderLayer.Core.Command
         /// <summary>Number of enemies in the group.</summary>
         public int Count { get; }
 
+        /// <summary>The enemies in the group (so callers can pick a representative target without reaching into Threat).</summary>
+        public IReadOnlyList<EnemyView> Members { get; }
+
         public ThreatGroup(IReadOnlyList<EnemyView> members)
         {
-            Count = members.Count;
+            // Public ctor — guard against null/empty/null-entries (would NRE or silently mis-classify).
+            var live = (members ?? new List<EnemyView>()).Where(m => m != null).ToList();
+            if (live.Count == 0)
+                throw new System.ArgumentException("ThreatGroup requires at least one non-null member.", nameof(members));
+            Members = live;
+            Count = live.Count;
 
             float sx = 0f, sy = 0f, sz = 0f, priority = 0f;
-            foreach (var e in members)
+            foreach (var e in live)
             {
                 sx += e.Position.X;
                 sy += e.Position.Y;
                 sz += e.Position.Z;
                 priority += e.StrategicPriority;
             }
-            float inv = Count > 0 ? 1f / Count : 0f;
+            float inv = 1f / Count;
             Center = new Vec3(sx * inv, sy * inv, sz * inv);
             TotalStrategicPriority = priority;
 
             float radius = 0f;
-            foreach (var e in members)
+            foreach (var e in live)
             {
                 float d = Center.HorizontalDistanceTo(e.Position);
                 if (d > radius) radius = d;
             }
             Radius = radius;
 
-            Threat = new ThreatPicture(members.ToList());
+            Threat = new ThreatPicture(live);
 
-            Dominant = members
+            Dominant = live
                 .GroupBy(e => Families.Of(e.Cap.Role))
                 .OrderByDescending(g => g.Count())
                 .ThenBy(g => (int)g.Key)

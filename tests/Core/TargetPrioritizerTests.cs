@@ -89,6 +89,18 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void Aggressive_doctrine_values_a_high_priority_target_more_than_cautious()
+        {
+            var home = P(0, 0);
+            var farHighValue = Group(E("fh", P(40000, 0), Role.Armor, priority: 10f));
+
+            float aggressive = TargetPrioritizer.Rank(new[] { farHighValue }, home, new Doctrine { RiskTolerance = 1f })[0].Score;
+            float cautious = TargetPrioritizer.Rank(new[] { farHighValue }, home, new Doctrine { RiskTolerance = 0f })[0].Score;
+
+            Assert.True(aggressive > cautious); // aggression leans on strategic value
+        }
+
+        [Fact]
         public void Ordering_is_deterministic_for_tied_scores()
         {
             var home = P(0, 0);

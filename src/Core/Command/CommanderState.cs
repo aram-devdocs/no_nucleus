@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CommanderLayer.Core.Model;
 
 namespace CommanderLayer.Core.Command
 {
@@ -16,6 +17,8 @@ namespace CommanderLayer.Core.Command
         public Doctrine Doctrine { get; }
         public BrainConfig BrainConfig { get; }
         public AutonomyLevel Autonomy { get; set; } = AutonomyLevel.Auto;
+        /// <summary>Home base / HQ position — used to weight target proximity in prioritization.</summary>
+        public Vec3 HomeBase { get; set; }
         /// <summary>The battle feed — the brain appends events (op started/phase changed/completed) here.</summary>
         public BattleLog Log { get; } = new BattleLog();
         /// <summary>Last objective each unit was tasked toward — so the brain only re-issues on change (no spam).</summary>

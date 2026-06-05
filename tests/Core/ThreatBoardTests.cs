@@ -105,5 +105,26 @@ namespace CommanderLayer.Tests
             var group = Assert.Single(board);
             Assert.Equal(2, group.Count);
         }
+
+        [Fact]
+        public void Clustering_is_independent_of_input_order()
+        {
+            var a = E("a", P(0, 0));
+            var b = E("b", P(500, 0));
+            var c = E("c", P(50000, 0));
+            var board1 = ThreatBoard.Build(new List<EnemyView> { a, b, c }, 3000f);
+            var board2 = ThreatBoard.Build(new List<EnemyView> { c, b, a }, 3000f);
+
+            Assert.Equal(
+                board1.Select(g => g.Count).OrderBy(x => x),
+                board2.Select(g => g.Count).OrderBy(x => x));
+        }
+
+        [Fact]
+        public void ThreatGroup_throws_on_empty_or_null_members()
+        {
+            Assert.Throws<System.ArgumentException>(() => new ThreatGroup(new List<EnemyView>()));
+            Assert.Throws<System.ArgumentException>(() => new ThreatGroup(new List<EnemyView> { null }));
+        }
     }
 }
