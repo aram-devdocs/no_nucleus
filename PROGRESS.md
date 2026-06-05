@@ -17,8 +17,8 @@ load Commander Debug, open map, arm an order, hover, place two overlapping order
 | P2 — combined-arms sequencing | ✅ gates + integration | PhaseGates (924fe32) + operations advance CombatPhase cursor, task per-phase — armor holds while artillery/aircraft soften (07d4fbc). 60 Core. Pure+tested; activation playtest-gated with P1 |
 | P3 — economy/production | Backlog | depends on S0 convoy spike |
 | P4 — intel board + reports | Backlog | |
-| P5 — autonomy UI + HUD | Backlog | |
-| P6 — native UI component library | Backlog (NEW) | **Codegen** the UI seam: generate typed wrappers for the game's OWN UI components (NuclearOption.UI toggles/border, Button, ObjectiveInfoList rows, MapToolTip, MFDScreen) + ALL visual assets (GameAssets colors/fonts/sprites/icons) into the SDK — 1:1, regenerates on game updates. Re-base UiFactory/Theme/OrderColors to READ from generated accessors (DRY, single source of truth, no hardcoded/skewed values; mod-owned values clearly marked). Runtime clone with graceful fallback. Mostly playtest-gated. |
+| P5 — autonomy UI + HUD | HQ readout ✔ · awaiting ④ playtest | HqView threaded CommanderService.AutoHq → CommanderMapScreen.RenderHq → CommanderPanel: live AUTO COMMANDER header + ops/production/feed body, renders each tick on the open map (0fe6ee3). 113 Core + 11 contract. Autonomy-flip controls + cockpit HUD = later. ④ = see it populate with EnableAutoCommander on |
+| P6 — native UI component library | P6.1 ✔ · P6.2 contracts+probe ✔ · render awaiting ④ playtest | **P6.1 DONE (buildable):** codegen `Asset` tag → `src/Game/Generated/NativeAssets.generated.cs` (typed snapshot of GameAssets font/HUD colors/icons) + Capture(); composition captures ONCE → NativeColors(+Neutral)/UiFactory.Font/NativeIcons; Theme+OrderColors marked mod-owned. DRY single-source, no skew (4a05b0c). **P6.2 contracts DONE:** BetterBorder(live, was unguarded)/BaseToggle/BoxToggle/SliderToggle/BetterToggleGroup guarded — 67 contract assertions (08cf5c3). **UI-harvest probe DONE:** [S0:UI] logs what's cloneable (e76730c). **Remaining = PLAYTEST-GATED render:** NativeUi runtime clone + UiFactory re-base behind graceful fallback — needs the [S0:UI] log to target real instances. |
 
 Spec: `specs/phase-S0-P0.md`.
 
@@ -41,9 +41,20 @@ file wiring myself during integration windows.
 squads → phase-gated combined-arms operations → tasking → BattleLog feed → production needs → convoy buys.
 All behind `EnableAutoCommander` (off). Pure-Core tested, Game adapters contract-verified.
 
-**Remaining:** P5 HQ UI (consume HqView/Proposals — make the depth visible) → P6 codegen native UI (the
-user's emphasis; needs a spec) → playtest (flip EnableAutoCommander on + tune). DestroyTarget TargetId
-deferred (executor ignores it; id-space mismatch per review S3).
+**Remaining (all PLAYTEST-GATED — the assistant cannot run the game):**
+- **P5 acceptance:** open map with `EnableAutoCommander` on, confirm the AUTO COMMANDER readout populates.
+- **P6.2 render:** build `NativeUi` runtime clone + re-base `UiFactory.Button/Toggle/Border` onto native
+  clones behind graceful fallback — must be targeted by the `[S0:UI]` harvest log (which instances are
+  live/cloneable), so it needs ONE playtest first. Until then the hand-rolled atoms (now reading native
+  font/colors via P6.1) remain the safe default.
+- **Autonomy-flip UI + cockpit HUD** (P5 depth): per-op/squad Auto/Assisted/Manual toggles + glanceable
+  in-jet summary — UX layered on the now-visible HQ readout; design + playtest.
+- **The S0 playtest** (one run) unblocks S0 findings + P0/P0.5 acceptance + the P6.2/HUD render targets.
+DestroyTarget TargetId deferred (executor ignores it; id-space mismatch per review S3).
+
+**The entire verifiable-without-the-game backlog is now DONE** (P0–P4 logic, production loop, P5 HQ
+readout, P6.1 asset SDK, P6.2 contracts + harvest probe). All further progress needs a BepInEx playtest
+log from the user — there are no more buildable requirements that can be closed by code alone.
 
 ## S0 findings (filled after the playtest)
 | Unknown | Result | Detail |
