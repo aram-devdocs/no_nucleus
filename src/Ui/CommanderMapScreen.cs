@@ -17,8 +17,8 @@ namespace CommanderLayer.Ui
         private bool _open;
 
         public CommanderMapScreen(Transform parent, Theme theme, Action<OrderKind> onArm, Action onClearAll,
-            Action<string> onClearOrder, Action onCycleAutonomy = null, Action onConfirmProposal = null,
-            Action<string> onToggleOpManual = null)
+            Action<string> onClearOrder, Action<CommanderLayer.Core.Command.CommanderMode> onSetMode = null,
+            Action onConfirmProposal = null, Action<string> onToggleOpManual = null)
         {
             _container = UiFactory.Panel("CommanderScreen", parent, new Color(0f, 0f, 0f, 0f));
             UiFactory.AnchorTopLeft(_container, new Vector2(360f, 520f), new Vector2(90f, 90f));
@@ -33,7 +33,7 @@ namespace CommanderLayer.Ui
             UiFactory.Stretch(grab.rectTransform);
             header.gameObject.AddComponent<DragHandle>().Target = _container;
 
-            _panel = new CommanderPanel(_container, theme, onArm, onClearAll, onClearOrder, onCycleAutonomy,
+            _panel = new CommanderPanel(_container, theme, onArm, onClearAll, onClearOrder, onSetMode,
                 onConfirmProposal, onToggleOpManual);
             var p = _panel.Root;
             p.anchorMin = Vector2.zero;
@@ -61,7 +61,8 @@ namespace CommanderLayer.Ui
             IReadOnlyDictionary<string, string> unitNames = null)
             => _panel.Render(orders, faction, armed, preview, unitNames);
 
-        public void RenderHq(CommanderLayer.Core.Command.HqSnapshot hq) => _panel.RenderHq(hq);
+        public void RenderHq(CommanderLayer.Core.Command.HqSnapshot hq, CommanderLayer.Core.Command.CommanderMode mode)
+            => _panel.RenderHq(hq, mode);
 
         public string DebugInfo()
         {

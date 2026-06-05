@@ -108,7 +108,7 @@ namespace CommanderLayer.Composition
 
             _player.TryGetLocalFaction(out var faction);
             _screen?.Render(_service.Orders, faction, _armed, _hoverPreview, NamesById());
-            _screen?.RenderHq(_service.AutoHq()); // autonomous-commander HQ readout
+            _screen?.RenderHq(_service.AutoHq(), _service.CurrentMode()); // mode selector + HQ readout
             _overlay?.Render(_service.Orders, PositionsById());
 
             if (_cmdLabel != null) _cmdLabel.color = ModalOpen ? new Color(0.4f, 1f, 0.5f) : _cmdLabelColor;
@@ -211,7 +211,7 @@ namespace CommanderLayer.Composition
                 onArm: k => _armed = k,
                 onClearAll: () => _service.ClearAll(),
                 onClearOrder: id => _service.Clear(id),
-                onCycleAutonomy: () => _service.CycleCommanderAutonomy(),
+                onSetMode: m => _service.SetMode(m),
                 onConfirmProposal: () => _service.ConfirmTopProposal(),
                 onToggleOpManual: id => _service.ToggleOperationManual(id));
             TryAddNativeBorder(_screen.PanelRoot, _theme.Accent);

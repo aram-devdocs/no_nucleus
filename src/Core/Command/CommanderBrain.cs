@@ -33,8 +33,6 @@ namespace CommanderLayer.Core.Command
         public static IReadOnlyList<UnitTask> Tick(WorldSnapshot snapshot, CommanderState state)
         {
             var tasks = new List<UnitTask>();
-            if (state.Autonomy == AutonomyLevel.Manual) return tasks; // player took the whole commander
-
             float coverage = state.BrainConfig.CoverageRadius;
             // Manual-owned units are excluded so the brain and manual orders never task the same unit (S2).
             state.Squads.Reconcile(snapshot.Roster, snapshot.CommittedUnitIds);
@@ -92,6 +90,17 @@ namespace CommanderLayer.Core.Command
             foreach (var obj in GenerateObjectives(snapshot.KnownEnemies, state.Objectives, state.BrainConfig,
                          state.HomeBase, state.Doctrine))
                 state.Objectives.Add(obj);
+
+            // MANUAL commander = OBSERVE ONLY: the player commands by hand. The brain has organized the force
+            // into squads and surfaced objectives (so the player can SEE the picture), but it opens no
+            // operations, requests no production, and issues no tasking. (OFF, by contrast, doesn't run the
+            // brain at all.) Auto/Assisted continue below.
+            if (state.Autonomy == AutonomyLevel.Manual)
+            {
+                state.Proposals.Clear();
+                state.ProductionNeeds.Clear();
+                return tasks;
+            }
 
             // 4. Open an operation for each uncovered objective, matching a suitable free force. Squad
             //    positions (member centroids) let MatchSquads send the NEAREST suitable squad, not a

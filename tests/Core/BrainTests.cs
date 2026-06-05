@@ -133,14 +133,20 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
-        public void Tick_does_nothing_when_commander_is_manual()
+        public void Tick_manual_commander_observes_but_does_not_act()
         {
+            // MANUAL = observe-only: the brain organizes squads + surfaces objectives so the player can SEE
+            // the picture, but opens no operations, issues no tasking, requests no production.
             var state = new CommanderState(SquadCfg(), null, Cfg()) { Autonomy = AutonomyLevel.Manual };
             var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
             var known = new List<EnemyView> { E("e1", P(5000, 0)) };
             var tasks = CommanderBrain.Tick(new WorldSnapshot(roster, known), state);
-            Assert.Empty(tasks);
-            Assert.Empty(state.Operations);
+
+            Assert.Empty(tasks);                       // ...no orders issued
+            Assert.Empty(state.Operations);            // ...no operations opened
+            Assert.Empty(state.ProductionNeeds);       // ...no production requested
+            Assert.NotEmpty(state.Objectives);         // but objectives ARE surfaced (observability)
+            Assert.NotEmpty(state.Squads.Squads);      // and the force IS organized into squads
         }
 
         [Fact]

@@ -157,13 +157,31 @@ namespace CommanderLayer.Game
         /// <summary>Render-ready snapshot of the autonomous commander (ops/squads/production/feed) for the HQ UI.</summary>
         public Core.Command.HqSnapshot AutoHq() => Core.Command.HqView.Build(_auto, _auto.Log, _prodQueue);
 
-        /// <summary>Cycle the commander's autonomy Auto -> Assisted -> Manual (the HQ MODE button).</summary>
-        public void CycleCommanderAutonomy() => _auto.Autonomy = _auto.Autonomy switch
+        /// <summary>The current commander mode (OFF when the autonomous commander is disabled, else the
+        /// commander's autonomy level). Drives the in-panel mode selector — the single source of control.</summary>
+        public CommanderMode CurrentMode()
         {
-            AutonomyLevel.Auto => AutonomyLevel.Assisted,
-            AutonomyLevel.Assisted => AutonomyLevel.Manual,
-            _ => AutonomyLevel.Auto,
-        };
+            if (!Plugin.EnableAutoCommander) return CommanderMode.Off;
+            return _auto.Autonomy switch
+            {
+                AutonomyLevel.Assisted => CommanderMode.Assisted,
+                AutonomyLevel.Manual => CommanderMode.Manual,
+                _ => CommanderMode.Auto,
+            };
+        }
+
+        /// <summary>Set the commander mode from the panel (replaces the F1 config flag). OFF disables the
+        /// autonomous commander entirely; the rest enable it at the matching autonomy level.</summary>
+        public void SetMode(CommanderMode mode)
+        {
+            Plugin.EnableAutoCommander = mode != CommanderMode.Off;
+            switch (mode)
+            {
+                case CommanderMode.Manual: _auto.Autonomy = AutonomyLevel.Manual; break;
+                case CommanderMode.Assisted: _auto.Autonomy = AutonomyLevel.Assisted; break;
+                case CommanderMode.Auto: _auto.Autonomy = AutonomyLevel.Auto; break;
+            }
+        }
 
         /// <summary>Authorise the top Assisted suggestion (the HQ Confirm button). No-op if none pending.</summary>
         public void ConfirmTopProposal()

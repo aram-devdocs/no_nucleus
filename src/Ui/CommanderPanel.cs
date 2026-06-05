@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommanderLayer.Core.Model;
 using CommanderLayer.Core.Planning;
+using Cmd = CommanderLayer.Core.Command;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,7 +25,8 @@ namespace CommanderLayer.Ui
         private readonly TextMeshProUGUI _ordersHeader;
         private readonly TextMeshProUGUI _hqHeader;
         private readonly TextMeshProUGUI _hqBody;
-        private readonly TextMeshProUGUI _modeLabel;
+        private readonly TextMeshProUGUI _modeDesc;
+        private readonly List<ModeBtn> _modeBtns = new List<ModeBtn>();
         private readonly GameObject _confirmButton;
         private readonly TextMeshProUGUI _confirmLabel;
         private readonly Transform _opsContainer;
@@ -32,6 +34,19 @@ namespace CommanderLayer.Ui
         private readonly List<OpRow> _opRows = new List<OpRow>();
 
         private struct OpRow { public GameObject Go; public TextMeshProUGUI Label; public Image BtnImg; public TextMeshProUGUI BtnLabel; public string OpId; }
+        private struct ModeBtn { public Image Img; public CommanderLayer.Core.Command.CommanderMode Mode; }
+
+        // One-line description shown under the selector for the active mode (the "definitive selections").
+        private static string ModeDescription(CommanderLayer.Core.Command.CommanderMode m)
+        {
+            switch (m)
+            {
+                case CommanderLayer.Core.Command.CommanderMode.Off: return "OFF — the game's own AI runs the war. The Commander does nothing.";
+                case CommanderLayer.Core.Command.CommanderMode.Manual: return "MANUAL — you command by hand. The Commander shows your squads + targets but issues no orders.";
+                case CommanderLayer.Core.Command.CommanderMode.Assisted: return "ASSISTED — the Commander proposes operations; nothing runs until you press Confirm.";
+                default: return "AUTO — the Commander runs the whole war. Override any operation with its AUTO/MANUAL toggle.";
+            }
+        }
         private readonly Transform _ordersContainer;
         private readonly List<DomToggle> _domToggles = new List<DomToggle>();
         private readonly Image _attackImg, _defendImg, _captureImg, _resupplyImg, _buildImg, _moveImg;
@@ -50,8 +65,8 @@ namespace CommanderLayer.Ui
         private struct RowWidgets { public GameObject Go; public TextMeshProUGUI Label; public Button Clear; public string OrderId; }
 
         public CommanderPanel(Transform parent, Theme theme, Action<OrderKind> onArm, Action onClearAll,
-            Action<string> onClearOrder, Action onCycleAutonomy = null, Action onConfirmProposal = null,
-            Action<string> onToggleOpManual = null)
+            Action<string> onClearOrder, Action<CommanderLayer.Core.Command.CommanderMode> onSetMode = null,
+            Action onConfirmProposal = null, Action<string> onToggleOpManual = null)
         {
             _theme = theme;
             _onClearOrder = onClearOrder;
@@ -103,16 +118,19 @@ namespace CommanderLayer.Ui
             UiFactory.PreferredHeight(_ordersHeader.gameObject, 22f);
             _ordersContainer = UiFactory.VerticalLayout("Orders", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
 
-            // Autonomous-commander HQ readout + controls (the commander runs by default).
-            _hqHeader = UiFactory.Label("HqHeader", layout.transform, "", 14f, theme.Accent);
+            // COMMANDER MODE — the single control (no F1 needed): OFF / MANUAL / ASSISTED / AUTO.
+            _hqHeader = UiFactory.Label("HqHeader", layout.transform, "COMMANDER", 14f, theme.Accent);
             UiFactory.PreferredHeight(_hqHeader.gameObject, 22f);
-
-            // MODE: cycle Auto -> Assisted -> Manual; Confirm: authorise the top Assisted suggestion.
-            var hqControls = UiFactory.HorizontalLayout("HqControls", layout.transform, 6f);
-            UiFactory.PreferredHeight(hqControls.gameObject, 26f);
-            var modeBtn = UiFactory.Button("Mode", hqControls.transform, "MODE: AUTO", theme, () => onCycleAutonomy?.Invoke());
-            _modeLabel = modeBtn.GetComponentInChildren<TextMeshProUGUI>();
-            var confirmBtn = UiFactory.Button("Confirm", hqControls.transform, "Confirm", theme, () => onConfirmProposal?.Invoke());
+            var modeRow = UiFactory.HorizontalLayout("ModeRow", layout.transform, 4f);
+            UiFactory.PreferredHeight(modeRow.gameObject, 28f);
+            AddModeButton(modeRow.transform, "OFF", Cmd.CommanderMode.Off, onSetMode);
+            AddModeButton(modeRow.transform, "MANUAL", Cmd.CommanderMode.Manual, onSetMode);
+            AddModeButton(modeRow.transform, "ASSIST", Cmd.CommanderMode.Assisted, onSetMode);
+            AddModeButton(modeRow.transform, "AUTO", Cmd.CommanderMode.Auto, onSetMode);
+            _modeDesc = UiFactory.Label("ModeDesc", layout.transform, "", 11f, theme.Muted);
+            UiFactory.PreferredHeight(_modeDesc.gameObject, 30f);
+            var confirmBtn = UiFactory.Button("Confirm", layout.transform, "Confirm proposal", theme, () => onConfirmProposal?.Invoke());
+            UiFactory.PreferredHeight(confirmBtn.gameObject, 24f);
             _confirmButton = confirmBtn.gameObject;
             _confirmLabel = confirmBtn.GetComponentInChildren<TextMeshProUGUI>();
 
@@ -125,31 +143,39 @@ namespace CommanderLayer.Ui
             RefreshControls();
         }
 
-        /// <summary>Render the autonomous commander's HQ: active operations + the recent battle feed.</summary>
-        public void RenderHq(CommanderLayer.Core.Command.HqSnapshot hq)
+        private void AddModeButton(Transform parent, string label, Cmd.CommanderMode mode,
+            Action<Cmd.CommanderMode> onSetMode)
         {
-            if (_hqHeader == null) return;
-            string mode = hq != null ? hq.CommanderAutonomy.ToString().ToUpperInvariant() : "AUTO";
-            if (_modeLabel != null) _modeLabel.text = "MODE: " + mode;             // reflect + cycle autonomy
-            int proposalCount = hq?.Proposals.Count ?? 0;
-            if (_confirmButton != null) _confirmButton.SetActive(proposalCount > 0); // only when a suggestion waits
-            if (_confirmLabel != null) _confirmLabel.text = proposalCount > 0 ? $"Confirm ({proposalCount})" : "Confirm";
+            var btn = UiFactory.Button("Mode_" + label, parent, label, _theme, () => onSetMode?.Invoke(mode));
+            _modeBtns.Add(new ModeBtn { Img = btn.GetComponent<Image>(), Mode = mode });
+        }
 
-            if (hq == null || (hq.Operations.Count == 0 && hq.Recent.Count == 0 && hq.Squads.Count == 0
-                && hq.Proposals.Count == 0))
+        /// <summary>Render the commander mode selector (always) + the HQ readout (when the commander is on).</summary>
+        public void RenderHq(Cmd.HqSnapshot hq, Cmd.CommanderMode mode)
+        {
+            if (_modeDesc == null) return;
+            // Mode selector — always shown so OFF can be switched on; active mode highlighted + described.
+            foreach (var mb in _modeBtns) mb.Img.color = mb.Mode == mode ? _theme.Accent : _theme.ButtonIdle;
+            _modeDesc.text = ModeDescription(mode);
+
+            int proposalCount = hq?.Proposals.Count ?? 0;
+            bool showConfirm = mode == Cmd.CommanderMode.Assisted && proposalCount > 0;
+            if (_confirmButton != null) _confirmButton.SetActive(showConfirm);
+            if (_confirmLabel != null) _confirmLabel.text = $"Confirm next proposal ({proposalCount})";
+
+            // HQ body only when the commander is actually running.
+            if (hq == null || mode == Cmd.CommanderMode.Off)
             {
-                _hqHeader.text = "";
                 _hqBody.text = "";
                 RenderOpRows(null);
                 return;
             }
-            _hqHeader.text = $"{mode} COMMANDER · {hq.Operations.Count} op(s) · {hq.Squads.Count} squad(s)";
             RenderOpRows(hq.Operations);   // interactive op rows (AUTO/MANUAL per op)
             var sb = new System.Text.StringBuilder();
-            foreach (var sq in hq.Squads.Take(3))
+            sb.AppendLine($"{hq.Operations.Count} operation(s) · {hq.Squads.Count} squad(s)");
+            foreach (var sq in hq.Squads.Take(4))
                 sb.AppendLine($"▣ {sq.Name} · {sq.Family} ×{sq.Strength} [{sq.Status}]");
-            // Assisted suggestions awaiting the player's confirm.
-            foreach (var p in hq.Proposals.Take(3)) sb.AppendLine($"? {p.Summary} — confirm to launch");
+            foreach (var p in hq.Proposals.Take(3)) sb.AppendLine($"? {p.Summary} — press Confirm");
             foreach (var line in hq.Production.Take(2)) sb.AppendLine(line);
             foreach (var e in hq.Recent.Take(4)) sb.AppendLine($"· {e.Text}");
             _hqBody.text = sb.ToString().TrimEnd();
