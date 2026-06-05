@@ -33,5 +33,14 @@ namespace CommanderLayer.Game
             // Map icons live on a 2D plane: local (x, z) -> RectTransform (x, y), z = 0.
             return new Vec3(v.x, v.z, 0f);
         }
+
+        public float MapScale
+        {
+            get
+            {
+                var map = SceneSingleton<DynamicMap>.i;
+                return map != null ? map.mapDisplayFactor : 0f;
+            }
+        }
     }
 }

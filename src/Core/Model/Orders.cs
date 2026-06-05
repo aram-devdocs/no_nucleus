@@ -84,6 +84,8 @@ namespace CommanderLayer.Core.Model
         public CommanderOrder Order { get; }
         public OrderStatus Status { get; set; }
         public List<string> AssignedUnitIds { get; }
+        /// <summary>Units that have already been told to hold (Defend), so we don't re-issue.</summary>
+        public HashSet<string> Held { get; }
         public string Summary { get; set; }
 
         public OrderState(CommanderOrder order)
@@ -91,6 +93,7 @@ namespace CommanderLayer.Core.Model
             Order = order;
             Status = OrderStatus.Planning;
             AssignedUnitIds = new List<string>();
+            Held = new HashSet<string>();
             Summary = string.Empty;
         }
     }

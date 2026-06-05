@@ -12,5 +12,8 @@ namespace CommanderLayer.Core.Ports
 
         /// <summary>World position to a map-local position (use X,Z) under the map's icon layer.</summary>
         Vec3 WorldToMapLocal(Vec3 world);
+
+        /// <summary>Meters-to-map-local scale (for sizing range circles). 0 if the map isn't ready.</summary>
+        float MapScale { get; }
     }
 }

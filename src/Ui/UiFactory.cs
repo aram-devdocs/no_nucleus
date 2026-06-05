@@ -134,5 +134,54 @@ namespace CommanderLayer.Ui
             rt.sizeDelta = size;
             rt.anchoredPosition = new Vector2(offset.x, -offset.y);
         }
+
+        public static HorizontalLayoutGroup HorizontalLayout(string name, Transform parent, float spacing)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var h = go.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = spacing;
+            h.childControlWidth = true;
+            h.childControlHeight = true;
+            h.childForceExpandWidth = true;
+            h.childForceExpandHeight = false;
+            return h;
+        }
+
+        private static Sprite _ringSprite;
+
+        /// <summary>A reusable anti-aliased ring sprite (white; tint via Image.color) for range circles.</summary>
+        public static Sprite RingSprite()
+        {
+            if (_ringSprite != null) return _ringSprite;
+            const int n = 128;
+            float c = (n - 1) / 2f, outer = c, inner = c - 3f; // 3px ring band
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var px = new Color[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c));
+                    float a = (d <= outer && d >= inner) ? 1f : 0f;
+                    px[y * n + x] = new Color(1f, 1f, 1f, a);
+                }
+            tex.SetPixels(px);
+            tex.Apply();
+            _ringSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+            return _ringSprite;
+        }
+
+        public static Image Ring(string name, Transform parent, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.sprite = RingSprite();
+            img.type = Image.Type.Simple;
+            img.color = color;
+            img.raycastTarget = false;
+            ((RectTransform)go.transform).pivot = new Vector2(0.5f, 0.5f);
+            return img;
+        }
     }
 }

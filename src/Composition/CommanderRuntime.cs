@@ -6,17 +6,17 @@ using CommanderLayer.Patches;
 using CommanderLayer.Ui;
 using HarmonyLib;
 using UnityEngine;
-using Gen = CommanderLayer.Core.Generated;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Gen = CommanderLayer.Core.Generated;
 
 namespace CommanderLayer.Composition
 {
     /// <summary>
-    /// Composition root: builds the commander service (planner + adapters), hosts the modal on its own
-    /// screen-space canvas (opened by the native CMD bezel button), draws the order overlay on the map's
-    /// icon layer, routes map clicks to order placement, and runs the throttled management loop. Driven by
-    /// the DynamicMap.Update Harmony postfix (this game doesn't pump a MonoBehaviour Update on mod objects).
+    /// Composition root: builds the commander service, hosts the modal (own overlay canvas, opened by the
+    /// native CMD bezel button), draws the order overlay + live placement ring on the map's icon layer,
+    /// routes clicks to order placement, runs the throttled management loop. Driven by the DynamicMap.Update
+    /// Harmony postfix.
     /// </summary>
     public sealed class CommanderRuntime
     {
@@ -30,7 +30,9 @@ namespace CommanderLayer.Composition
         private Theme _theme;
         private DynamicMap _lastMap;
         private Button _cmdButton;
+        private Text _cmdLabel;
         private OrderKind? _armed;
+        private AssignmentPreview _hoverPreview;
         private bool _firstTick = true;
         private float _nextManage;
         private GUIStyle _fallbackStyle;
@@ -43,13 +45,12 @@ namespace CommanderLayer.Composition
             Plugin.Log?.LogInfo("CommanderRuntime constructed.");
         }
 
+        /// <summary>True while the modal is open (used by the map-pan guard).</summary>
+        public bool ModalOpen => _screen != null && _screen.IsOpen;
+
         public void Tick()
         {
-            if (_firstTick)
-            {
-                _firstTick = false;
-                Plugin.Log?.LogInfo("CommanderRuntime first Tick — driver alive.");
-            }
+            if (_firstTick) { _firstTick = false; Plugin.Log?.LogInfo("CommanderRuntime first Tick — driver alive."); }
 
             EnsureCanvas();
             EnsureScreen();
@@ -64,19 +65,36 @@ namespace CommanderLayer.Composition
             }
             if (map == null) { _lastMap = null; _overlay = null; }
 
-            if (_canvas != null) _canvas.enabled = open;
-            if (!open) return;
-
-            // Place: armed order kind + left-click on the map (not on our panel).
-            if (_armed.HasValue && Input.GetMouseButtonDown(0) && !IsPointerOverUi()
-                && _projection.TryCursorToWorld(out var world))
+            if (!open)
             {
-                var state = _service.PlaceOrder(_armed.Value, world, DomainSet.All, _service.Config.SelectionRadius);
-                Plugin.Log?.LogInfo($"Placed {state.Order.Kind} order: {state.Summary}");
+                if (_canvas != null) _canvas.enabled = false;
+                _overlay?.Clear();         // hide markers/lines/ring when the map closes
                 _armed = null;
+                _hoverPreview = null;
+                return;
+            }
+            if (_canvas != null) _canvas.enabled = true;
+
+            // Live placement preview while armed.
+            _hoverPreview = null;
+            if (_armed.HasValue && !IsPointerOverUi() && _projection.TryCursorToWorld(out var hover))
+            {
+                _hoverPreview = _service.PreviewAt(_armed.Value, hover, _screen.Domains, _screen.RangeMeters);
+                _overlay?.SetHover(hover, _screen.RangeMeters, _armed.Value, _hoverPreview.CanPlace);
+
+                if (Input.GetMouseButtonDown(0))
+                {
+                    var state = _service.PlaceOrder(_armed.Value, hover, _screen.Domains, _screen.RangeMeters);
+                    Plugin.Log?.LogInfo($"Placed {state.Order.Kind}: {state.Summary}");
+                    _armed = null;
+                    _overlay?.ClearHover();
+                }
+            }
+            else
+            {
+                _overlay?.ClearHover();
             }
 
-            // Throttled management loop.
             if (Time.unscaledTime >= _nextManage)
             {
                 _nextManage = Time.unscaledTime + _service.Config.ManagementIntervalSeconds;
@@ -84,8 +102,10 @@ namespace CommanderLayer.Composition
             }
 
             _player.TryGetLocalFaction(out var faction);
-            _screen?.Render(_service.Orders, faction, _armed);
+            _screen?.Render(_service.Orders, faction, _armed, _hoverPreview);
             _overlay?.Render(_service.Orders, PositionsById());
+
+            if (_cmdLabel != null) _cmdLabel.color = ModalOpen ? new Color(0.4f, 1f, 0.5f) : Color.white;
         }
 
         private Dictionary<string, Vec3> PositionsById()
@@ -95,7 +115,6 @@ namespace CommanderLayer.Composition
             return dict;
         }
 
-        // Commandeer a blank MFD bezel button on map-open → "CMD" that toggles the modal.
         public void AttachCmdButton(VirtualMFD mfd)
         {
             if (mfd == null || _cmdButton != null) return;
@@ -112,12 +131,12 @@ namespace CommanderLayer.Composition
 
             btn.enabled = true;
             btn.gameObject.SetActive(true);
-            var txt = btn.GetComponentInChildren<Text>(includeInactive: true);
-            if (txt != null) { txt.text = "CMD"; txt.enabled = true; txt.gameObject.SetActive(true); }
+            _cmdLabel = btn.GetComponentInChildren<Text>(includeInactive: true);
+            if (_cmdLabel != null) { _cmdLabel.text = "CMD"; _cmdLabel.enabled = true; _cmdLabel.gameObject.SetActive(true); }
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => _screen?.Toggle());
             _cmdButton = btn;
-            Plugin.Log?.LogInfo($"CMD button attached (label set={txt != null}).");
+            Plugin.Log?.LogInfo($"CMD button attached (label set={_cmdLabel != null}).");
         }
 
         private static Button FindBlankButton(List<Button> buttons, List<MFDScreen> screens)
@@ -154,7 +173,8 @@ namespace CommanderLayer.Composition
             _theme = Theme.FromFaction(faction);
             _screen = new CommanderMapScreen(_canvas.transform, _theme,
                 onArm: k => _armed = k,
-                onClearAll: () => _service.ClearAll());
+                onClearAll: () => _service.ClearAll(),
+                onClearOrder: id => _service.Clear(id));
             Plugin.Log?.LogInfo("Commander panel built.");
         }
 

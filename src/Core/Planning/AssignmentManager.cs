@@ -44,9 +44,10 @@ namespace CommanderLayer.Core.Planning
         public IReadOnlyList<UnitTask> Tick(IReadOnlyList<UnitView> roster, Func<CommanderOrder, ThreatPicture> threatFor)
         {
             var alive = new HashSet<string>();
+            var posById = new Dictionary<string, Vec3>();
             foreach (var u in roster)
             {
-                if (u != null && !u.Disabled) alive.Add(u.Id);
+                if (u != null && !u.Disabled) { alive.Add(u.Id); posById[u.Id] = u.Position; }
             }
 
             var toIssue = new List<UnitTask>();
@@ -72,6 +73,20 @@ namespace CommanderLayer.Core.Planning
                     Record(s, plan);
                     foreach (var t in plan.Tasks) toIssue.Add(t);
                     s.Status = plan.IsEmpty ? OrderStatus.Failed : OrderStatus.Active;
+                }
+
+                // Defend: once a unit reaches the area, tell it to hold (garrison) — issued once.
+                if (s.Order.Kind == OrderKind.Defend && s.Status == OrderStatus.Active)
+                {
+                    foreach (var id in s.AssignedUnitIds)
+                    {
+                        if (s.Held.Contains(id)) continue;
+                        if (posById.TryGetValue(id, out var p) && p.HorizontalDistanceTo(s.Order.Position) <= _cfg.ArriveRadius)
+                        {
+                            toIssue.Add(new UnitTask(id, TaskVerb.Hold, s.Order.Position));
+                            s.Held.Add(id);
+                        }
+                    }
                 }
 
                 s.Summary = Summarize(s, threat);

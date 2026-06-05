@@ -7,9 +7,8 @@ using UnityEngine.UI;
 namespace CommanderLayer.Ui
 {
     /// <summary>
-    /// Draws, on the map's icon layer, a marker per active order plus a thin line to each assigned unit,
-    /// color-coded by order kind. Pooled (no per-frame allocations). Pure render from order state + a
-    /// unit-position lookup + the map projection.
+    /// Map overlay on the icon layer: a marker + lines per active order (color-coded), plus a live hover
+    /// range-ring while placing. Pooled, no per-frame allocations. Clear() hides everything (map closed).
     /// </summary>
     public sealed class MapOverlay
     {
@@ -17,6 +16,8 @@ namespace CommanderLayer.Ui
         private readonly IMapProjection _projection;
         private readonly List<Image> _markers = new List<Image>();
         private readonly List<Image> _lines = new List<Image>();
+        private Image _hoverRing;
+        private Image _hoverDot;
 
         public MapOverlay(Transform iconLayer, IMapProjection projection)
         {
@@ -40,12 +41,60 @@ namespace CommanderLayer.Ui
                 foreach (var id in o.AssignedUnitIds)
                 {
                     if (!unitPositions.TryGetValue(id, out var up)) continue;
-                    Vec3 uLocal = _projection.WorldToMapLocal(up);
-                    DrawLine(Line(li++), oLocal, uLocal, col);
+                    DrawLine(Line(li++), oLocal, _projection.WorldToMapLocal(up), col);
                 }
             }
             for (int i = mi; i < _markers.Count; i++) _markers[i].gameObject.SetActive(false);
             for (int i = li; i < _lines.Count; i++) _lines[i].gameObject.SetActive(false);
+        }
+
+        /// <summary>Show the placement ring (range) at a world point, tinted by kind / can-place.</summary>
+        public void SetHover(Vec3 world, float rangeMeters, OrderKind kind, bool canPlace)
+        {
+            EnsureHover();
+            Vec3 local = _projection.WorldToMapLocal(world);
+            float diam = 2f * rangeMeters * _projection.MapScale;
+
+            var rt = (RectTransform)_hoverRing.transform;
+            rt.localPosition = new Vector3(local.X, local.Y, 0f);
+            rt.sizeDelta = new Vector2(diam, diam);
+            Color c = canPlace ? OrderColors.For(kind) : new Color(1f, 0.35f, 0.35f);
+            c.a = 0.85f; _hoverRing.color = c;
+            _hoverRing.gameObject.SetActive(true);
+
+            var dt = (RectTransform)_hoverDot.transform;
+            dt.localPosition = new Vector3(local.X, local.Y, 0f);
+            _hoverDot.color = c;
+            _hoverDot.gameObject.SetActive(true);
+        }
+
+        public void ClearHover()
+        {
+            if (_hoverRing != null) _hoverRing.gameObject.SetActive(false);
+            if (_hoverDot != null) _hoverDot.gameObject.SetActive(false);
+        }
+
+        /// <summary>Hide all overlay graphics (e.g. when the map closes).</summary>
+        public void Clear()
+        {
+            foreach (var m in _markers) m.gameObject.SetActive(false);
+            foreach (var l in _lines) l.gameObject.SetActive(false);
+            ClearHover();
+        }
+
+        private void EnsureHover()
+        {
+            if (_hoverRing == null)
+            {
+                _hoverRing = UiFactory.Ring("CmdHoverRing", _layer, Color.white);
+            }
+            if (_hoverDot == null)
+            {
+                _hoverDot = UiFactory.LineImage("CmdHoverDot", _layer, Color.white);
+                var rt = (RectTransform)_hoverDot.transform;
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(10f, 10f);
+            }
         }
 
         private Image Marker(int i)
@@ -64,10 +113,7 @@ namespace CommanderLayer.Ui
 
         private Image Line(int i)
         {
-            while (_lines.Count <= i)
-            {
-                _lines.Add(UiFactory.LineImage("CmdLine" + _lines.Count, _layer, Color.white));
-            }
+            while (_lines.Count <= i) _lines.Add(UiFactory.LineImage("CmdLine" + _lines.Count, _layer, Color.white));
             _lines[i].gameObject.SetActive(true);
             return _lines[i];
         }

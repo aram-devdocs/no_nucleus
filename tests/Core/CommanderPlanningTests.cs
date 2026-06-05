@@ -198,6 +198,20 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void Defend_issues_hold_on_arrival_once()
+        {
+            var mgr = new AssignmentManager(new CommanderConfig { MaxUnitsPerOrder = 3, SelectionRadius = 5000f, ArriveRadius = 250f });
+            var order = new CommanderOrder("d", OrderKind.Defend, P(0, 0), 0f);
+            mgr.AddOrder(order, new List<UnitView> { Ground("mbt", VehicleType.MBT, P(100, 0)) }, ThreatPicture.Empty);
+
+            var t1 = mgr.Tick(new List<UnitView> { Ground("mbt", VehicleType.MBT, P(50, 0)) }, _ => ThreatPicture.Empty);
+            Assert.Contains(t1, x => x.UnitId == "mbt" && x.Verb == TaskVerb.Hold);
+
+            var t2 = mgr.Tick(new List<UnitView> { Ground("mbt", VehicleType.MBT, P(40, 0)) }, _ => ThreatPicture.Empty);
+            Assert.DoesNotContain(t2, x => x.UnitId == "mbt" && x.Verb == TaskVerb.Hold);
+        }
+
+        [Fact]
         public void Tick_reassigns_when_all_units_lost()
         {
             var enemies = new List<EnemyView> { new EnemyView("e1", P(0, 0), UnitClass.GroundVehicle, default, true, 1f, 1) };
