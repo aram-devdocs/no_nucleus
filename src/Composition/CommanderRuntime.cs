@@ -108,6 +108,7 @@ namespace CommanderLayer.Composition
 
             _player.TryGetLocalFaction(out var faction);
             _screen?.Render(_service.Orders, faction, _armed, _hoverPreview, NamesById());
+            _screen?.RenderHq(_service.AutoHq()); // autonomous-commander HQ readout
             _overlay?.Render(_service.Orders, PositionsById());
 
             if (_cmdLabel != null) _cmdLabel.color = ModalOpen ? new Color(0.4f, 1f, 0.5f) : _cmdLabelColor;

@@ -22,6 +22,8 @@ namespace CommanderLayer.Ui
         private readonly TextMeshProUGUI _status;
         private readonly TextMeshProUGUI _rangeLabel;
         private readonly TextMeshProUGUI _ordersHeader;
+        private readonly TextMeshProUGUI _hqHeader;
+        private readonly TextMeshProUGUI _hqBody;
         private readonly Transform _ordersContainer;
         private readonly List<DomToggle> _domToggles = new List<DomToggle>();
         private readonly Image _attackImg, _defendImg, _captureImg, _resupplyImg, _buildImg, _moveImg;
@@ -90,7 +92,32 @@ namespace CommanderLayer.Ui
             UiFactory.PreferredHeight(_ordersHeader.gameObject, 22f);
             _ordersContainer = UiFactory.VerticalLayout("Orders", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
 
+            // Autonomous-commander HQ readout (populates when EnableAutoCommander is on).
+            _hqHeader = UiFactory.Label("HqHeader", layout.transform, "", 14f, theme.Accent);
+            UiFactory.PreferredHeight(_hqHeader.gameObject, 22f);
+            _hqBody = UiFactory.Label("HqBody", layout.transform, "", 12f, theme.Muted);
+            UiFactory.PreferredHeight(_hqBody.gameObject, 120f);
+
             RefreshControls();
+        }
+
+        /// <summary>Render the autonomous commander's HQ: active operations + the recent battle feed.</summary>
+        public void RenderHq(CommanderLayer.Core.Command.HqSnapshot hq)
+        {
+            if (_hqHeader == null) return;
+            if (hq == null || (hq.Operations.Count == 0 && hq.Recent.Count == 0 && hq.Squads.Count == 0))
+            {
+                _hqHeader.text = "";
+                _hqBody.text = "";
+                return;
+            }
+            _hqHeader.text = $"AUTO COMMANDER · {hq.Operations.Count} op(s) · {hq.Squads.Count} squad(s)";
+            var sb = new System.Text.StringBuilder();
+            foreach (var op in hq.Operations.Take(4))
+                sb.AppendLine($"• {op.Kind} — {op.Phase} [{op.Status}]");
+            foreach (var line in hq.Production.Take(2)) sb.AppendLine(line);
+            foreach (var e in hq.Recent.Take(5)) sb.AppendLine($"· {e.Text}");
+            _hqBody.text = sb.ToString().TrimEnd();
         }
 
         public void SetVisible(bool visible)

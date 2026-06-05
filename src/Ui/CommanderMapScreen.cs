@@ -58,6 +58,8 @@ namespace CommanderLayer.Ui
             IReadOnlyDictionary<string, string> unitNames = null)
             => _panel.Render(orders, faction, armed, preview, unitNames);
 
+        public void RenderHq(CommanderLayer.Core.Command.HqSnapshot hq) => _panel.RenderHq(hq);
+
         public string DebugInfo()
         {
             var p = _panel.Root;

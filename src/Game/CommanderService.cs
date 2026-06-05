@@ -132,6 +132,9 @@ namespace CommanderLayer.Game
             AircraftIntent.SetZones(zones);
         }
 
+        /// <summary>Render-ready snapshot of the autonomous commander (ops/squads/production/feed) for the HQ UI.</summary>
+        public Core.Command.HqSnapshot AutoHq() => Core.Command.HqView.Build(_auto, _auto.Log, _prodQueue);
+
         public IReadOnlyList<UnitView> CurrentRoster() => _roster.BuildRoster();
         public void Clear(string orderId) => _mgr.Clear(orderId);
         public void ClearAll() => _mgr.ClearAll();

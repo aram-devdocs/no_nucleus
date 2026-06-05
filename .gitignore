@@ -4,3 +4,4 @@ lib/
 **/obj/
 *.user
 decompiled/
+.claude/
