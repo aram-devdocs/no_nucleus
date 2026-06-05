@@ -45,6 +45,14 @@ namespace CommanderLayer.Tests
             return new UnitView(id, "missile", pos, UnitClass.Missile, false, true, RoleClassifier.Classify(d), 1f, 0f, 0);
         }
 
+        // A ground attacker with an explicit anti-surface punch (for weapon-suitability ranking tests).
+        private static UnitView Attacker(string id, float antiSurface, Vec3 pos)
+        {
+            var d = new UnitDescriptor(UnitClass.GroundVehicle, antiSurface, 0f, 0f, 0f, false, false, false,
+                0f, 1, true, vehicle: VehicleType.MBT);
+            return new UnitView(id, "atk", pos, UnitClass.GroundVehicle, false, true, RoleClassifier.Classify(d), antiSurface, 0f, 1);
+        }
+
         private static Vec3 P(float x, float z) => new Vec3(x, 0, z);
         private static CommanderOrder Attack(Vec3 p, string target = null) => new CommanderOrder("o1", OrderKind.Attack, p, 0f, DomainSet.All, target);
         private static CommanderConfig Cfg() => new CommanderConfig { MaxUnitsPerOrder = 3, SelectionRadius = 5000f };
@@ -266,6 +274,22 @@ namespace CommanderLayer.Tests
             Assert.Equal(OrderStatus.Active, mgr.Orders[0].Status);     // still en route
             mgr.Tick(new List<UnitView> { Ground("truck", VehicleType.TRUCK, P(80, 0)) }, _ => ThreatPicture.Empty);
             Assert.Equal(OrderStatus.Complete, mgr.Orders[0].Status);   // arrived
+        }
+
+        [Fact]
+        public void Attack_prefers_harder_hitting_units_against_armor()
+        {
+            var roster = new List<UnitView> { Attacker("light", 0.3f, P(100, 0)), Attacker("heavy", 1.0f, P(3000, 0)) };
+            var cfg = new CommanderConfig { MaxUnitsPerOrder = 1, SelectionRadius = 5000f };
+
+            // Armor in the area -> send the hardest hitter even though it's farther.
+            var armor = ThreatAssessor.Assess(new List<EnemyView> {
+                new EnemyView("mbt", P(0, 0), UnitClass.GroundVehicle,
+                    new UnitCapability(Role.Armor, true, false, false, false, false), true, 1f, 3) });
+            Assert.Equal(new[] { "heavy" }, OrderPlanner.Plan(Attack(P(0, 0)), roster, armor, cfg).Tasks.Select(t => t.UnitId).ToArray());
+
+            // No armor -> the nearest suitable unit responds.
+            Assert.Equal(new[] { "light" }, OrderPlanner.Plan(Attack(P(0, 0)), roster, ThreatPicture.Empty, cfg).Tasks.Select(t => t.UnitId).ToArray());
         }
 
         [Fact]

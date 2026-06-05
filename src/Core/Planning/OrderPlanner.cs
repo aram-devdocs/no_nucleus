@@ -12,23 +12,29 @@ namespace CommanderLayer.Core.Planning
     /// </summary>
     public static class OrderPlanner
     {
-        public static IReadOnlyList<UnitView> SelectUnits(CommanderOrder order, IReadOnlyList<UnitView> roster, CommanderConfig cfg)
+        public static IReadOnlyList<UnitView> SelectUnits(CommanderOrder order, IReadOnlyList<UnitView> roster,
+            CommanderConfig cfg, ThreatPicture threat = null)
         {
             float radius = order.Radius > 0f ? order.Radius : cfg.SelectionRadius;
-            return roster
+            var inRange = roster
                 .Where(u => u != null && !u.Disabled && u.Commandable)
                 .Where(u => Suitable(u, order.Kind, order.Domains))
                 .Select(u => (u, dist: u.Position.HorizontalDistanceTo(order.Position)))
-                .Where(x => x.dist <= radius)
-                .OrderBy(x => x.dist)
-                .Take(cfg.MaxUnitsPerOrder)
-                .Select(x => x.u)
-                .ToList();
+                .Where(x => x.dist <= radius);
+
+            // Weapon-suitability: when attacking a position that holds armor, send our hardest-hitting
+            // (highest anti-surface) units first; otherwise the nearest suitable units respond.
+            bool preferPunch = order.Kind == OrderKind.Attack && threat != null && threat.HasArmor;
+            var ordered = preferPunch
+                ? inRange.OrderByDescending(x => x.u.AntiSurface).ThenBy(x => x.dist)
+                : inRange.OrderBy(x => x.dist);
+
+            return ordered.Take(cfg.MaxUnitsPerOrder).Select(x => x.u).ToList();
         }
 
         public static TaskPlan Plan(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat, CommanderConfig cfg)
         {
-            var selected = SelectUnits(order, roster, cfg);
+            var selected = SelectUnits(order, roster, cfg, threat);
             var tasks = new List<UnitTask>(selected.Count);
             foreach (var u in selected)
             {
@@ -54,7 +60,7 @@ namespace CommanderLayer.Core.Planning
         /// <summary>Live "what would happen" without mutating state — for the hover preview.</summary>
         public static AssignmentPreview Preview(CommanderOrder order, IReadOnlyList<UnitView> roster, ThreatPicture threat, CommanderConfig cfg)
         {
-            return new AssignmentPreview(SelectUnits(order, roster, cfg), threat);
+            return new AssignmentPreview(SelectUnits(order, roster, cfg, threat), threat);
         }
 
         /// <summary>
