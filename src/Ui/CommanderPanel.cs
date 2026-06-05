@@ -22,7 +22,7 @@ namespace CommanderLayer.Ui
         private readonly TextMeshProUGUI _ordersHeader;
         private readonly Transform _ordersContainer;
         private readonly Image _airImg, _landImg, _seaImg;
-        private readonly Image _attackImg, _defendImg, _captureImg, _resupplyImg, _buildImg;
+        private readonly Image _attackImg, _defendImg, _captureImg, _resupplyImg, _buildImg, _moveImg;
         private readonly Action<string> _onClearOrder;
         private readonly List<RowWidgets> _rows = new List<RowWidgets>();
 
@@ -74,6 +74,10 @@ namespace CommanderLayer.Ui
             _resupplyImg = UiFactory.Button("Resupply", armRow2.transform, "Resupply", theme, () => onArm?.Invoke(OrderKind.Resupply)).GetComponent<Image>();
             _buildImg = UiFactory.Button("Build", armRow2.transform, "Build", theme, () => onArm?.Invoke(OrderKind.Build)).GetComponent<Image>();
 
+            var armRow3 = UiFactory.HorizontalLayout("Arm3", layout.transform, 6f);
+            UiFactory.PreferredHeight(armRow3.gameObject, 30f);
+            _moveImg = UiFactory.Button("Move", armRow3.transform, "Move", theme, () => onArm?.Invoke(OrderKind.Move)).GetComponent<Image>();
+
             var clearAll = UiFactory.Button("ClearAll", layout.transform, "Clear all orders", theme, () => onClearAll?.Invoke());
             UiFactory.PreferredHeight(clearAll.gameObject, 24f);
 
@@ -113,6 +117,7 @@ namespace CommanderLayer.Ui
             _captureImg.color = armed == OrderKind.Capture ? OrderColors.Capture : _theme.ButtonIdle;
             _resupplyImg.color = armed == OrderKind.Resupply ? OrderColors.Resupply : _theme.ButtonIdle;
             _buildImg.color = armed == OrderKind.Build ? OrderColors.Build : _theme.ButtonIdle;
+            _moveImg.color = armed == OrderKind.Move ? OrderColors.Move : _theme.ButtonIdle;
 
             _ordersHeader.text = $"Orders: {orders.Count}";
             EnsureRows(orders.Count);

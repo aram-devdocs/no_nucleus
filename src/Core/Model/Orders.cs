@@ -9,7 +9,8 @@ namespace CommanderLayer.Core.Model
         Defend,   // hold/garrison + air-defense an area
         Resupply, // (P2)
         Capture,  // (P2)
-        Build     // (P2) commission only
+        Build,    // (P2) commission only
+        Move      // reposition: send a suitable subset to a point (no combat/threat semantics)
     }
 
     public sealed class CommanderOrder

@@ -253,6 +253,22 @@ namespace CommanderLayer.Tests
         }
 
         [Fact]
+        public void Move_selects_any_commandable_unit_and_completes_on_arrival()
+        {
+            var mgr = new AssignmentManager(Cfg());
+            // A supply truck (no combat capability) is still movable.
+            var order = new CommanderOrder("m", OrderKind.Move, P(0, 0), 5000f, DomainSet.Land);
+            var plan = mgr.AddOrder(order, new List<UnitView> { Ground("truck", VehicleType.TRUCK, P(3000, 0)) }, ThreatPicture.Empty);
+            Assert.Equal(new[] { "truck" }, plan.Tasks.Select(t => t.UnitId).ToArray());
+            Assert.All(plan.Tasks, t => Assert.Equal(TaskVerb.MoveTo, t.Verb));
+
+            mgr.Tick(new List<UnitView> { Ground("truck", VehicleType.TRUCK, P(3000, 0)) }, _ => ThreatPicture.Empty);
+            Assert.Equal(OrderStatus.Active, mgr.Orders[0].Status);     // still en route
+            mgr.Tick(new List<UnitView> { Ground("truck", VehicleType.TRUCK, P(80, 0)) }, _ => ThreatPicture.Empty);
+            Assert.Equal(OrderStatus.Complete, mgr.Orders[0].Status);   // arrived
+        }
+
+        [Fact]
         public void Air_order_is_active_even_with_no_commandable_units()
         {
             var mgr = new AssignmentManager(Cfg());

@@ -11,6 +11,7 @@ namespace CommanderLayer.Ui
         public static readonly Color Resupply = new Color(0.40f, 0.95f, 0.55f); // green
         public static readonly Color Build = new Color(0.72f, 0.52f, 1f);    // violet
         public static readonly Color Capture = new Color(1f, 0.55f, 0.30f);  // orange
+        public static readonly Color Move = new Color(0.80f, 0.84f, 0.90f);  // pale steel
 
         public static Color For(OrderKind k)
         {
@@ -21,6 +22,7 @@ namespace CommanderLayer.Ui
                 case OrderKind.Resupply: return Resupply;
                 case OrderKind.Build: return Build;
                 case OrderKind.Capture: return Capture;
+                case OrderKind.Move: return Move;
                 default: return Attack;
             }
         }

@@ -79,6 +79,16 @@ namespace CommanderLayer.Core.Planning
                     }
                 }
 
+                // Completion: a Move is done once its assigned units have reached the point.
+                if (s.Order.Kind == OrderKind.Move && s.AssignedUnitIds.Count > 0
+                    && s.AssignedUnitIds.All(id => posById.TryGetValue(id, out var p)
+                        && p.HorizontalDistanceTo(s.Order.Position) <= _cfg.ArriveRadius))
+                {
+                    s.Status = OrderStatus.Complete;
+                    s.Summary = "In position.";
+                    continue;
+                }
+
                 // Completion: a Capture whose objective now flies our flag is done (game-supplied poll).
                 if (s.Order.Kind == OrderKind.Capture && captureDone != null && captureDone(s.Order))
                 {
