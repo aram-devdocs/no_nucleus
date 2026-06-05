@@ -9,38 +9,66 @@ namespace CommanderLayer.Game.Generated
     {
         private static readonly global::System.Reflection.FieldInfo _VirtualMFD_leftButtons =
             global::HarmonyLib.AccessTools.Field(typeof(global::VirtualMFD), "leftButtons");
-        /// <summary>VirtualMFD.leftButtons (private List`1).</summary>
+        /// <summary>VirtualMFD.leftButtons (private List`1) — get.</summary>
         public static global::System.Collections.Generic.List<global::UnityEngine.UI.Button> VirtualMFD_leftButtons(global::VirtualMFD instance) => (global::System.Collections.Generic.List<global::UnityEngine.UI.Button>)_VirtualMFD_leftButtons.GetValue(instance);
+        /// <summary>VirtualMFD.leftButtons — set.</summary>
+        public static void VirtualMFD_leftButtons_Set(global::VirtualMFD instance, global::System.Collections.Generic.List<global::UnityEngine.UI.Button> value) => _VirtualMFD_leftButtons.SetValue(instance, value);
 
         private static readonly global::System.Reflection.FieldInfo _VirtualMFD_rightButtons =
             global::HarmonyLib.AccessTools.Field(typeof(global::VirtualMFD), "rightButtons");
-        /// <summary>VirtualMFD.rightButtons (private List`1).</summary>
+        /// <summary>VirtualMFD.rightButtons (private List`1) — get.</summary>
         public static global::System.Collections.Generic.List<global::UnityEngine.UI.Button> VirtualMFD_rightButtons(global::VirtualMFD instance) => (global::System.Collections.Generic.List<global::UnityEngine.UI.Button>)_VirtualMFD_rightButtons.GetValue(instance);
+        /// <summary>VirtualMFD.rightButtons — set.</summary>
+        public static void VirtualMFD_rightButtons_Set(global::VirtualMFD instance, global::System.Collections.Generic.List<global::UnityEngine.UI.Button> value) => _VirtualMFD_rightButtons.SetValue(instance, value);
 
         private static readonly global::System.Reflection.FieldInfo _VirtualMFD_leftScreens =
             global::HarmonyLib.AccessTools.Field(typeof(global::VirtualMFD), "leftScreens");
-        /// <summary>VirtualMFD.leftScreens (private List`1).</summary>
+        /// <summary>VirtualMFD.leftScreens (private List`1) — get.</summary>
         public static global::System.Collections.Generic.List<global::MFDScreen> VirtualMFD_leftScreens(global::VirtualMFD instance) => (global::System.Collections.Generic.List<global::MFDScreen>)_VirtualMFD_leftScreens.GetValue(instance);
+        /// <summary>VirtualMFD.leftScreens — set.</summary>
+        public static void VirtualMFD_leftScreens_Set(global::VirtualMFD instance, global::System.Collections.Generic.List<global::MFDScreen> value) => _VirtualMFD_leftScreens.SetValue(instance, value);
 
         private static readonly global::System.Reflection.FieldInfo _VirtualMFD_rightScreens =
             global::HarmonyLib.AccessTools.Field(typeof(global::VirtualMFD), "rightScreens");
-        /// <summary>VirtualMFD.rightScreens (private List`1).</summary>
+        /// <summary>VirtualMFD.rightScreens (private List`1) — get.</summary>
         public static global::System.Collections.Generic.List<global::MFDScreen> VirtualMFD_rightScreens(global::VirtualMFD instance) => (global::System.Collections.Generic.List<global::MFDScreen>)_VirtualMFD_rightScreens.GetValue(instance);
+        /// <summary>VirtualMFD.rightScreens — set.</summary>
+        public static void VirtualMFD_rightScreens_Set(global::VirtualMFD instance, global::System.Collections.Generic.List<global::MFDScreen> value) => _VirtualMFD_rightScreens.SetValue(instance, value);
+
+        private static readonly global::System.Reflection.FieldInfo _PilotBaseState_aircraft =
+            global::HarmonyLib.AccessTools.Field(typeof(global::PilotBaseState), "aircraft");
+        /// <summary>PilotBaseState.aircraft (private Aircraft) — get.</summary>
+        public static global::Aircraft PilotBaseState_aircraft(global::PilotBaseState instance) => (global::Aircraft)_PilotBaseState_aircraft.GetValue(instance);
+        /// <summary>PilotBaseState.aircraft — set.</summary>
+        public static void PilotBaseState_aircraft_Set(global::PilotBaseState instance, global::Aircraft value) => _PilotBaseState_aircraft.SetValue(instance, value);
+
+        private static readonly global::System.Reflection.FieldInfo _PilotBaseState_destination =
+            global::HarmonyLib.AccessTools.Field(typeof(global::PilotBaseState), "destination");
+        /// <summary>PilotBaseState.destination (private GlobalPosition) — get.</summary>
+        public static global::GlobalPosition PilotBaseState_destination(global::PilotBaseState instance) => (global::GlobalPosition)_PilotBaseState_destination.GetValue(instance);
+        /// <summary>PilotBaseState.destination — set.</summary>
+        public static void PilotBaseState_destination_Set(global::PilotBaseState instance, global::GlobalPosition value) => _PilotBaseState_destination.SetValue(instance, value);
 
         private static readonly global::System.Reflection.FieldInfo _MapToolTip_circle1 =
             global::HarmonyLib.AccessTools.Field(typeof(global::MapToolTip), "circle1");
-        /// <summary>MapToolTip.circle1 (private Image).</summary>
+        /// <summary>MapToolTip.circle1 (private Image) — get.</summary>
         public static global::UnityEngine.UI.Image MapToolTip_circle1(global::MapToolTip instance) => (global::UnityEngine.UI.Image)_MapToolTip_circle1.GetValue(instance);
+        /// <summary>MapToolTip.circle1 — set.</summary>
+        public static void MapToolTip_circle1_Set(global::MapToolTip instance, global::UnityEngine.UI.Image value) => _MapToolTip_circle1.SetValue(instance, value);
 
         private static readonly global::System.Reflection.FieldInfo _MapToolTip_circle2 =
             global::HarmonyLib.AccessTools.Field(typeof(global::MapToolTip), "circle2");
-        /// <summary>MapToolTip.circle2 (private Image).</summary>
+        /// <summary>MapToolTip.circle2 (private Image) — get.</summary>
         public static global::UnityEngine.UI.Image MapToolTip_circle2(global::MapToolTip instance) => (global::UnityEngine.UI.Image)_MapToolTip_circle2.GetValue(instance);
+        /// <summary>MapToolTip.circle2 — set.</summary>
+        public static void MapToolTip_circle2_Set(global::MapToolTip instance, global::UnityEngine.UI.Image value) => _MapToolTip_circle2.SetValue(instance, value);
 
         private static readonly global::System.Reflection.FieldInfo _MapToolTip_line1 =
             global::HarmonyLib.AccessTools.Field(typeof(global::MapToolTip), "line1");
-        /// <summary>MapToolTip.line1 (private Image).</summary>
+        /// <summary>MapToolTip.line1 (private Image) — get.</summary>
         public static global::UnityEngine.UI.Image MapToolTip_line1(global::MapToolTip instance) => (global::UnityEngine.UI.Image)_MapToolTip_line1.GetValue(instance);
+        /// <summary>MapToolTip.line1 — set.</summary>
+        public static void MapToolTip_line1_Set(global::MapToolTip instance, global::UnityEngine.UI.Image value) => _MapToolTip_line1.SetValue(instance, value);
 
     }
 }

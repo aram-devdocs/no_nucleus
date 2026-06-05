@@ -52,6 +52,9 @@ namespace CommanderLayer.GameContract.Tests
             if (!Game.Type("Airbase").Properties.Any(x => x.Name == "CurrentHQ")) fail.Add("Airbase.CurrentHQ (property)");
             if (!Game.Type("Airbase").Fields.Any(x => x.Name == "center")) fail.Add("Airbase.center (field)");
             if (!Game.Type("AIPilotCombatModes").Methods.Any(x => x.Name == "AssessHQTargets")) fail.Add("AIPilotCombatModes.AssessHQTargets (method)");
+            if (!Game.Type("AIPilotCombatModes").Methods.Any(x => x.Name == "NoTarget")) fail.Add("AIPilotCombatModes.NoTarget (method)");
+            if (!Game.Type("PilotBaseState").Fields.Any(x => x.Name == "aircraft")) fail.Add("PilotBaseState.aircraft (field)");
+            if (!Game.Type("PilotBaseState").Fields.Any(x => x.Name == "destination")) fail.Add("PilotBaseState.destination (field)");
             if (!Game.Type("CombatAI").Methods.Any(x => x.Name == "ChooseHQTarget" && x.IsStatic)) fail.Add("CombatAI.ChooseHQTarget (method,static)");
             if (!Game.Type("GameAssets").Properties.Any(x => x.Name == "i" && x.GetMethod != null && x.GetMethod.IsStatic)) fail.Add("GameAssets.i (property,static)");
             if (!Game.Type("GameAssets").Fields.Any(x => x.Name == "HUDFriendly" && x.IsPublic)) fail.Add("GameAssets.HUDFriendly (field,public)");

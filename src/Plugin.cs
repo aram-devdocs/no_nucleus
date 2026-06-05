@@ -23,6 +23,7 @@ namespace CommanderLayer
         // Config (tunable live from the F1 menu). Read once by the runtime/controller at build time.
         internal static float ArriveRadius = 250f;
         internal static KeyCode ArmKey = KeyCode.G;
+        internal static bool EnableAircraftTasking;
 
         internal static CommanderRuntime Runtime;
 
@@ -36,10 +37,15 @@ namespace CommanderLayer
                 "Distance (m) within which a unit counts as 'arrived' at the objective.");
             var keyCfg = Config.Bind("Commander", "ArmPlacementKey", KeyCode.G,
                 "Optional key (while the map is open) to arm objective placement; then click the map.");
+            var airCfg = Config.Bind("Commander", "EnableAircraftTasking", false,
+                "EXPERIMENTAL: steer idle friendly aircraft toward Air-domain commander orders (needs in-game tuning).");
             ArriveRadius = arriveCfg.Value;
             ArmKey = keyCfg.Value;
+            EnableAircraftTasking = airCfg.Value;
+            Game.AircraftIntent.Enabled = airCfg.Value;
             arriveCfg.SettingChanged += (_, __) => ArriveRadius = arriveCfg.Value;
             keyCfg.SettingChanged += (_, __) => ArmKey = keyCfg.Value;
+            airCfg.SettingChanged += (_, __) => { EnableAircraftTasking = airCfg.Value; Game.AircraftIntent.Enabled = airCfg.Value; };
 
             Runtime = new CommanderRuntime();
 
@@ -47,6 +53,7 @@ namespace CommanderLayer
             ApplyPatch(harmony, typeof(Patches.MainMenuBadgePatch));
             ApplyPatch(harmony, typeof(Patches.DynamicMapUpdateTickPatch));
             ApplyPatch(harmony, typeof(Patches.VirtualMFDPatch));
+            ApplyPatch(harmony, typeof(Patches.AircraftTaskingPatch));
 
             Log.LogInfo("Commander Layer loaded.");
         }

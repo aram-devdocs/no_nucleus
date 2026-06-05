@@ -30,8 +30,12 @@ namespace CommanderLayer.Core.Planning
             var plan = OrderPlanner.Plan(order, roster, threat, _cfg);
             var state = new OrderState(order);
             Record(state, plan);
-            state.Status = plan.IsEmpty ? OrderStatus.Failed : OrderStatus.Active;
-            state.Summary = Summarize(state, threat);
+            // An Air-domain order steers aircraft via the AI patch (not commandable units), so an empty
+            // ground/ship plan is still Active — only a non-air order with no units truly fails.
+            bool hasAir = (order.Domains & DomainSet.Air) != 0;
+            state.Status = (!plan.IsEmpty || hasAir) ? OrderStatus.Active : OrderStatus.Failed;
+            if (plan.IsEmpty && hasAir) state.Summary = "Air tasking: idle aircraft will ingress.";
+            else state.Summary = Summarize(state, threat);
             _orders.Add(state);
             return plan;
         }

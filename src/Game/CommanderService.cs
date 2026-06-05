@@ -51,6 +51,7 @@ namespace CommanderLayer.Game
             var order = new CommanderOrder("ord-" + (++_counter), kind, world, r, domains);
             var plan = _mgr.AddOrder(order, roster, threat);
             foreach (var t in plan.Tasks) _cmds.Execute(t);
+            RefreshAirIntent();
             Plugin.Log?.LogInfo($"Order {order.Id} ({kind}, {domains}, r={r:0}) at {world}: {plan.Tasks.Count} unit(s) tasked.");
             return _mgr.Orders[_mgr.Orders.Count - 1];
         }
@@ -74,6 +75,19 @@ namespace CommanderLayer.Game
                 o => ThreatAssessor.Assess(_intel.KnownEnemiesNear(o.Position, _cfg.ThreatRadius)),
                 o => _capture.IsHeldByUs(o.Position));
             foreach (var t in reissue) _cmds.Execute(t);
+            RefreshAirIntent();
+        }
+
+        // Publish the Air-domain order points as aircraft ingress zones (consumed by the NoTarget patch).
+        private void RefreshAirIntent()
+        {
+            var zones = new List<Vec3>();
+            foreach (var o in _mgr.Orders)
+            {
+                if (o.Status == OrderStatus.Complete || o.Status == OrderStatus.Failed) continue;
+                if ((o.Order.Domains & DomainSet.Air) != 0) zones.Add(o.Order.Position);
+            }
+            AircraftIntent.SetZones(zones);
         }
 
         public IReadOnlyList<UnitView> CurrentRoster() => _roster.BuildRoster();

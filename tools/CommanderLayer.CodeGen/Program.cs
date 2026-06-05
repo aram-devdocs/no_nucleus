@@ -84,8 +84,12 @@ var deps = new List<Dep>
     new("Airbase", "CurrentHQ", "property"),
     new("Airbase", "center",    "field"),
 
-    // ---- P4: aircraft target seam (aircraft-only AssessHQTargets; ChooseHQTarget is shared) ----
+    // ---- P4: aircraft tasking (steer IDLE aircraft via the pilot's own no-target state — NOT a faction
+    //         Objective, which the decompile shows also pulls idle ground/ships = the stampede). ----
     new("AIPilotCombatModes", "AssessHQTargets", "method"),
+    new("AIPilotCombatModes", "NoTarget", "method"),         // postfix target (private)
+    new("PilotBaseState", "aircraft",    "field", Reflected: true),  // protected Aircraft
+    new("PilotBaseState", "destination", "field", Reflected: true),  // protected GlobalPosition (we override)
     new("CombatAI", "ChooseHQTarget", "method", Static: true),
 
     // ---- Reuse: native UI theme (GameAssets singleton — colors + font) ----
@@ -205,8 +209,10 @@ foreach (var (d, t, m) in reflected)
     string acc = $"{Ident(d.Type)}_{d.Member}";
     s.AppendLine($"        private static readonly global::System.Reflection.FieldInfo _{acc} =");
     s.AppendLine($"            global::HarmonyLib.AccessTools.Field(typeof({ownerType}), \"{d.Member}\");");
-    s.AppendLine($"        /// <summary>{d.Type}.{d.Member} (private {fd.FieldType.Name}).</summary>");
+    s.AppendLine($"        /// <summary>{d.Type}.{d.Member} (private {fd.FieldType.Name}) — get.</summary>");
     s.AppendLine($"        public static {fieldType} {acc}({ownerType} instance) => ({fieldType})_{acc}.GetValue(instance);");
+    s.AppendLine($"        /// <summary>{d.Type}.{d.Member} — set.</summary>");
+    s.AppendLine($"        public static void {acc}_Set({ownerType} instance, {fieldType} value) => _{acc}.SetValue(instance, value);");
     s.AppendLine();
 }
 s.AppendLine("    }");

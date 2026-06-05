@@ -207,8 +207,9 @@ namespace CommanderLayer.Tests
             Assert.False(ok.IsEmpty);
             Assert.Equal(OrderStatus.Active, mgr.Orders[0].Status);
 
+            // Ground-only order (no Air domain) with no combat-capable units truly fails.
             var mgr2 = new AssignmentManager(Cfg());
-            mgr2.AddOrder(new CommanderOrder("o2", OrderKind.Attack, P(0, 0), 0f),
+            mgr2.AddOrder(new CommanderOrder("o2", OrderKind.Attack, P(0, 0), 0f, DomainSet.Land),
                 new List<UnitView> { Ground("truck", VehicleType.TRUCK, P(100, 0)) }, ThreatPicture.Empty);
             Assert.Equal(OrderStatus.Failed, mgr2.Orders[0].Status);
         }
@@ -234,6 +235,16 @@ namespace CommanderLayer.Tests
 
             var t2 = mgr.Tick(new List<UnitView> { Ground("mbt", VehicleType.MBT, P(40, 0)) }, _ => ThreatPicture.Empty);
             Assert.DoesNotContain(t2, x => x.UnitId == "mbt" && x.Verb == TaskVerb.Hold);
+        }
+
+        [Fact]
+        public void Air_order_is_active_even_with_no_commandable_units()
+        {
+            var mgr = new AssignmentManager(Cfg());
+            var order = new CommanderOrder("a", OrderKind.Attack, P(0, 0), 5000f, DomainSet.Air);
+            var plan = mgr.AddOrder(order, new List<UnitView> { Ground("mbt", VehicleType.MBT, P(100, 0)) }, ThreatPicture.Empty);
+            Assert.True(plan.IsEmpty);                                  // ground unit excluded by Air domain
+            Assert.Equal(OrderStatus.Active, mgr.Orders[0].Status);    // not Failed — aircraft steered by the AI patch
         }
 
         [Fact]
