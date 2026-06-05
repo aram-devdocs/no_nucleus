@@ -26,10 +26,13 @@ Spec: `specs/phase-S0-P0.md`.
 NOTE: agent worktrees branch from an OLD commit (~fbbac77) — agents must `git merge --ff-only commander-v2`
 first, and ONLY add new files (never edit shared files — stale base would revert my work). I do all shared-
 file wiring myself during integration windows.
-- Wave 1 ✅ integrated+committed: BattleLog (8342de3), Production (761ba20), ThreatBoard (8de2823). 84 Core.
-- Wave 2 in flight: P4 TargetPrioritizer · P5 HqView (HQ view-models).
-- My wiring TODO (shared files): ThreatBoard→brain objective-gen, BattleLog events in brain, Production
-  GameProductionService→CmdPurchaseConvoy, TargetPrioritizer→brain objective ranking.
+- Wave 1 ✅ BattleLog (8342de3), Production (761ba20), ThreatBoard (8de2823).
+- Wave 2 ✅ TargetPrioritizer (aaf91aa), HqView (175bfcf). **98 Core + 11 contract.**
+- Wave 3 in flight: P5 Proposals (Assisted-mode).
+- **NEXT = WIRING CYCLE (mine, shared files):** make the brain USE the modules — ThreatBoard+TargetPrioritizer
+  for objective generation/ranking; emit BattleLog events (op opened/phase-changed/completed); Production
+  gap-fill via GameProductionService→CmdPurchaseConvoy; HqView consumed by the UI. This turns the built
+  depth into actual autonomous behavior. Then P6 codegen UI (mine). Then playtest.
 
 ## S0 findings (filled after the playtest)
 | Unknown | Result | Detail |
