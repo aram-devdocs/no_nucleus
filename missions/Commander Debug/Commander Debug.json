@@ -1,0 +1,216 @@
+{
+    "JsonVersion": 5,
+    "WorkshopId": 0,
+    "MapKey": {
+        "Type": 1,
+        "TypeName": "GameWorldPrefab",
+        "Path": "Terrain_naval"
+    },
+    "missionSettings": {
+        "description": "Commander Layer mod debug sandbox. You fly a Boscali trainer; two friendly corvettes sit idle (holdPosition off). Open the map, pick the Commander tab, Place Objective, then click the map: the corvettes should steer to your objective. One Primeva corvette to the north is a target.",
+        "allowEventContent": false,
+        "Tags": [],
+        "playerMode": 0,
+        "allowRespawn": true,
+        "playerStartingRank": 0,
+        "rankMultiplier": 1.0,
+        "successfulSortieBonus": 0.25,
+        "nuclearEscalationThreshold": 0.0,
+        "strategicEscalationThreshold": 0.0,
+        "minRankTacticalWarhead": 0,
+        "minRankStrategicWarhead": 0,
+        "cameraStartPosition": {
+            "IsOverride": false,
+            "Value": {
+                "Position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+                "Rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 0.0 }
+            }
+        },
+        "missionRoads": { "roads": [] },
+        "missionSeaLanes": { "roads": [] },
+        "wrecksMaxNumber": 0,
+        "wrecksDecayTime": 0.0
+    },
+    "environment": {
+        "timeOfDay": 11.0,
+        "timeFactor": 0.0,
+        "weatherIntensity": 0.0,
+        "cloudAltitude": 1800.0,
+        "windSpeed": 0.0,
+        "windTurbulence": 0.0,
+        "windHeading": 0.0,
+        "windRandomHeading": 0.0,
+        "moonPhase": 14.0
+    },
+    "aircraft": [
+        {
+            "type": "trainer",
+            "faction": "Boscali",
+            "UniqueName": "Commander Trainer",
+            "globalPosition": { "x": 0.0, "y": 350.0, "z": 2200.0 },
+            "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+            "CaptureStrength": { "IsOverride": false, "Value": 0.0 },
+            "CaptureDefense": { "IsOverride": false, "Value": 0.0 },
+            "unitCustomID": "",
+            "spawnTiming": "",
+            "playerControlled": true,
+            "playerControlledPriority": 0,
+            "loadout": { "weaponSelections": [ 3, 1, 2, 1, 1 ] },
+            "savedLoadout": {
+                "Selected": [
+                    { "Key": "AGM_heavy_internal" },
+                    { "Key": "AGM_heavy_single" },
+                    { "Key": "AGM_heavy_single" },
+                    { "Key": "AAM1_single" },
+                    { "Key": "TailHook_Trainer" }
+                ]
+            },
+            "livery": 0,
+            "liveryType": 0,
+            "liveryName": "",
+            "fuel": 1.0,
+            "skill": 1.0,
+            "bravery": 0.5,
+            "startingSpeed": 130.0
+        }
+    ],
+    "vehicles": [],
+    "ships": [
+        {
+            "type": "SmallCarrier1",
+            "faction": "Boscali",
+            "UniqueName": "BDF Carrier",
+            "globalPosition": { "x": 0.0, "y": 5.0, "z": 3000.0 },
+            "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+            "CaptureStrength": { "IsOverride": false, "Value": 0.0 },
+            "CaptureDefense": { "IsOverride": false, "Value": 0.0 },
+            "unitCustomID": "",
+            "spawnTiming": "",
+            "holdPosition": true,
+            "skill": 0.7,
+            "waypoints": []
+        },
+        {
+            "type": "Corvette1",
+            "faction": "Boscali",
+            "UniqueName": "BDF Corvette Alpha",
+            "globalPosition": { "x": 700.0, "y": 5.0, "z": 3100.0 },
+            "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+            "CaptureStrength": { "IsOverride": false, "Value": 0.0 },
+            "CaptureDefense": { "IsOverride": false, "Value": 0.0 },
+            "unitCustomID": "",
+            "spawnTiming": "",
+            "holdPosition": false,
+            "skill": 0.7,
+            "waypoints": []
+        },
+        {
+            "type": "Corvette1",
+            "faction": "Boscali",
+            "UniqueName": "BDF Corvette Bravo",
+            "globalPosition": { "x": -700.0, "y": 5.0, "z": 3100.0 },
+            "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+            "CaptureStrength": { "IsOverride": false, "Value": 0.0 },
+            "CaptureDefense": { "IsOverride": false, "Value": 0.0 },
+            "unitCustomID": "",
+            "spawnTiming": "",
+            "holdPosition": false,
+            "skill": 0.7,
+            "waypoints": []
+        },
+        {
+            "type": "Corvette1",
+            "faction": "Primeva",
+            "UniqueName": "PRA Corvette",
+            "globalPosition": { "x": 0.0, "y": 5.0, "z": 8000.0 },
+            "rotation": { "x": 0.0, "y": 1.0, "z": 0.0, "w": 0.0 },
+            "CaptureStrength": { "IsOverride": false, "Value": 0.0 },
+            "CaptureDefense": { "IsOverride": false, "Value": 0.0 },
+            "unitCustomID": "",
+            "spawnTiming": "",
+            "holdPosition": true,
+            "skill": 0.7,
+            "waypoints": []
+        }
+    ],
+    "buildings": [],
+    "scenery": [],
+    "containers": [],
+    "missiles": [],
+    "pilots": [],
+    "factions": [
+        {
+            "factionName": "Boscali",
+            "preventJoin": false,
+            "preventDonation": false,
+            "supplies": [],
+            "startingBalance": 0.0,
+            "playerJoinAllowance": 20.0,
+            "playerTaxRate": 0.2,
+            "regularIncome": 5.0,
+            "excessFundsDistributePercent": 0.25,
+            "killReward": 1.0,
+            "startingWarheads": 0,
+            "reserveWarheads": 0,
+            "reserveAirframes": 8,
+            "extraReservesPerPlayer": 1,
+            "AIAircraftLimit": 6,
+            "reduceAIPerFriendlyPlayer": 1.0,
+            "addAIPerEnemyPlayer": 1.0,
+            "objectives": [],
+            "restrictions": { "aircraft": [], "weapons": [] },
+            "cameraStartPosition": {
+                "IsOverride": false,
+                "Value": {
+                    "Position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+                    "Rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 0.0 }
+                }
+            }
+        },
+        {
+            "factionName": "Primeva",
+            "preventJoin": false,
+            "preventDonation": false,
+            "supplies": [],
+            "startingBalance": 0.0,
+            "playerJoinAllowance": 20.0,
+            "playerTaxRate": 0.2,
+            "regularIncome": 5.0,
+            "excessFundsDistributePercent": 0.25,
+            "killReward": 1.0,
+            "startingWarheads": 0,
+            "reserveWarheads": 0,
+            "reserveAirframes": 8,
+            "extraReservesPerPlayer": 1,
+            "AIAircraftLimit": 6,
+            "reduceAIPerFriendlyPlayer": 1.0,
+            "addAIPerEnemyPlayer": 1.0,
+            "objectives": [],
+            "restrictions": { "aircraft": [], "weapons": [] },
+            "cameraStartPosition": {
+                "IsOverride": false,
+                "Value": {
+                    "Position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+                    "Rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 0.0 }
+                }
+            }
+        }
+    ],
+    "airbases": [],
+    "unitInventories": [],
+    "objectives": {
+        "Objectives": [
+            {
+                "UniqueName": "Mission Start",
+                "Faction": "",
+                "DisplayName": "",
+                "Hidden": true,
+                "Type": 0,
+                "TypeName": "None",
+                "Data": [],
+                "Outcomes": []
+            }
+        ],
+        "Outcomes": []
+    }
+}

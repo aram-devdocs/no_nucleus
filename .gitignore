@@ -1,0 +1,6 @@
+.sandbox/
+lib/
+**/bin/
+**/obj/
+*.user
+decompiled/

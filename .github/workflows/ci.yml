@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # The Core logic layer is Unity-free, so it always builds and tests in CI without the game DLLs.
+      - name: Core logic tests
+        run: dotnet test tests/Core/CommanderLayer.Tests.csproj -c Release
+
+      # The plugin build and game-contract tests require the proprietary game DLLs in lib/, which are
+      # gitignored (the game's IP) and produced locally by scripts/setup-sandbox.ps1. If a runner restores
+      # them (e.g. via cache/secret into lib/), build + contract-verify too; otherwise these steps no-op.
+      - name: Build plugin + contract tests (only if game DLLs present)
+        run: |
+          if [ -f lib/Assembly-CSharp.dll ]; then
+            dotnet build src/CommanderLayer.csproj -c Release
+            dotnet test tests/GameContract/CommanderLayer.GameContract.Tests.csproj -c Release
+          else
+            echo "lib/Assembly-CSharp.dll absent — skipping game-coupled build/tests (run scripts/check.sh locally)."
+          fi

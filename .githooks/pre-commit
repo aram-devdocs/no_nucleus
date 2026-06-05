@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Fast gate: the Unity-free Core logic tests (no game DLLs required).
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+echo "[pre-commit] Core logic tests..."
+dotnet test "$root/tests/Core/CommanderLayer.Tests.csproj" -c Release --nologo --verbosity quiet
+echo "[pre-commit] OK"

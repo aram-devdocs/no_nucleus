@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Full gate, mirroring CI: build against the real assembly + Core + game-contract tests when the game DLLs
+# are present; otherwise Core tests only (as CI does without the proprietary DLLs).
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+if [ -f "$root/lib/Assembly-CSharp.dll" ]; then
+  echo "[pre-push] full check (build + Core + GameContract)..."
+  bash "$root/scripts/check.sh"
+else
+  echo "[pre-push] game DLLs absent — running Core tests only (mirrors CI)..."
+  dotnet test "$root/tests/Core/CommanderLayer.Tests.csproj" -c Release --nologo --verbosity quiet
+fi
+echo "[pre-push] OK"

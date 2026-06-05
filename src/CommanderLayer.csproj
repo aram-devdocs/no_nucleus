@@ -1,0 +1,82 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>CommanderLayer</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Version>0.1.0</Version>
+    <!-- Referencing the game's own DLLs surfaces unavoidable framework version-conflict warnings;
+         demote the noisy ones so a clean build stays meaningful. -->
+    <MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
+    <!-- Build inputs live in the gitignored lib/ (populated by setup-sandbox.ps1) -->
+    <Lib>$(MSBuildProjectDirectory)\..\lib</Lib>
+    <!-- Deploy target: the sandbox, never the Steam install -->
+    <Sandbox>$(MSBuildProjectDirectory)\..\.sandbox\game</Sandbox>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference BepInEx's OWN shipped DLLs (not NuGet) so we link against the exact Harmony/BepInEx
+         versions present at runtime. NuGet HarmonyX 2.14+ pulls MonoMod.Backports, which BepInEx
+         5.4.23 does not ship, causing a runtime FileNotFoundException. -->
+    <Reference Include="BepInEx">
+      <HintPath>$(Lib)\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(Lib)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Reference the REAL, unmodified game assembly so the compiler enforces accessibility against
+         their actual types. Any private/internal access becomes a build error (caught here, not at
+         runtime). The few genuinely-private members we need are reached via reflection + a contract test. -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(Lib)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(Lib)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Mirage">
+      <HintPath>$(Lib)\Mirage.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(Lib)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(Lib)\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(Lib)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(Lib)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(Lib)\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(Lib)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(Lib)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(Lib)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="Deploy" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(Sandbox)\BepInEx\plugins\CommanderLayer"
+          Condition="Exists('$(Sandbox)')" />
+  </Target>
+</Project>

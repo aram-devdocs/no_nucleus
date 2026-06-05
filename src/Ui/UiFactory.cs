@@ -1,0 +1,138 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.UI;
+
+namespace CommanderLayer.Ui
+{
+    /// <summary>
+    /// Atoms: each method creates exactly one styled uGUI element. Higher-level components compose these;
+    /// nothing else news up raw UI objects, so styling stays in one place (the Theme + this factory).
+    /// </summary>
+    public static class UiFactory
+    {
+        private static TMP_FontAsset _font;
+
+        /// <summary>
+        /// The TMP font used by all labels. Resolved lazily; composition may set it explicitly from a
+        /// cloned in-game label for guaranteed-correct material.
+        /// </summary>
+        public static TMP_FontAsset Font
+        {
+            get
+            {
+                if (_font == null)
+                {
+                    _font = ResolveFont();
+                }
+                return _font;
+            }
+            set => _font = value;
+        }
+
+        private static TMP_FontAsset ResolveFont()
+        {
+            if (TMP_Settings.defaultFontAsset != null)
+            {
+                return TMP_Settings.defaultFontAsset;
+            }
+            var all = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            return all != null && all.Length > 0 ? all[0] : null;
+        }
+
+        public static RectTransform Panel(string name, Transform parent, Color background)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+            go.GetComponent<Image>().color = background;
+            return rt;
+        }
+
+        public static TextMeshProUGUI Label(string name, Transform parent, string text, float size, Color color,
+            TextAlignmentOptions align = TextAlignmentOptions.TopLeft)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            if (Font != null)
+            {
+                tmp.font = Font;
+            }
+            tmp.text = text;
+            tmp.fontSize = size;
+            tmp.color = color;
+            tmp.alignment = align;
+            tmp.raycastTarget = false;
+            tmp.enableWordWrapping = true;
+            tmp.overflowMode = TextOverflowModes.Ellipsis;
+            return tmp;
+        }
+
+        public static Button Button(string name, Transform parent, string text, Theme theme, UnityAction onClick)
+        {
+            var rt = Panel(name, parent, theme.Accent);
+            var btn = rt.gameObject.AddComponent<Button>();
+            if (onClick != null)
+            {
+                btn.onClick.AddListener(onClick);
+            }
+
+            var label = Label(name + "_label", rt, text, 16f, theme.Text, TextAlignmentOptions.Center);
+            Stretch(label.rectTransform);
+            return btn;
+        }
+
+        public static VerticalLayoutGroup VerticalLayout(string name, Transform parent, float spacing, RectOffset padding)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var v = go.AddComponent<VerticalLayoutGroup>();
+            v.spacing = spacing;
+            v.padding = padding;
+            v.childControlWidth = true;
+            v.childControlHeight = true;
+            v.childForceExpandWidth = true;
+            v.childForceExpandHeight = false;
+            return v;
+        }
+
+        public static Image LineImage(string name, Transform parent, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            img.raycastTarget = false;
+            ((RectTransform)go.transform).pivot = new Vector2(0f, 0.5f); // pivot at line start
+            return img;
+        }
+
+        public static LayoutElement PreferredHeight(GameObject go, float height)
+        {
+            var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+            le.preferredHeight = height;
+            le.minHeight = height;
+            return le;
+        }
+
+        /// <summary>Anchor a RectTransform to fill its parent.</summary>
+        public static void Stretch(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>Anchor a fixed-size box to a corner of its parent.</summary>
+        public static void AnchorTopLeft(RectTransform rt, Vector2 size, Vector2 offset)
+        {
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.sizeDelta = size;
+            rt.anchoredPosition = new Vector2(offset.x, -offset.y);
+        }
+    }
+}
