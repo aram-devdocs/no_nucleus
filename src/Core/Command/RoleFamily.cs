@@ -46,6 +46,31 @@ namespace CommanderLayer.Core.Command
         /// <summary>Families we actually form squads from (Other = munitions/buildings, never squadable).</summary>
         public static bool IsSquadable(RoleFamily f) => f != RoleFamily.Other;
 
+        /// <summary>
+        /// Which squad families actually engage during a given combined-arms phase — so ground holds back
+        /// while aircraft/artillery win air superiority, suppress SAMs and soften the target first.
+        /// </summary>
+        public static System.Collections.Generic.HashSet<RoleFamily> ActiveInPhase(CombatPhase phase)
+        {
+            switch (phase)
+            {
+                case CombatPhase.Recon:
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Recon, RoleFamily.AirCombat };
+                case CombatPhase.AirSuperiority:
+                case CombatPhase.Sead:
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat };
+                case CombatPhase.Strike:
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat, RoleFamily.Artillery };
+                case CombatPhase.Assault:
+                case CombatPhase.Capture:
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.Infantry };
+                case CombatPhase.Hold:
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.AirDefense };
+                default:
+                    return new System.Collections.Generic.HashSet<RoleFamily>();
+            }
+        }
+
         /// <summary>Which squad families are suited to carry out an objective.</summary>
         public static System.Collections.Generic.HashSet<RoleFamily> SuitableFor(ObjectiveKind kind)
         {

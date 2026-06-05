@@ -45,16 +45,17 @@ namespace CommanderLayer.Core.Command
             {
                 if (op.IsTerminal) continue;
                 op.SquadIds.RemoveAll(sid => state.Squads.ById(sid) == null);
-                bool threatGone = !AnyThreatNear(snapshot, op.Objective.Position, coverage);
-                if (threatGone && op.Objective.Kind == ObjectiveKind.DestroyTarget)
+                var current = ThreatNear(snapshot, op.Objective.Position, coverage);
+                if (current.Count == 0 && op.Objective.Kind == ObjectiveKind.DestroyTarget)
                 {
                     op.Status = OperationStatus.Complete;
                     op.Phase = OrderPhase.Complete;
+                    continue;
                 }
-                else if (op.SquadIds.Count == 0)
-                {
-                    op.Status = OperationStatus.Failed;
-                }
+                if (op.SquadIds.Count == 0) { op.Status = OperationStatus.Failed; continue; }
+                // Advance the combined-arms cursor: air superiority -> SEAD -> soften -> assault, per gates.
+                op.CombatPhase = PhaseGates.ActivePhase(current, op.InitialThreat ?? current,
+                    new ForceState(FighterStrength(op, state)), state.Doctrine);
             }
 
             // 2. Free squads from terminal operations (B1), then drop the terminal ops and prune auto
@@ -84,8 +85,15 @@ namespace CommanderLayer.Core.Command
                 if (state.OperationFor(obj.Id) != null) continue;
                 var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
                 if (squadIds.Count == 0) continue; // no force available — production request comes in P3
-                var op = new Operation(state.NextOperationId(), obj, squadIds) { Status = OperationStatus.Active };
+                var initial = ThreatNear(snapshot, obj.Position, coverage); // baseline for the soften gate
+                var op = new Operation(state.NextOperationId(), obj, squadIds)
+                {
+                    Status = OperationStatus.Active,
+                    InitialThreat = initial
+                };
                 foreach (var sid in squadIds) state.Squads.ById(sid).AssignedOperationId = op.Id;
+                // Set the starting phase now so the op tasks the right families on its very first tick.
+                op.CombatPhase = PhaseGates.ActivePhase(initial, initial, new ForceState(FighterStrength(op, state)), state.Doctrine);
                 state.Operations.Add(op);
             }
 
@@ -95,12 +103,13 @@ namespace CommanderLayer.Core.Command
             foreach (var op in state.Operations)
             {
                 if (op.Status != OperationStatus.Active) continue;
+                var active = Families.ActiveInPhase(op.CombatPhase); // only this phase's families engage
                 var verb = op.Objective.TargetId != null && op.Objective.Kind == ObjectiveKind.DestroyTarget
                     ? TaskVerb.AttackTarget : TaskVerb.MoveTo;
                 foreach (var sid in op.SquadIds)
                 {
                     var squad = state.Squads.ById(sid);
-                    if (squad == null) continue;
+                    if (squad == null || !active.Contains(squad.Family)) continue; // not this phase's turn — hold back
                     foreach (var uid in squad.MemberUnitIds)
                     {
                         tasked.Add(uid);
@@ -115,6 +124,25 @@ namespace CommanderLayer.Core.Command
                 state.LastObjectiveByUnit.Remove(k);
 
             return tasks;
+        }
+
+        private static ThreatPicture ThreatNear(WorldSnapshot snapshot, Vec3 point, float radius)
+        {
+            var near = new List<EnemyView>();
+            foreach (var e in snapshot.KnownEnemies)
+                if (e != null && e.Position.HorizontalDistanceTo(point) <= radius) near.Add(e);
+            return new ThreatPicture(near);
+        }
+
+        private static int FighterStrength(Operation op, CommanderState state)
+        {
+            int n = 0;
+            foreach (var sid in op.SquadIds)
+            {
+                var s = state.Squads.ById(sid);
+                if (s != null && s.Family == RoleFamily.AirCombat) n += s.Strength;
+            }
+            return n;
         }
 
         private static bool AnyThreatNear(WorldSnapshot snapshot, Vec3 point, float radius)

@@ -13,6 +13,9 @@ namespace CommanderLayer.Tests
         private static EnemyView E(string id, Vec3 pos, float priority = 1f) =>
             new EnemyView(id, pos, UnitClass.GroundVehicle, default, true, priority, 0);
 
+        private static EnemyView EArmor(string id, Vec3 pos) =>
+            new EnemyView(id, pos, UnitClass.GroundVehicle, new UnitCapability(Role.Armor, true, false, false, false, false), true, 1f, 0);
+
         private static Squad Sq(string id, RoleFamily fam, int strength, string assignedOp = null)
         {
             var s = new Squad(id, id, fam, SquadOrigin.Auto, Enumerable.Range(0, strength).Select(i => id + "u" + i));
@@ -51,6 +54,20 @@ namespace CommanderLayer.Tests
             Assert.Empty(state.Objectives);
             Assert.Empty(state.Operations);
             Assert.Empty(tasks);
+        }
+
+        [Fact]
+        public void Tick_softens_with_artillery_before_committing_armor()
+        {
+            var state = new CommanderState(SquadCfg(), new Doctrine { RiskTolerance = 0f }, Cfg());
+            var roster = new List<UnitView> { U("armor1", Role.Armor, P(0, 0)), U("art1", Role.Artillery, P(50, 0)) };
+            var known = new List<EnemyView> { EArmor("e1", P(5000, 0)), EArmor("e2", P(5010, 0)), EArmor("e3", P(5020, 0)) };
+
+            var tasks = CommanderBrain.Tick(new WorldSnapshot(roster, known), state);
+
+            Assert.Equal(CombatPhase.Strike, state.Operations[0].CombatPhase); // not yet softened
+            Assert.Contains(tasks, t => t.UnitId == "art1");                   // artillery engages (soften)
+            Assert.DoesNotContain(tasks, t => t.UnitId == "armor1");           // armor held until softened
         }
 
         [Fact]
