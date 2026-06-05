@@ -13,8 +13,8 @@ Gates per phase: ① Spec approved · ② Quality green · ③ Review clean · �
 load Commander Debug, open map, arm an order, hover, place two overlapping orders; paste the BepInEx log
 (esp. `[S0:*]` lines) + a screenshot. Meanwhile the loop builds P1/P2 pure-Core (no playtest needed).
 | P0.5 — sandbox + terrain | Backlog | depends on S0 terrain probe |
-| P1 — squads + operations + brain | P1a✔ P1b✔ P1c-core✔ · orchestration next | squads (d4c798b), Objective/Operation/Doctrine/ports (1271759), brain decisions (06f742c). 48 Core. Next: brain Tick + WorldSnapshot/CommanderState + flag-gated wiring (vertical slice — activate after playtest) |
-| P2 — combined-arms sequencing | Backlog | |
+| P1 — squads + operations + brain | Built · code-review running | P1a/b/c done (…f16109e): squads, objectives/operations/ports, brain Tick + flag-gated wiring (EnableAutoCommander, default off). 51 Core. Known gaps to fix from review: operation/objective lifecycle (never completed/pruned), AssignedOperationId never cleared, auto-vs-manual double-tasking. |
+| P2 — combined-arms sequencing | Next (after P1 review fixes) | PhaseGates/CombatDoctrine/OperationPhases; generalize SeadPending; thresholds from RiskTolerance |
 | P3 — economy/production | Backlog | depends on S0 convoy spike |
 | P4 — intel board + reports | Backlog | |
 | P5 — autonomy UI + HUD | Backlog | |
