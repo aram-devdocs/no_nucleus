@@ -276,6 +276,39 @@ namespace CommanderLayer.Tests
             Assert.Equal(OrderStatus.Complete, mgr.Orders[0].Status);   // arrived
         }
 
+        private static OrderState StateWith(OrderKind kind, DomainSet dom, params string[] units)
+        {
+            var s = new OrderState(new CommanderOrder("o", kind, P(0, 0), 1000f, dom)) { Status = OrderStatus.Active };
+            foreach (var u in units) s.AssignedUnitIds.Add(u);
+            return s;
+        }
+
+        [Fact]
+        public void Battle_plan_phase_reflects_order_state()
+        {
+            const float arrive = 250f;
+            var far = new Dictionary<string, Vec3> { { "u", P(3000, 0) } };
+            var near = new Dictionary<string, Vec3> { { "u", P(50, 0) } };
+            var s = StateWith(OrderKind.Attack, DomainSet.Land, "u");
+            var enemy = ThreatAssessor.Assess(new List<EnemyView> {
+                new EnemyView("e", P(0, 0), UnitClass.GroundVehicle,
+                    new UnitCapability(Role.Infantry, true, false, false, false, false), true, 1f, 0) });
+
+            Assert.Equal(OrderPhase.Advancing, BattlePlan.PhaseOf(s, ThreatPicture.Empty, far, arrive));   // en route
+            Assert.Equal(OrderPhase.Engaging, BattlePlan.PhaseOf(s, enemy, near, arrive));                 // arrived + enemy
+            Assert.Equal(OrderPhase.Holding, BattlePlan.PhaseOf(s, ThreatPicture.Empty, near, arrive));    // arrived + quiet
+
+            var air = StateWith(OrderKind.Attack, DomainSet.All, "u");
+            var ad = ThreatAssessor.Assess(new List<EnemyView> {
+                new EnemyView("sam", P(0, 0), UnitClass.GroundVehicle,
+                    new UnitCapability(Role.GroundAirDefense, false, true, false, false, true), true, 1f, 0) });
+            Assert.Equal(OrderPhase.Suppressing, BattlePlan.PhaseOf(air, ad, near, arrive));               // air + SAM
+
+            var done = StateWith(OrderKind.Move, DomainSet.Land, "u");
+            done.Status = OrderStatus.Complete;
+            Assert.Equal(OrderPhase.Complete, BattlePlan.PhaseOf(done, ThreatPicture.Empty, near, arrive));
+        }
+
         [Fact]
         public void Attack_prefers_harder_hitting_units_against_armor()
         {

@@ -79,6 +79,9 @@ namespace CommanderLayer.Core.Model
 
     public enum OrderStatus { Planning, Active, Complete, Failed }
 
+    /// <summary>The current battle-plan phase of an order, for the panel's plan view.</summary>
+    public enum OrderPhase { Forming, Advancing, Engaging, Suppressing, Holding, AirTasking, Queued, Complete, Failed }
+
     /// <summary>Live state of an order managed over time.</summary>
     public sealed class OrderState
     {
@@ -88,6 +91,8 @@ namespace CommanderLayer.Core.Model
         /// <summary>Units that have already been told to hold (Defend), so we don't re-issue.</summary>
         public HashSet<string> Held { get; }
         public string Summary { get; set; }
+        /// <summary>Battle-plan phase (computed each management tick) for the plan view.</summary>
+        public OrderPhase Phase { get; set; }
 
         public OrderState(CommanderOrder order)
         {
@@ -96,6 +101,7 @@ namespace CommanderLayer.Core.Model
             AssignedUnitIds = new List<string>();
             Held = new HashSet<string>();
             Summary = string.Empty;
+            Phase = OrderPhase.Forming;
         }
     }
 

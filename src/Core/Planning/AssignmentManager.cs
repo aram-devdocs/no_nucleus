@@ -36,6 +36,10 @@ namespace CommanderLayer.Core.Planning
             state.Status = (!plan.IsEmpty || hasAir) ? OrderStatus.Active : OrderStatus.Failed;
             if (plan.IsEmpty && hasAir) state.Summary = "Air tasking: idle aircraft will ingress.";
             else state.Summary = Summarize(state, threat);
+            // Initial phase (refined each tick once unit positions are known): just-tasked units are advancing.
+            state.Phase = state.Status == OrderStatus.Failed ? OrderPhase.Failed
+                : state.AssignedUnitIds.Count > 0 ? OrderPhase.Advancing
+                : hasAir ? OrderPhase.AirTasking : OrderPhase.Forming;
             _orders.Add(state);
             return plan;
         }
@@ -74,6 +78,7 @@ namespace CommanderLayer.Core.Planning
                     if (unitInArea || s.AssignedUnitIds.Count == 0)
                     {
                         s.Status = OrderStatus.Complete;
+                        s.Phase = OrderPhase.Complete;
                         s.Summary = "Area secure.";
                         continue;
                     }
@@ -85,6 +90,7 @@ namespace CommanderLayer.Core.Planning
                         && p.HorizontalDistanceTo(s.Order.Position) <= _cfg.ArriveRadius))
                 {
                     s.Status = OrderStatus.Complete;
+                    s.Phase = OrderPhase.Complete;
                     s.Summary = "In position.";
                     continue;
                 }
@@ -93,6 +99,7 @@ namespace CommanderLayer.Core.Planning
                 if (s.Order.Kind == OrderKind.Capture && captureDone != null && captureDone(s.Order))
                 {
                     s.Status = OrderStatus.Complete;
+                    s.Phase = OrderPhase.Complete;
                     s.Summary = "Objective captured.";
                     continue;
                 }
@@ -121,6 +128,7 @@ namespace CommanderLayer.Core.Planning
                 }
 
                 s.Summary = Summarize(s, threat);
+                s.Phase = BattlePlan.PhaseOf(s, threat, posById, _cfg.ArriveRadius);
             }
             return toIssue;
         }

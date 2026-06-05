@@ -128,7 +128,9 @@ namespace CommanderLayer.Ui
                     var o = orders[i];
                     var r = _rows[i];
                     r.OrderId = o.Order.Id;
-                    r.Label.text = $"{o.Order.Kind.ToString().ToUpperInvariant()} · {o.Summary}";
+                    int n = o.AssignedUnitIds.Count;
+                    string units = n > 0 ? $" · {n} unit{(n == 1 ? "" : "s")}" : "";
+                    r.Label.text = $"{o.Order.Kind.ToString().ToUpperInvariant()} · {CommanderLayer.Core.Planning.BattlePlan.Label(o.Phase)}{units}";
                     r.Label.color = o.Status == OrderStatus.Failed ? new Color(1f, 0.5f, 0.5f)
                         : o.Status == OrderStatus.Complete ? _theme.Arrived
                         : OrderColors.For(o.Order.Kind);
