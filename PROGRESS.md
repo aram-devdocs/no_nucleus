@@ -18,7 +18,7 @@ load Commander Debug, open map, arm an order, hover, place two overlapping order
 | P3 — economy/production | Backlog | depends on S0 convoy spike |
 | P4 — intel board + reports | Backlog | |
 | P5 — autonomy UI + HUD | Backlog | |
-| P6 — native UI component library | Backlog (NEW) | harvest the game's OWN UI prefabs (buttons/toggles/rows/border via NuclearOption.UI + ObjectiveInfoList + GameAssets), clone into our component library so the UI IS the game's. Re-base UiFactory on cloned native UI with graceful fallback. Mostly playtest-gated. |
+| P6 — native UI component library | Backlog (NEW) | **Codegen** the UI seam: generate typed wrappers for the game's OWN UI components (NuclearOption.UI toggles/border, Button, ObjectiveInfoList rows, MapToolTip, MFDScreen) + ALL visual assets (GameAssets colors/fonts/sprites/icons) into the SDK — 1:1, regenerates on game updates. Re-base UiFactory/Theme/OrderColors to READ from generated accessors (DRY, single source of truth, no hardcoded/skewed values; mod-owned values clearly marked). Runtime clone with graceful fallback. Mostly playtest-gated. |
 
 Spec: `specs/phase-S0-P0.md`.
 
