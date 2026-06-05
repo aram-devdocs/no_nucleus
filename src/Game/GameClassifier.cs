@@ -25,7 +25,9 @@ namespace CommanderLayer.Game
         {
             var def = u.definition;
             RoleIdentity role = def != null ? def.roleIdentity : default;
+            TypeIdentity type = def != null ? def.typeIdentity : default;
             UnitClass cls = ClassOf(u);
+            bool hasRadar = type.radar > 0.5f; // the unit IS a radar emitter (AWACS/RDR feeder)
 
             Gen.VehicleType? veh = null;
             Gen.ShipType? ship = null;
@@ -37,7 +39,7 @@ namespace CommanderLayer.Game
             return new UnitDescriptor(
                 cls,
                 role.antiSurface, role.antiAir, role.antiRadar, role.antiMissile,
-                hasRadar: false, hasTroops: false, hasCargo: false, // weapon-mount flags: P4 refinement
+                hasRadar: hasRadar, hasTroops: false, hasCargo: false, // troops/cargo mount flags: P4 refinement
                 captureStrength: u.CaptureStrength,
                 armorTier: def != null ? (int)def.armorTier : 0,
                 commandable: u is ICommandable,

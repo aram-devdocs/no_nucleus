@@ -12,23 +12,27 @@ objective, and the game's own AI moves suitable units to it — *Majesty*, not a
 - **Main menu badge** — confirms the mod loaded.
 - **In-map CMD button** — opening the map (`M`) adds a **CMD** button to a blank MFD bezel slot. Clicking it
   opens the Commander panel (the panel is the "modal" for that button).
-- **Drop an objective** — *Place Objective*, then click the map. A faction objective is registered with the
-  game's mission runner; the AI assigner (`MissionPosition`) steers idle friendly ships/ground vehicles to
-  it (aircraft divert toward it when not engaged).
-- **Readback + overlay** — the panel lists assigned units (distance, en-route/arrived) and the map draws a
-  marker plus lines to each assigned unit.
+- **Give an order** — pick **Attack / Defend / Capture / Resupply**, choose **Air/Land/Sea** + a pull
+  **range**, then click the map. The mod **selectively** tasks only the role-appropriate, in-range,
+  commandable units (ground vehicles + ships) via per-unit move/hold commands — it does **not** drag your
+  whole faction in. A live preview ring shows the radius and how many units will respond before you click.
+- **Manage** — a throttled loop reassigns on unit loss, completes an Attack when the area is clear, and
+  garrisons (holds) Defend units on arrival. The panel lists active orders (with per-order clear); the map
+  draws a color-coded marker + lines to assigned units.
 
 Config (arrive radius, optional arm key) lives in the in-game **F1** ConfigurationManager menu.
 
 ## How it works (the integration)
 
 The game is Unity (Mono backend) + uGUI/TextMeshPro. The mod:
-- Reads the local faction (`GameManager.GetLocalHQ/GetLocalFaction`) and units (`UnitRegistry.allUnits`).
-- Registers a `CommanderObjective : NoObjective, IObjectiveWithPosition` into `MissionManager.Runner`'s
-  public `ActiveObjectives`/`activeByFaction` lists; the stock AI consumes it.
+- Reads the local faction (`GameManager.GetLocalHQ/GetLocalFaction`) and units (`UnitRegistry.allUnits`),
+  classifies each by role from its `UnitDefinition` (`typeIdentity`/`roleIdentity` + the game's
+  `VehicleType`/`ShipType` enums), and reads **fog-of-war** threats from `FactionHQ.trackingDatabase`.
+- Plans a suitable subset (pure Core logic) and commands them per-unit via `UnitCommand.SetDestination` /
+  `SetHoldPosition` (the highest-priority AI behavior) — replacing the old faction-objective "stampede."
 - Drives its per-frame loop from a Harmony postfix on `DynamicMap.Update` (this game does not pump a
   MonoBehaviour `Update` on mod-created objects), and attaches the CMD button from a postfix on
-  `VirtualMFD.VirtualMFD_onMapMaximized`.
+  `VirtualMFD.VirtualMFD_onMapMaximized`. (Aircraft tasking is a later phase — they're not commandable.)
 
 ### Type-safety against the game
 
@@ -41,18 +45,21 @@ expected types/accessibility against the real assembly.
 ## Architecture (atomic / one-directional dependency flow)
 
 ```
-src/Core/        pure C#, no Unity — Model + Ports + CommanderController   (unit-tested)
-src/Game/        adapters implementing the ports over Assembly-CSharp/Unity (only layer touching the game)
-src/Ui/          atomic uGUI — UiFactory atoms → CommanderPanel/MapOverlay organisms → screens/pages
-src/Patches/     Harmony seams (menu badge, map tick driver, MFD CMD button)
+src/Core/        pure C#, no Unity — Model + Roles/RoleClassifier + Planning (OrderPlanner,
+                 AssignmentManager, ThreatAssessor) + Ports + Generated (codegen)   (unit-tested)
+src/Game/        adapters over Assembly-CSharp/Unity — GameClassifier/GameRoster/GameIntel/
+                 GameUnitCommands/CommanderService (only layer touching the game)
+src/Ui/          atomic uGUI — UiFactory atoms → CommanderPanel/MapOverlay → CommanderMapScreen
+src/Patches/     Harmony seams (menu badge, map tick driver + pan guard, MFD CMD button)
 src/Composition/ CommanderRuntime — builds the graph, owns the loop
 src/Plugin.cs    BepInEx entry / composition root
-tests/Core/      xUnit over Core only (no engine), fakes for the ports
-tests/GameContract/  Mono.Cecil tests asserting the game-member contract against the real assembly
+tools/CommanderLayer.CodeGen   generates src/Core/Generated/* (mirror enums + reflection names)
+tests/Core/      xUnit over Core only (no engine) — planner/classifier/manager
+tests/GameContract/  Mono.Cecil tests asserting the game-member + generated-enum contract
 ```
 
-`Plugin → Composition → {Patches, Ui, Game} → Core`. The UI renders from one immutable `CommanderState`;
-the controller is pure and tested; only `Game/` references the engine — so a game update breaks `Game/` +
+`Plugin → Composition → {Patches, Ui, Game} → Core`. The Core planner (`OrderPlanner`/`AssignmentManager`)
+is pure and unit-tested; only `Game/` references the engine — so a game update breaks `Game/` +
 `Patches/`, not the logic or UI.
 
 ## Build, test, run
@@ -87,6 +94,7 @@ git config core.hooksPath .githooks
   tests. Mirrors CI so "passes locally" means "passes CI".
 - **CI** (`.github/workflows/ci.yml`) — runs Core tests on every push/PR; also builds the plugin and runs
   the game-contract tests when the game DLLs are available to the runner.
+- **Branch protection** — `master` requires the CI `test` check to pass (strict) before merge.
 
 The game-contract tests (`tests/GameContract`) load the real `Assembly-CSharp.dll` via Mono.Cecil
 (metadata only — no Unity execution) and assert every game member the mod calls or reflects on still exists

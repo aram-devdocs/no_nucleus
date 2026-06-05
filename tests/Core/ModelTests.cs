@@ -20,19 +20,5 @@ namespace CommanderLayer.Tests
             var b = new Vec3(2, 3, 6); // 2-3-6 -> 7
             Assert.Equal(7f, a.DistanceTo(b), 3);
         }
-
-        [Fact]
-        public void ObjectiveModel_DefaultsLabelToKind()
-        {
-            var o = new ObjectiveModel("id", ObjectiveKind.MoveAttack, new Vec3(1, 2, 3));
-            Assert.Equal("MoveAttack", o.Label);
-        }
-
-        [Fact]
-        public void AssignmentSnapshot_EmptyHasNoUnits()
-        {
-            Assert.Equal(0, AssignmentSnapshot.Empty.Total);
-            Assert.Equal(0, AssignmentSnapshot.Empty.CommandableCount);
-        }
     }
 }
