@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Mono.Cecil;
@@ -155,6 +156,66 @@ namespace CommanderLayer.GameContract.Tests
             Assert.True(unresolved.Count == 0,
                 "Unresolved Assembly-CSharp references (game changed?):\n" + string.Join("\n", unresolved));
         }
+
+        // ---------- generated enums must mirror the real assembly (single source of truth) ----------
+        [Fact]
+        public void Generated_enums_match_real_assembly()
+        {
+            if (!Game.Available) return;
+            string plugin = Game.FindPlugin();
+            if (plugin == null) return; // plugin not built yet
+
+            var resolver = new DefaultAssemblyResolver();
+            resolver.AddSearchDirectory(Game.LibDir);
+            using var pluginAsm = AssemblyDefinition.ReadAssembly(plugin, new ReaderParameters { AssemblyResolver = resolver });
+            var pluginMod = pluginAsm.MainModule;
+
+            foreach (var name in new[] { "VehicleType", "ShipType", "BuildingType", "FactionMode" })
+            {
+                var real = EnumMap(Game.Module.GetType(name));
+                var mirror = EnumMap(pluginMod.GetType("CommanderLayer.Core.Generated." + name));
+                Assert.True(real.Count > 0, $"real enum {name} not found / empty");
+                Assert.True(mirror.Count > 0, $"generated mirror {name} not found — run scripts/generate-types.sh");
+                Assert.True(real.Count == mirror.Count && !real.Except(mirror).Any(),
+                    $"Generated {name} is stale vs the game. Real=[{Dump(real)}] Mirror=[{Dump(mirror)}] — run scripts/generate-types.sh");
+            }
+        }
+
+        [Fact]
+        public void Aircraft_is_not_ICommandable()
+        {
+            if (!Game.Available) return;
+            Assert.False(HasInterface(Game.Type("Aircraft"), "ICommandable"),
+                "Aircraft must NOT be ICommandable (the mod tasks aircraft via the AI patch, not SetDestination).");
+            Assert.True(HasInterface(Game.Type("GroundVehicle"), "ICommandable"));
+            Assert.True(HasInterface(Game.Type("Ship"), "ICommandable"));
+        }
+
+        private static bool HasInterface(TypeDefinition t, string ifaceName)
+        {
+            var cur = t;
+            while (cur != null)
+            {
+                if (cur.Interfaces.Any(i => i.InterfaceType.Name == ifaceName)) return true;
+                cur = cur.BaseType?.Resolve();
+            }
+            return false;
+        }
+
+        private static Dictionary<string, long> EnumMap(TypeDefinition t)
+        {
+            var map = new Dictionary<string, long>();
+            if (t == null) return map;
+            foreach (var f in t.Fields)
+            {
+                if (f.IsLiteral && f.Name != "value__")
+                    map[f.Name] = Convert.ToInt64(f.Constant);
+            }
+            return map;
+        }
+
+        private static string Dump(Dictionary<string, long> m) =>
+            string.Join(",", m.OrderBy(k => k.Value).Select(k => $"{k.Key}={k.Value}"));
 
         // ---------- helpers ----------
         private static bool TryResolve(MemberReference mr)

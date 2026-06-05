@@ -103,9 +103,14 @@ with the expected type/accessibility. A game update that renames something fails
 
 | Thing | Value |
 |---|---|
-| Game build-hash | `2fdbba8b7` (re-run the contract tests after a game update) |
+| Game Steam buildid | `23062134` (baseline; ≈0.33.3+) — after any game update, re-run `setup-sandbox.ps1` + `check.sh` |
+| Game build-hash | `2fdbba8b7` (internal content hash from build-hash.txt) |
 | Mod stack | BepInEx 5 (x64 Mono) + HarmonyX |
 | Plugin TFM | `netstandard2.1`; tests `net8.0` |
+
+> The Mono.Cecil contract tests (`tests/GameContract`) are the **version-drift guard**: they assert every
+> game member the mod uses still exists with the expected shape against `lib/Assembly-CSharp.dll`. If a game
+> update changes those, `check.sh` fails there (pre-launch), not in-game.
 
 ## Legal
 
