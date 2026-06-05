@@ -13,6 +13,9 @@ namespace CommanderLayer.Ui
     {
         private static TMP_FontAsset _font;
 
+        /// <summary>A native game button sprite (captured at runtime) so our buttons match the game's look.</summary>
+        public static Sprite ButtonSprite;
+
         /// <summary>
         /// The TMP font used by all labels. Resolved lazily; composition may set it explicitly from a
         /// cloned in-game label for guaranteed-correct material.
@@ -71,15 +74,19 @@ namespace CommanderLayer.Ui
 
         public static Button Button(string name, Transform parent, string text, Theme theme, UnityAction onClick)
         {
-            var rt = Panel(name, parent, theme.Accent);
+            var rt = Panel(name, parent, theme.ButtonIdle);
+            var img = rt.gameObject.GetComponent<Image>();
+            if (ButtonSprite != null) { img.sprite = ButtonSprite; img.type = Image.Type.Sliced; }
             var btn = rt.gameObject.AddComponent<Button>();
+            btn.targetGraphic = img;
             if (onClick != null)
             {
                 btn.onClick.AddListener(onClick);
             }
 
-            var label = Label(name + "_label", rt, text, 16f, theme.Text, TextAlignmentOptions.Center);
+            var label = Label(name + "_label", rt, text, 15f, theme.Text, TextAlignmentOptions.Center);
             Stretch(label.rectTransform);
+            label.margin = new Vector4(4f, 0f, 4f, 0f);
             return btn;
         }
 

@@ -11,6 +11,7 @@ namespace CommanderLayer.Ui
     {
         public Color PanelBackground { get; }
         public Color TabBackground { get; }
+        public Color ButtonIdle { get; }
         public Color Text { get; }
         public Color Muted { get; }
         public Color Accent { get; }
@@ -21,8 +22,9 @@ namespace CommanderLayer.Ui
         public Theme(Color accent)
         {
             Accent = accent;
-            PanelBackground = new Color(0.06f, 0.08f, 0.10f, 0.85f);
+            PanelBackground = new Color(0.06f, 0.08f, 0.10f, 0.92f);
             TabBackground = new Color(0.10f, 0.13f, 0.16f, 0.95f);
+            ButtonIdle = new Color(0.18f, 0.22f, 0.27f, 1f);
             Text = new Color(0.92f, 0.94f, 0.96f, 1f);
             Muted = new Color(0.62f, 0.66f, 0.70f, 1f);
             EnRoute = new Color(1f, 0.78f, 0.30f, 1f);

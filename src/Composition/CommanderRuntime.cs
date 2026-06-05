@@ -183,6 +183,7 @@ namespace CommanderLayer.Composition
         private void EnsureScreen()
         {
             if (_screen != null || _canvas == null) return;
+            CaptureNativeButtonSprite();
             _player.TryGetLocalFaction(out var faction);
             _theme = Theme.FromFaction(faction);
             _screen = new CommanderMapScreen(_canvas.transform, _theme,
@@ -194,6 +195,20 @@ namespace CommanderLayer.Composition
 
         private static bool IsPointerOverUi()
             => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
+        // Borrow a sliced sprite from a real game UI button so our panel buttons match the game's look.
+        private static void CaptureNativeButtonSprite()
+        {
+            if (UiFactory.ButtonSprite != null) return;
+            foreach (var img in Resources.FindObjectsOfTypeAll<Image>())
+            {
+                if (img == null || img.sprite == null || img.type != Image.Type.Sliced) continue;
+                if (!img.gameObject.scene.IsValid()) continue;      // skip prefabs/assets
+                if (img.GetComponent<Button>() == null) continue;   // a real button's sprite
+                UiFactory.ButtonSprite = img.sprite;
+                return;
+            }
+        }
 
         public void DrawMenuFallback()
         {

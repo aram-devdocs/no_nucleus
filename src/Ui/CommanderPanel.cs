@@ -97,8 +97,8 @@ namespace CommanderLayer.Ui
             {
                 _status.text = "Pick domains + range, then Attack/Defend, then click the map.";
             }
-            _attackImg.color = armed == OrderKind.Attack ? OrderColors.Attack : _theme.Accent;
-            _defendImg.color = armed == OrderKind.Defend ? OrderColors.Defend : _theme.Accent;
+            _attackImg.color = armed == OrderKind.Attack ? OrderColors.Attack : _theme.ButtonIdle;
+            _defendImg.color = armed == OrderKind.Defend ? OrderColors.Defend : _theme.ButtonIdle;
 
             _ordersHeader.text = $"Orders: {orders.Count}";
             EnsureRows(orders.Count);
@@ -131,9 +131,9 @@ namespace CommanderLayer.Ui
 
         private void RefreshControls()
         {
-            _airImg.color = (_domains & DomainSet.Air) != 0 ? OrderColors.Defend : _theme.TabBackground;
-            _landImg.color = (_domains & DomainSet.Land) != 0 ? OrderColors.Resupply : _theme.TabBackground;
-            _seaImg.color = (_domains & DomainSet.Sea) != 0 ? OrderColors.Attack : _theme.TabBackground;
+            _airImg.color = (_domains & DomainSet.Air) != 0 ? OrderColors.Defend : _theme.ButtonIdle;
+            _landImg.color = (_domains & DomainSet.Land) != 0 ? OrderColors.Resupply : _theme.ButtonIdle;
+            _seaImg.color = (_domains & DomainSet.Sea) != 0 ? OrderColors.Attack : _theme.ButtonIdle;
             if (_rangeLabel != null) _rangeLabel.text = $"{_rangeKm}.0 km";
         }
 
