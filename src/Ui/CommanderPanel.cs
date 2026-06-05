@@ -134,12 +134,14 @@ namespace CommanderLayer.Ui
             }
             _hqHeader.text = $"{mode} COMMANDER · {hq.Operations.Count} op(s) · {hq.Squads.Count} squad(s)";
             var sb = new System.Text.StringBuilder();
-            foreach (var op in hq.Operations.Take(4))
+            foreach (var op in hq.Operations.Take(3))
                 sb.AppendLine($"• {op.Kind} — {op.Phase} [{op.Status}]");
+            foreach (var sq in hq.Squads.Take(3))
+                sb.AppendLine($"▣ {sq.Name} · {sq.Family} ×{sq.Strength} [{sq.Status}]");
             // Assisted suggestions awaiting the player's confirm.
             foreach (var p in hq.Proposals.Take(3)) sb.AppendLine($"? {p.Summary} — confirm to launch");
             foreach (var line in hq.Production.Take(2)) sb.AppendLine(line);
-            foreach (var e in hq.Recent.Take(5)) sb.AppendLine($"· {e.Text}");
+            foreach (var e in hq.Recent.Take(4)) sb.AppendLine($"· {e.Text}");
             _hqBody.text = sb.ToString().TrimEnd();
         }
 

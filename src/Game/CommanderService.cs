@@ -106,7 +106,11 @@ namespace CommanderLayer.Game
                     foreach (var need in _auto.ProductionNeeds)
                         foreach (var kv in need.Items) gap.Add(kv.Key, kv.Value);
                     foreach (var opt in ProductionPlanner.Plan(gap, _prodService.Catalog(), hq.factionFunds))
+                    {
                         _prodQueue.Enqueue(new PurchaseRequest(opt.Name, opt.Cost, null, RoleFamily.Armor));
+                        _auto.Log.Append(new ReportEvent(UnityEngine.Time.unscaledTime,
+                            ReportKind.ProductionQueued, $"Buying {opt.Name} ({opt.Cost:0})", null));
+                    }
                 }
                 _prodService.Drain(_prodQueue);
             }

@@ -163,10 +163,12 @@ namespace CommanderLayer.Tests
         {
             var q = new ProductionQueue();
             q.Enqueue(new PurchaseRequest("Armor convoy", 1200f, "Bravo", RoleFamily.Armor));
+            q.Enqueue(new PurchaseRequest("AA convoy", 800f, null, RoleFamily.AirDefense));
 
             var lines = q.Describe();
-            Assert.Single(lines);
-            Assert.Equal("BUILDING · Armor convoy -> Squad Bravo · 1200", lines[0]);
+            Assert.Equal(2, lines.Count);
+            Assert.Equal("BUILDING · Armor convoy → Bravo · 1200", lines[0]); // named squad
+            Assert.Equal("BUILDING · AA convoy · 800", lines[1]);             // no squad suffix when unassigned
         }
 
         // ---------- helpers ----------

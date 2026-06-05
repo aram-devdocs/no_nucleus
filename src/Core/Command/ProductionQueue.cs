@@ -50,8 +50,11 @@ namespace CommanderLayer.Core.Command
             return head;
         }
 
-        /// <summary>One status line per pending buy, e.g. "BUILDING · Armor convoy -> Squad Bravo · 1200".</summary>
+        /// <summary>One status line per pending buy, e.g. "BUILDING · Armor convoy → Bravo · 1200" (or no
+        /// squad suffix when the buy isn't tied to a named squad yet).</summary>
         public IReadOnlyList<string> Describe() =>
-            _pending.Select(r => $"BUILDING · {r.ConvoyName} -> Squad {r.ForSquadId} · {r.Cost:0}").ToList();
+            _pending.Select(r => string.IsNullOrEmpty(r.ForSquadId)
+                ? $"BUILDING · {r.ConvoyName} · {r.Cost:0}"
+                : $"BUILDING · {r.ConvoyName} → {r.ForSquadId} · {r.Cost:0}").ToList();
     }
 }
