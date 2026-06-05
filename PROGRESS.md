@@ -33,11 +33,17 @@ file wiring myself during integration windows.
 - **WIRING CYCLE (mine, in progress):**
   - ✅ BattleLog → brain emits feed (9c0b130).
   - ✅ ThreatBoard+TargetPrioritizer → brain GenerateObjectives, consolidated clustering, ranked (b0d64b4). 112 Core.
-  - ✅ Production needs: brain emits RequiredComposition per unfielded objective (0100074). 113 Core.
-  - In flight (agent): GameProductionService (Game catalog from convoy groups via name-heuristic + drain
-    via CmdPurchaseConvoy). On land: I wire CommanderService to plan(ProductionNeeds)->queue->drain.
-  - TODO: HqView + Proposals consumed by the UI (P5 HQ panel surface).
-- Then P6 codegen native UI (mine). Then playtest. (DestroyTarget TargetId deferred — executor ignores it; id-space mismatch per review S3.)
+  - ✅ Production needs: brain emits RequiredComposition per unfielded objective (0100074).
+  - ✅ Auto-production loop closed: GameProductionService (catalog from convoy groups + CmdPurchaseConvoy)
+    + CommanderService plan->queue->drain (ac62a42). **113 Core + 11 contract.**
+
+**🏁 AUTONOMOUS COMMANDER LOOP COMPLETE (code):** intel → ThreatBoard → TargetPrioritizer → objectives →
+squads → phase-gated combined-arms operations → tasking → BattleLog feed → production needs → convoy buys.
+All behind `EnableAutoCommander` (off). Pure-Core tested, Game adapters contract-verified.
+
+**Remaining:** P5 HQ UI (consume HqView/Proposals — make the depth visible) → P6 codegen native UI (the
+user's emphasis; needs a spec) → playtest (flip EnableAutoCommander on + tune). DestroyTarget TargetId
+deferred (executor ignores it; id-space mismatch per review S3).
 
 ## S0 findings (filled after the playtest)
 | Unknown | Result | Detail |
