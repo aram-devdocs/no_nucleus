@@ -22,6 +22,11 @@ load Commander Debug, open map, arm an order, hover, place two overlapping order
 
 Spec: `specs/phase-S0-P0.md`.
 
+**Loop = supervise parallel agent teams (worktree-isolated), integrate behind the quality gate, never idle.**
+In flight: P4 BattleLog · P4 ThreatBoard · P3 ProductionQueue (3 background build agents). On completion I
+write their files → build + Core + GameContract → commit. Next to dispatch: P4 TargetPrioritizer; I wire
+ThreatBoard/BattleLog/Production into the brain/service (shared files) myself.
+
 ## S0 findings (filled after the playtest)
 | Unknown | Result | Detail |
 |---|---|---|
