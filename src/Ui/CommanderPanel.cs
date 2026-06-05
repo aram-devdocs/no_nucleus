@@ -8,8 +8,8 @@ using UnityEngine.UI;
 namespace CommanderLayer.Ui
 {
     /// <summary>
-    /// Organism: the Commander tab content. Pure presentation — it renders from a CommanderState passed to
-    /// Render() and reports intent through the onArmPlace / onClear callbacks. It holds no game references.
+    /// The Commander modal content (prop-driven). Lets the player arm an order kind (then click the map),
+    /// clear all, and see the live order list with assignment summaries. No game access.
     /// </summary>
     public sealed class CommanderPanel
     {
@@ -17,77 +17,75 @@ namespace CommanderLayer.Ui
         private readonly RectTransform _root;
         private readonly TextMeshProUGUI _title;
         private readonly TextMeshProUGUI _status;
-        private readonly TextMeshProUGUI _unitsHeader;
-        private readonly Transform _unitsContainer;
-        private readonly Button _placeButton;
+        private readonly TextMeshProUGUI _ordersHeader;
+        private readonly Transform _ordersContainer;
+        private readonly Image _attackImg;
+        private readonly Image _defendImg;
         private readonly List<TextMeshProUGUI> _rows = new List<TextMeshProUGUI>();
 
         public RectTransform Root => _root;
 
-        public CommanderPanel(Transform parent, Theme theme, Action onArmPlace, Action onClear)
+        public CommanderPanel(Transform parent, Theme theme, Action<OrderKind> onArm, Action onClearAll)
         {
             _theme = theme;
             _root = UiFactory.Panel("CommanderPanel", parent, theme.PanelBackground);
-
-            var layout = UiFactory.VerticalLayout("CommanderPanel_Layout", _root, 6f, new RectOffset(10, 10, 10, 10));
+            var layout = UiFactory.VerticalLayout("Layout", _root, 6f, new RectOffset(10, 10, 10, 10));
             UiFactory.Stretch((RectTransform)layout.transform);
 
             _title = UiFactory.Label("Title", layout.transform, "COMMANDER", 18f, theme.Accent);
             UiFactory.PreferredHeight(_title.gameObject, 24f);
-
             _status = UiFactory.Label("Status", layout.transform, "", 13f, theme.Muted);
-            UiFactory.PreferredHeight(_status.gameObject, 36f);
+            UiFactory.PreferredHeight(_status.gameObject, 34f);
 
-            var buttons = UiFactory.VerticalLayout("Buttons", layout.transform, 6f, new RectOffset(0, 0, 0, 0));
-            _placeButton = UiFactory.Button("PlaceButton", buttons.transform, "Place Objective", theme, () => onArmPlace?.Invoke());
-            UiFactory.PreferredHeight(_placeButton.gameObject, 30f);
-            var clear = UiFactory.Button("ClearButton", buttons.transform, "Clear Objective", theme, () => onClear?.Invoke());
-            UiFactory.PreferredHeight(clear.gameObject, 30f);
+            var row = UiFactory.VerticalLayout("Buttons", layout.transform, 6f, new RectOffset(0, 0, 0, 0));
+            var attack = UiFactory.Button("AttackBtn", row.transform, "Attack  (click map)", theme, () => onArm?.Invoke(OrderKind.Attack));
+            UiFactory.PreferredHeight(attack.gameObject, 30f);
+            _attackImg = attack.GetComponent<Image>();
+            var defend = UiFactory.Button("DefendBtn", row.transform, "Defend  (click map)", theme, () => onArm?.Invoke(OrderKind.Defend));
+            UiFactory.PreferredHeight(defend.gameObject, 30f);
+            _defendImg = defend.GetComponent<Image>();
+            var clear = UiFactory.Button("ClearAll", row.transform, "Clear all orders", theme, () => onClearAll?.Invoke());
+            UiFactory.PreferredHeight(clear.gameObject, 26f);
 
-            _unitsHeader = UiFactory.Label("UnitsHeader", layout.transform, "Units", 14f, theme.Text);
-            UiFactory.PreferredHeight(_unitsHeader.gameObject, 22f);
-
-            _unitsContainer = UiFactory.VerticalLayout("Units", layout.transform, 2f, new RectOffset(0, 0, 0, 0)).transform;
+            _ordersHeader = UiFactory.Label("OrdersHeader", layout.transform, "Orders", 14f, theme.Text);
+            UiFactory.PreferredHeight(_ordersHeader.gameObject, 22f);
+            _ordersContainer = UiFactory.VerticalLayout("Orders", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
         }
 
         public void SetVisible(bool visible)
         {
-            if (_root != null)
-            {
-                _root.gameObject.SetActive(visible);
-            }
+            if (_root != null) _root.gameObject.SetActive(visible);
         }
 
-        public void Render(CommanderState state)
+        public void Render(IReadOnlyList<OrderState> orders, FactionInfo faction, OrderKind? armed)
         {
-            if (_root == null || state == null)
-            {
-                return;
-            }
+            if (_root == null) return;
 
-            _title.text = state.HasLocalFaction ? $"COMMANDER — {state.Faction.Name}" : "COMMANDER";
-            _status.text = state.StatusLine;
-            _placeButton.interactable = state.HasLocalFaction;
+            _title.text = faction != null ? $"COMMANDER — {faction.Name}" : "COMMANDER";
+            _status.text = armed.HasValue
+                ? $"Click the map to place a {armed.Value} order."
+                : "Pick Attack or Defend, then click the map.";
 
-            var snap = state.Assignments;
-            _unitsHeader.text = $"Assigned units: {snap.Total}  ({snap.CommandableCount} commandable)";
+            // Highlight the armed button.
+            _attackImg.color = armed == OrderKind.Attack ? OrderColors.Attack : _theme.Accent;
+            _defendImg.color = armed == OrderKind.Defend ? OrderColors.Defend : _theme.Accent;
 
-            EnsureRows(snap.Units.Count);
+            _ordersHeader.text = $"Orders: {orders.Count}";
+            EnsureRows(orders.Count);
             for (int i = 0; i < _rows.Count; i++)
             {
-                var row = _rows[i];
-                if (i < snap.Units.Count)
+                if (i < orders.Count)
                 {
-                    var u = snap.Units[i];
-                    bool arrived = u.State == AssignmentState.Arrived;
-                    string tag = arrived ? "ARRIVED" : "en route";
-                    row.text = $"{u.UnitName}  ·  {Mathf.RoundToInt(u.DistanceToObjective)} m  ·  {tag}";
-                    row.color = arrived ? _theme.Arrived : _theme.EnRoute;
-                    row.gameObject.SetActive(true);
+                    var o = orders[i];
+                    _rows[i].text = $"{o.Order.Kind.ToString().ToUpperInvariant()} · {o.Summary}";
+                    _rows[i].color = o.Status == OrderStatus.Failed ? new Color(1f, 0.5f, 0.5f)
+                        : o.Status == OrderStatus.Complete ? _theme.Arrived
+                        : OrderColors.For(o.Order.Kind);
+                    _rows[i].gameObject.SetActive(true);
                 }
                 else
                 {
-                    row.gameObject.SetActive(false);
+                    _rows[i].gameObject.SetActive(false);
                 }
             }
         }
@@ -96,9 +94,9 @@ namespace CommanderLayer.Ui
         {
             while (_rows.Count < count)
             {
-                var row = UiFactory.Label("UnitRow" + _rows.Count, _unitsContainer, "", 12f, _theme.Text);
-                UiFactory.PreferredHeight(row.gameObject, 16f);
-                _rows.Add(row);
+                var r = UiFactory.Label("Order" + _rows.Count, _ordersContainer, "", 12f, _theme.Text);
+                UiFactory.PreferredHeight(r.gameObject, 16f);
+                _rows.Add(r);
             }
         }
     }

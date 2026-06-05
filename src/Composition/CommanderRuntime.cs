@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using CommanderLayer.Core.Controller;
+using CommanderLayer.Core.Model;
 using CommanderLayer.Core.Ports;
 using CommanderLayer.Game;
 using CommanderLayer.Patches;
@@ -12,19 +12,16 @@ using UnityEngine.UI;
 namespace CommanderLayer.Composition
 {
     /// <summary>
-    /// Composition root: builds the adapter graph + controller, hosts the Commander panel on its own
-    /// screen-space canvas (shown while the map is open), draws the marker overlay on the map's icon
-    /// layer, and routes map clicks to placement. Driven by Plugin.Update()/OnGUI() (a BepInEx
-    /// MonoBehaviour Unity reliably pumps), so it does not depend on a custom GameObject being ticked.
+    /// Composition root: builds the commander service (planner + adapters), hosts the modal on its own
+    /// screen-space canvas (opened by the native CMD bezel button), draws the order overlay on the map's
+    /// icon layer, routes map clicks to order placement, and runs the throttled management loop. Driven by
+    /// the DynamicMap.Update Harmony postfix (this game doesn't pump a MonoBehaviour Update on mod objects).
     /// </summary>
     public sealed class CommanderRuntime
     {
         private readonly IPlayerContext _player;
-        private readonly IUnitQuery _units;
-        private readonly IObjectiveService _objectives;
         private readonly IMapProjection _projection;
-        private readonly IClock _clock;
-        private readonly CommanderController _controller;
+        private readonly CommanderService _service;
 
         private Canvas _canvas;
         private CommanderMapScreen _screen;
@@ -32,20 +29,16 @@ namespace CommanderLayer.Composition
         private Theme _theme;
         private DynamicMap _lastMap;
         private Button _cmdButton;
-        private bool _wasOpen;
+        private OrderKind? _armed;
         private bool _firstTick = true;
-        private float _nextRefresh;
-        private float _nextHeartbeat;
+        private float _nextManage;
         private GUIStyle _fallbackStyle;
 
         public CommanderRuntime()
         {
             _player = new GamePlayerContext();
-            _units = new GameUnitQuery();
-            _objectives = new GameObjectiveService();
             _projection = new DynamicMapProjection();
-            _clock = new UnityClock();
-            _controller = new CommanderController(_player, _units, _objectives, _clock, Plugin.ArriveRadius);
+            _service = new CommanderService(new CommanderConfig { ArriveRadius = Plugin.ArriveRadius });
             Plugin.Log?.LogInfo("CommanderRuntime constructed.");
         }
 
@@ -63,117 +56,48 @@ namespace CommanderLayer.Composition
             var map = SceneSingleton<DynamicMap>.i;
             bool open = map != null && DynamicMap.mapMaximized;
 
-            // Heartbeat so we can see map state even when nothing else changes.
-            if (_clock.Now >= _nextHeartbeat)
+            if (map != null && !ReferenceEquals(map, _lastMap))
             {
-                _nextHeartbeat = _clock.Now + 3f;
-                Plugin.Log?.LogInfo($"[hb] DynamicMap={(map != null)} maximized={(map != null && DynamicMap.mapMaximized)} canvas={(_canvas != null)} screen={(_screen != null)} overlay={(_overlay != null)}");
+                _lastMap = map;
+                _overlay = map.iconLayer != null ? new MapOverlay(map.iconLayer.transform, _projection) : null;
             }
+            if (map == null) { _lastMap = null; _overlay = null; }
 
-            if (open != _wasOpen)
-            {
-                _wasOpen = open;
-                Plugin.Log?.LogInfo($"Map {(open ? "OPENED" : "closed")}.");
-            }
+            if (_canvas != null) _canvas.enabled = open;
+            if (!open) return;
 
-            if (map != null)
-            {
-                if (!ReferenceEquals(map, _lastMap))
-                {
-                    _overlay = null;
-                    _lastMap = map;
-                    Plugin.Log?.LogInfo($"DynamicMap found. iconLayer={(map.iconLayer != null)}.");
-                }
-                if (_overlay == null && map.iconLayer != null)
-                {
-                    _overlay = new MapOverlay(map.iconLayer.transform, _theme, _projection);
-                    Plugin.Log?.LogInfo("Map overlay built.");
-                }
-            }
-            else
-            {
-                _overlay = null;
-                _lastMap = null;
-            }
-
-            if (_canvas != null)
-            {
-                _canvas.enabled = open;
-            }
-            if (!open)
-            {
-                return;
-            }
-
-            if (Plugin.ArmKey != KeyCode.None && Input.GetKeyDown(Plugin.ArmKey))
-            {
-                _controller.ArmPlacement();
-            }
-
-            if (_controller.State.PlacementArmed
-                && Input.GetMouseButtonDown(0)
-                && !IsPointerOverUi()
+            // Place: armed order kind + left-click on the map (not on our panel).
+            if (_armed.HasValue && Input.GetMouseButtonDown(0) && !IsPointerOverUi()
                 && _projection.TryCursorToWorld(out var world))
             {
-                if (_controller.TryPlaceAt(world))
-                {
-                    Plugin.Log?.LogInfo($"Objective placed at {world}.");
-                }
+                var state = _service.PlaceOrder(_armed.Value, world);
+                Plugin.Log?.LogInfo($"Placed {state.Order.Kind} order: {state.Summary}");
+                _armed = null;
             }
 
-            if (_clock.Now >= _nextRefresh)
+            // Throttled management loop.
+            if (Time.unscaledTime >= _nextManage)
             {
-                _nextRefresh = _clock.Now + 0.5f;
-                _controller.Refresh();
+                _nextManage = Time.unscaledTime + _service.Config.ManagementIntervalSeconds;
+                _service.Tick();
             }
 
-            _screen?.Render(_controller.State);
-            _overlay?.Render(_controller.State);
-        }
-
-        private void EnsureCanvas()
-        {
-            if (_canvas != null)
-            {
-                return;
-            }
-            var go = new GameObject("CommanderCanvas");
-            Object.DontDestroyOnLoad(go);
-            _canvas = go.AddComponent<Canvas>();
-            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            _canvas.sortingOrder = 5000;
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            go.AddComponent<GraphicRaycaster>();
-            _canvas.enabled = false;
-            Plugin.Log?.LogInfo("Commander canvas created.");
-        }
-
-        private void EnsureScreen()
-        {
-            if (_screen != null || _canvas == null)
-            {
-                return;
-            }
             _player.TryGetLocalFaction(out var faction);
-            _theme = Theme.FromFaction(faction);
-            _screen = new CommanderMapScreen(
-                _canvas.transform,
-                _theme,
-                onArmPlace: () => _controller.ArmPlacement(),
-                onClear: () => _controller.Clear());
-            Plugin.Log?.LogInfo("Commander panel built.");
+            _screen?.Render(_service.Orders, faction, _armed);
+            _overlay?.Render(_service.Orders, PositionsById());
         }
 
-        // Commandeer a blank MFD bezel button on the map (a VirtualMFD button with no assigned screen,
-        // left disabled by SetupButtons) and turn it into "CMD" that opens the Commander panel. Called from
-        // the VirtualMFD_onMapMaximized Harmony postfix. leftButtons/rightButtons are private, so reflection.
+        private Dictionary<string, Vec3> PositionsById()
+        {
+            var dict = new Dictionary<string, Vec3>();
+            foreach (var u in _service.LastRoster) dict[u.Id] = u.Position;
+            return dict;
+        }
+
+        // Commandeer a blank MFD bezel button on map-open → "CMD" that toggles the modal.
         public void AttachCmdButton(VirtualMFD mfd)
         {
-            if (mfd == null || _cmdButton != null)
-            {
-                return; // already attached this session (Unity == treats a destroyed button as null on reload)
-            }
+            if (mfd == null || _cmdButton != null) return;
             EnsureCanvas();
             EnsureScreen();
 
@@ -183,62 +107,62 @@ namespace CommanderLayer.Composition
             var leftScreens = AccessTools.Field(typeof(VirtualMFD), "leftScreens").GetValue(mfd) as List<MFDScreen>;
 
             var btn = FindBlankButton(rightButtons, rightScreens) ?? FindBlankButton(leftButtons, leftScreens);
-            if (btn == null)
-            {
-                Plugin.Log?.LogWarning("No blank MFD bezel button available for CMD.");
-                return;
-            }
+            if (btn == null) { Plugin.Log?.LogWarning("No blank MFD bezel button available for CMD."); return; }
 
             btn.enabled = true;
             btn.gameObject.SetActive(true);
             var txt = btn.GetComponentInChildren<Text>(includeInactive: true);
-            if (txt != null)
-            {
-                txt.text = "CMD";
-                txt.enabled = true;
-                txt.gameObject.SetActive(true);
-            }
+            if (txt != null) { txt.text = "CMD"; txt.enabled = true; txt.gameObject.SetActive(true); }
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => _screen?.Toggle());
             _cmdButton = btn;
             Plugin.Log?.LogInfo($"CMD button attached (label set={txt != null}).");
         }
 
-        // A blank bezel slot = a button index with no corresponding (non-null) screen.
         private static Button FindBlankButton(List<Button> buttons, List<MFDScreen> screens)
         {
-            if (buttons == null)
-            {
-                return null;
-            }
+            if (buttons == null) return null;
             for (int i = 0; i < buttons.Count; i++)
             {
                 var b = buttons[i];
-                if (b == null)
-                {
-                    continue;
-                }
+                if (b == null) continue;
                 bool hasScreen = screens != null && i < screens.Count && screens[i] != null;
-                if (!hasScreen)
-                {
-                    return b;
-                }
+                if (!hasScreen) return b;
             }
             return null;
         }
 
-        private static bool IsPointerOverUi()
+        private void EnsureCanvas()
         {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (_canvas != null) return;
+            var go = new GameObject("CommanderCanvas");
+            Object.DontDestroyOnLoad(go);
+            _canvas = go.AddComponent<Canvas>();
+            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _canvas.sortingOrder = 5000;
+            go.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            go.AddComponent<GraphicRaycaster>();
+            _canvas.enabled = false;
+            Plugin.Log?.LogInfo("Commander canvas created.");
         }
 
-        /// <summary>IMGUI fallback (called from Plugin.OnGUI): confirms load while at the menu.</summary>
+        private void EnsureScreen()
+        {
+            if (_screen != null || _canvas == null) return;
+            _player.TryGetLocalFaction(out var faction);
+            _theme = Theme.FromFaction(faction);
+            _screen = new CommanderMapScreen(_canvas.transform, _theme,
+                onArm: k => _armed = k,
+                onClearAll: () => _service.ClearAll());
+            Plugin.Log?.LogInfo("Commander panel built.");
+        }
+
+        private static bool IsPointerOverUi()
+            => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
         public void DrawMenuFallback()
         {
-            if (MainMenuBadgePatch.Created || MissionManager.i != null)
-            {
-                return;
-            }
+            if (MainMenuBadgePatch.Created || MissionManager.i != null) return;
             if (_fallbackStyle == null)
             {
                 _fallbackStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold };
