@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nucleus.Ui</AssemblyName>
+    <!-- Generic UI toolkit (atoms, theme, native-asset caches, drag, menu badge). Touches Unity UI/TMP and
+         one native game UI type (BetterBorder), so it imports the game references. Among Nucleus libs it
+         depends only on Domain (arch-enforced). Mod-specific panels live in the apps, not here. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>CommanderLayer</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <Import Project="..\..\build\GameReferences.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nucleus.Domain\Nucleus.Domain.csproj" />
+  </ItemGroup>
+</Project>

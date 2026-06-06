@@ -1,5 +1,4 @@
 using CommanderLayer.Core.Model;
-using CommanderLayer.Game;
 using UnityEngine;
 
 namespace CommanderLayer.Ui
@@ -37,7 +36,11 @@ namespace CommanderLayer.Ui
 
         public static Theme FromFaction(FactionInfo faction)
         {
-            Color accent = faction != null ? GameConvert.ToColor(faction.Color) : new Color(0.3f, 0.7f, 1f);
+            // Convert the Unity-free ColorRgba to a UnityEngine.Color here, at the UI boundary (the conversion
+            // is a UI concern, so Nucleus.Ui stays independent of the engine-access lib).
+            Color accent = faction != null
+                ? new Color(faction.Color.R, faction.Color.G, faction.Color.B, faction.Color.A)
+                : new Color(0.3f, 0.7f, 1f);
             return new Theme(accent);
         }
 

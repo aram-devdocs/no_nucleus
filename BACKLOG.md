@@ -24,7 +24,7 @@
 
 ## Phase 2–7 — see plan (specs to be drafted as each phase is pulled)
 - [x] P2-gamesdk — `libs/Nucleus.GameSdk` (all src/Game except CommanderService) + Generated/; codegen gameGenDir retargeted (regen verified identical); NucleusLog seam added to Domain (libs log without referencing Plugin); InternalsVisibleTo("CommanderLayer") preserves same-assembly accessibility. Gate PASS (0w/118/9/11). **HV**
-- [ ] P2-ui — extract generic widgets (UiFactory/Theme/NativeColors/NativeIcons/Native/NativeUi/DragHandle/MainMenuBadge) → `libs/Nucleus.Ui` (Unity refs; arch allows Ui→Domain). Commander-specific UI (CommanderPanel/MapScreen/MapOverlay/OrderColors) stays in app for Phase 3. **HV**
+- [x] P2-ui — `libs/Nucleus.Ui` (UiFactory/Theme/NativeColors/NativeIcons/Native.NativeUi/DragHandle/MainMenuBadge), Domain-only among Nucleus libs (Theme's ColorRgba→Color inlined to drop the GameSdk dep). Commander panels stay in app. Gate PASS (0w/118/9/11). **PHASE 2 COMPLETE** — 7 libs extracted; src is the thin app shell. **HV**
 - [ ] P3 — host/Platform + IMod + Commander as first mod **PT**
 - [ ] P4 — split Build **PT**
 - [ ] P5 — split Squad **PT**

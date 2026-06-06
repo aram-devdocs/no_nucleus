@@ -5,9 +5,10 @@
 > Update this on every state transition. Source of truth for "what's next" — survives context compaction.
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
-**Current phase:** Phase 2 — GameSdk DONE; Ui next
-**Next action:** P2-ui — extract generic widgets to `libs/Nucleus.Ui` (UiFactory/Theme/NativeColors/NativeIcons/Native/NativeUi/DragHandle/MainMenuBadge); imports GameReferences.props (Unity); arch allows Ui→Domain. Commander-specific UI (CommanderPanel/CommanderMapScreen/MapOverlay/OrderColors) stays in app for Phase 3. Likely needs InternalsVisibleTo too. Then Phase 3 (host/Platform + IMod + Commander as first mod).
-**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 [GameSdk→domain-libs verified] · contract 11)
+**Current phase:** Phase 3 — Host/Platform + IMod + Commander as first mod (PHASE 2 COMPLETE: 7 libs extracted)
+**Next action:** WRITE SPEC FIRST (specs/phase-3/) — this is the riskiest step (Canvas/tick/patch ownership inversion). Plan: create libs/Nucleus.Abstractions (IMod/IModContext/IModUi/IGameServices/IButtonRegistry/ModPlatform). Then split Plugin.cs+CommanderRuntime into a host (owns single Canvas/tick pump/the 3 contended patches/native capture/button registry/shared services) + Commander as the first IMod (CommanderService + the 4 commander panels + AircraftTaskingPatch). Behavior identical; verify with integration tests + (later) playtest.
+**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 · contract 11). 7 libs: Domain/Squads/Production/Campaign/GameSdk/Ui (+Abstractions next).
+**src shell now:** Plugin.cs, Composition/CommanderRuntime, Patches/{MainMenuBadge,DynamicMapTick,VirtualMFD,AircraftTasking}, Game/CommanderService, Ui/{CommanderPanel,CommanderMapScreen,MapOverlay,OrderColors}.
 
 ## Phase status
 | Phase | Title | State | Notes |
@@ -24,7 +25,7 @@
 ## Work-items in flight
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
-| P2-ui | 2 | extract Nucleus.Ui | — | loop | next | move generic widgets, wire, gate (likely IVT) |
+| P3-spec | 3 | host/Platform spec | ① | loop | next | write specs/phase-3 before any host code |
 
 ## Pending playtests (Unity-gated, awaiting human)
 _(none yet)_
