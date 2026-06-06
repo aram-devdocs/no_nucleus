@@ -6,9 +6,9 @@
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
 **Current phase:** Phase 3 — Host/Platform (spec written; P3a Abstractions DONE)
-**Next action (headless, while P3c playtest pending):** deepen the Sim — add invariants for production-within-funds and combined-arms phase advancement (read ProductionNeeds / operation CombatPhase over the run), plus a multi-seed fuzz loop. Then optionally coverage wiring (coverlet) or draft docs/ deliverables. Resume P3d (loader UI) + P3c button/pan migration once playtests/results/P3-host-tick.md lands.
+**Next action (headless, while P3c playtest pending):** SDK NuGet packaging (Phase 6, unblocked + headless) — make the shipped libs packable (Abstractions/Domain/Squads/Production/Campaign/GameSdk/Ui import build/Packaging.props, IsPackable=true, refs game DLLs Private=false so no IP ships), create the `sdk/Nucleus.Sdk` metapackage, a `dotnet new nucleus-mod` template, and wire `dotnet pack` smoke + an api-snapshot gate. Then dual-faction Sim. Resume P3d (loader UI) once playtests/results/P3-host-tick.md lands.
 **PENDING PLAYTEST:** playtests/P3-host-tick.md (host-driven tick — confirm panel/commander still work). Check playtests/results/ each wake.
-**Sim landed:** 6 headless invariants over the real brain (determinism, no-NaN, 2000-tick stability, objectives, tasks, war-progresses). Gate = 6 layers.
+**Sim landed:** 14 headless tests over the real brain (determinism, no-NaN, 2000-tick stability, objectives, tasks, war-progresses, operations-opened, phases-advance, 6-seed fuzz). Gate = 6 layers.
 **Gate now:** 5 layers — build 0w · unit-core 118 · arch 9 · contract 11 · integration 8 (host lifecycle headless-proven).
 **P3b core done (not live):** src/Host/{LogSink, GameServices}; ModRegistry now in Nucleus.Abstractions (tested). CommanderRuntime still drives live.
 **Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 · contract 11). 7 libs: Domain/Squads/Production/Campaign/GameSdk/Ui (+Abstractions next).
@@ -30,7 +30,7 @@
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
 | P3c | 3 | live host flip (tick) | ④ playtest | loop | built, playtest queued | await playtests/results/P3-host-tick.md |
-| P6-sim | 6 | campaign Sim harness | — | loop | core done (6 invariants) | deepen: production/phases/fuzz |
+| P6-sdk | 6 | SDK NuGet packaging | — | loop | next (headless) | make libs packable + metapackage + dotnet template |
 
 ## Pending playtests (Unity-gated, awaiting human)
 - **P3-host-tick** (playtests/P3-host-tick.md) — confirm the host-driven tick still drives the Commander panel

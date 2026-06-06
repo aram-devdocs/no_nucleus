@@ -59,5 +59,35 @@ namespace Nucleus.Sim.Tests
             Assert.True(r.EnemyEnd < r.EnemyStart,
                 $"war did not progress: enemies {r.EnemyStart} -> {r.EnemyEnd} over {r.Ticks} ticks");
         }
+
+        [Fact]
+        public void Brain_opens_operations_from_objectives()
+        {
+            var r = World(3).Run(400);
+            Assert.True(r.MaxOperations > 0, "brain generated objectives but never opened an operation");
+        }
+
+        [Fact]
+        public void Operations_advance_through_combat_phases()
+        {
+            var r = World(3).Run(600);
+            Assert.True(r.MaxPhase > 0, $"operations never advanced past Recon (maxPhase={r.MaxPhase})");
+        }
+
+        [Theory]
+        [InlineData(1UL)]
+        [InlineData(2UL)]
+        [InlineData(7UL)]
+        [InlineData(42UL)]
+        [InlineData(1000UL)]
+        [InlineData(8675309UL)]
+        public void Fuzz_each_seed_is_deterministic_finite_and_active(ulong seed)
+        {
+            var a = World(seed).Run(300);
+            var b = World(seed).Run(300);
+            Assert.Equal(a.Fingerprint(), b.Fingerprint()); // deterministic per seed
+            Assert.False(a.AnyNaN, "non-finite state");
+            Assert.True(a.TasksTotal > 0, "brain went inactive");
+        }
     }
 }

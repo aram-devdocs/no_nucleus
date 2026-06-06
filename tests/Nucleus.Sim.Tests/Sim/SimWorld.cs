@@ -15,10 +15,13 @@ namespace Nucleus.Sim
         public int TasksTotal;
         public bool AnyNaN;
 
+        public int MaxPhase;
+
         public int Ticks => FriendlyAlive.Count;
         public int EnemyStart => EnemyAlive.Count > 0 ? EnemyAlive[0] : 0;
         public int EnemyEnd => EnemyAlive.Count > 0 ? EnemyAlive[EnemyAlive.Count - 1] : 0;
         public int MaxObjectives => Objectives.Count > 0 ? Objectives.Max() : 0;
+        public int MaxOperations => Operations.Count > 0 ? Operations.Max() : 0;
 
         /// <summary>A compact deterministic fingerprint of the whole run (for same-seed determinism checks).</summary>
         public string Fingerprint()
@@ -67,6 +70,8 @@ namespace Nucleus.Sim
                 r.EnemyAlive.Add(_enemy.Count(u => u.Alive));
                 r.Objectives.Add(_state.Objectives.Count);
                 r.Operations.Add(_state.Operations.Count);
+                int ph = _state.Operations.Count > 0 ? _state.Operations.Max(o => (int)o.CombatPhase) : 0;
+                if (ph > r.MaxPhase) r.MaxPhase = ph;
                 if (AnyNonFinite()) r.AnyNaN = true;
             }
             return r;

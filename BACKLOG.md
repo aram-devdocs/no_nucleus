@@ -27,7 +27,8 @@
   CommanderBrain over a seeded combined-arms battlefield) + 6 invariants: determinism (same seed→identical
   trace), no-NaN over 1000 ticks, runs 2000 ticks no-throw, generates objectives, issues tasks, **war
   progresses (enemy strength declines)**. Always-on (Unity-free; in cloud CI). Gate now 6 layers. **HV**
-  - [ ] deepen: production-within-funds, combined-arms phases advance, multi-seed fuzz, dual-faction (Phase 6 proper).
+  - [x] deepen — operations-opened, **combat phases advance past Recon**, multi-seed fuzz (6 seeds: deterministic+finite+active). Sim layer now 14 tests. **HV**
+  - [ ] deepen further (Phase 6 proper): dual-faction (both sides run brains), persistence save/resume, production-within-funds in-sim.
 
 ## Phase 2–7 — see plan (specs to be drafted as each phase is pulled)
 - [x] P2-gamesdk — `libs/Nucleus.GameSdk` (all src/Game except CommanderService) + Generated/; codegen gameGenDir retargeted (regen verified identical); NucleusLog seam added to Domain (libs log without referencing Plugin); InternalsVisibleTo("CommanderLayer") preserves same-assembly accessibility. Gate PASS (0w/118/9/11). **HV**
