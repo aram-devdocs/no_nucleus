@@ -12,7 +12,10 @@ namespace CommanderLayer.Patches
         [HarmonyPostfix]
         private static void Postfix(VirtualMFD __instance)
         {
+            // Commander claims its CMD slot first (proven path); then the host attaches the other mods'
+            // registered bezel buttons (BLD/SQD/...) to the remaining blank slots.
             Plugin.Runtime?.AttachCmdButton(__instance);
+            Plugin.Host?.AttachButtons(__instance);
         }
     }
 }

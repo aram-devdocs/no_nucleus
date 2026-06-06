@@ -26,6 +26,15 @@ namespace Nucleus.Build
             // Self-test: proves the separate plugin registered and the host injected working game services.
             ctx.Log.Info("[NUCLEUS:SELFTEST] PASS build-mod-loaded");
             ctx.Log.Info($"[NUCLEUS:METRIC] buildFunds={(int)ctx.Game.Funds()}");
+
+            // Claim a BLD bezel button on the map (the host attaches it to a blank slot). The buy-menu panel
+            // lands once the host exposes a real UI layer; for now clicking confirms the button is wired.
+            ctx.Buttons.RegisterMapButton(new MapButtonSpec
+            {
+                ModId = Info.Id,
+                Label = "BLD",
+                OnClick = () => ctx.Log.Info("[Build] buy menu — coming soon"),
+            });
         }
 
         public void Tick(IModTickContext t) { }

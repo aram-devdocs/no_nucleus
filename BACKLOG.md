@@ -61,6 +61,13 @@
 - [ ] P6 — Warfare + SDK pack + dotnet template + dual-faction sim + persistence **HV (+PT)**
 - [ ] P7 — rename CommanderLayer.*→Nucleus.*, `gh repo rename no_nucleus`, folder rename (human), doc rewrite **PT/human**
 
+## Phase 3-4 — host bezel-button registry
+- [~] P-buttons — `src/Host/HostButtons` (shared, host-owned IButtonRegistry replacing the placeholder).
+  Mods register a MapButtonSpec in Initialize; the VirtualMFD patch attaches each to a distinct blank slot
+  AFTER the runtime's proven CMD attach (skips already-labelled blanks → no collision). Build→BLD, Squad→SQD
+  (OnClick logs; real panels need host UI layer). Emits [NUCLEUS:SELFTEST] bezel-buttons-attached + count.
+  Build+7 gates green, deployed. CMD path untouched (low risk). **PT** (next run auto-verifies via self-test).
+
 ## Discovered (triage later)
 - [x] **codegen nullable warnings** — resolved: codegen inherits `Nullable=disable` from root props
   (build tool, not SDK surface). Solution now 0 warnings under `-p:TreatWarningsAsErrors=true`.

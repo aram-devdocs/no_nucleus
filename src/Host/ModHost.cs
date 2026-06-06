@@ -15,12 +15,13 @@ namespace CommanderLayer.Host
     {
         private readonly ModRegistry _registry;
         private readonly GameServices _game = new GameServices();
+        private readonly HostButtons _buttons = new HostButtons();
         private readonly LogSink _log;
 
         public ModHost(ManualLogSource log)
         {
             _log = new LogSink(log);
-            _registry = new ModRegistry(mod => new ModContext(mod, _log, _game));
+            _registry = new ModRegistry(mod => new ModContext(mod, _log, _game, _buttons));
             // Install the registration handler so mods (this assembly, and separate plugins in Phase 4+)
             // resolve through the host. Mods that registered earlier are flushed by SetHandler.
             ModPlatform.SetHandler(m => _registry.Add(m, enabled: true));
@@ -28,6 +29,10 @@ namespace CommanderLayer.Host
 
         public ModRegistry Registry => _registry;
         private bool _selfTested;
+
+        /// <summary>Called by the VirtualMFD patch (after the runtime's CMD attach): attach each mod's
+        /// registered bezel button to a distinct remaining blank slot.</summary>
+        public void AttachButtons(VirtualMFD mfd) => _buttons.AttachTo(mfd);
 
         /// <summary>Per-frame pump (from the DynamicMap.Update postfix): tick every enabled mod.</summary>
         public void Tick()

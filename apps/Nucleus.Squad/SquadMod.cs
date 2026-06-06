@@ -26,6 +26,14 @@ namespace Nucleus.Squad
             _ctx = ctx;
             ctx.Log.Info("[NUCLEUS:SELFTEST] PASS squad-mod-loaded");
             ctx.Log.Info($"[NUCLEUS:METRIC] squadRoster={ctx.Game.Roster().Count}");
+
+            // Claim a SQD bezel button (host attaches it to a blank slot). Squad panel lands with host UI.
+            ctx.Buttons.RegisterMapButton(new MapButtonSpec
+            {
+                ModId = Info.Id,
+                Label = "SQD",
+                OnClick = () => ctx.Log.Info("[Squad] squad manager — coming soon"),
+            });
         }
 
         public void Tick(IModTickContext t) { }

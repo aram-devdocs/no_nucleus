@@ -14,11 +14,12 @@ namespace CommanderLayer.Host
     {
         private readonly IMod _mod;
 
-        public ModContext(IMod mod, ILogSink log, IGameServices game)
+        public ModContext(IMod mod, ILogSink log, IGameServices game, IButtonRegistry buttons)
         {
             _mod = mod;
             Log = log;
             Game = game;
+            Buttons = buttons;
         }
 
         public ModInfo Info => _mod.Info;
@@ -26,23 +27,16 @@ namespace CommanderLayer.Host
         public ILogSink Log { get; }
         public IModUi Ui { get; } = new HostModUi();
         public IGameServices Game { get; }
-        public IButtonRegistry Buttons { get; } = new HostButtonRegistry();
+        public IButtonRegistry Buttons { get; }   // host-owned, shared across mods (HostButtons)
         public T BindConfig<T>(string section, string key, T def, string description) => def;
     }
 
-    /// <summary>Placeholder UI surface (Phase 4 replaces this with a host-owned canvas layer). Commander uses
-    /// its own runtime/canvas in Phase 3 and does not call these.</summary>
+    /// <summary>Placeholder UI surface (a host-owned canvas layer is a later step). Commander uses its own
+    /// runtime/canvas; Build/Squad reach the game via their bezel button + Game services for now.</summary>
     internal sealed class HostModUi : IModUi
     {
         public RectTransform CreateLayer(string name) => null;
         public Transform MapIconLayer => null;
         public Theme Theme { get; } = Theme.Default;
-    }
-
-    /// <summary>Placeholder button registry (Phase 4 wires bezel-slot arbitration). No-op in Phase 3.</summary>
-    internal sealed class HostButtonRegistry : IButtonRegistry
-    {
-        public void RegisterMapButton(MapButtonSpec spec) { }
-        public void RegisterMainMenuItem(MenuItemSpec spec) { }
     }
 }
