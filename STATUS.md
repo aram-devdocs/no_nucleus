@@ -5,9 +5,9 @@
 > Update this on every state transition. Source of truth for "what's next" — survives context compaction.
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
-**Current phase:** Phase 1 — Extract pure libs (spec gate)
-**Next action:** finalize Core→lib file assignment (Explore), then extract `Nucleus.Domain` (namespaces frozen)
-**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 · contract 11)
+**Current phase:** Phase 1 — Extract pure libs (Nucleus.Domain DONE)
+**Next action:** P1-squads — move RoleFamily+Composition (+split CombatPhase/ForceState) into Domain, then extract `libs/Nucleus.Squads` (Squad/SquadFormer/SquadRoster/ThreatBoard); add `Nucleus.Squads.Tests`
+**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 [Domain non-vacuous] · contract 11); deploy bundles Nucleus.Domain.dll
 
 ## Phase status
 | Phase | Title | State | Notes |

@@ -18,6 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The pure leaf moved to Nucleus.Domain (referenced as an assembly); the rest of Core is still
+         compiled directly here until its own libs are extracted in later Phase 1 sub-steps. -->
+    <ProjectReference Include="..\..\libs\Nucleus.Domain\Nucleus.Domain.csproj" />
     <Compile Include="..\..\src\Core\**\*.cs" />
   </ItemGroup>
 </Project>

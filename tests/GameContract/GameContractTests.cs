@@ -168,13 +168,13 @@ namespace CommanderLayer.GameContract.Tests
         public void Generated_enums_match_real_assembly()
         {
             if (!Game.Available) return;
-            string plugin = Game.FindPlugin();
-            if (plugin == null) return; // plugin not built yet
+            // The generated enum mirrors moved to Nucleus.Domain.dll (still namespace
+            // CommanderLayer.Core.Generated) when the pure leaf was extracted. Read them from there.
+            string mirrorAsm = Game.FindDomainLib();
+            if (mirrorAsm == null) return; // domain lib not built yet
 
-            var resolver = new DefaultAssemblyResolver();
-            resolver.AddSearchDirectory(Game.LibDir);
-            using var pluginAsm = AssemblyDefinition.ReadAssembly(plugin, new ReaderParameters { AssemblyResolver = resolver });
-            var pluginMod = pluginAsm.MainModule;
+            using var domainAsm = AssemblyDefinition.ReadAssembly(mirrorAsm);
+            var pluginMod = domainAsm.MainModule;
 
             foreach (var name in new[] { "VehicleType", "ShipType", "BuildingType" })
             {
@@ -330,6 +330,22 @@ namespace CommanderLayer.GameContract.Tests
                 foreach (var cfg in new[] { "Release", "Debug" })
                 {
                     var p = Path.Combine(dir.FullName, "src", "bin", cfg, "netstandard2.1", "CommanderLayer.dll");
+                    if (File.Exists(p)) return p;
+                }
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        // The pure leaf lib that now holds the generated enum/ref mirrors (namespace CommanderLayer.Core.Generated).
+        public static string FindDomainLib()
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                foreach (var cfg in new[] { "Release", "Debug" })
+                {
+                    var p = Path.Combine(dir.FullName, "libs", "Nucleus.Domain", "bin", cfg, "netstandard2.1", "Nucleus.Domain.dll");
                     if (File.Exists(p)) return p;
                 }
                 dir = dir.Parent;

@@ -1,0 +1,25 @@
+﻿{
+    "overall":  "PASS",
+    "steps":  [
+                  {
+                      "name":  "build",
+                      "status":  "PASS",
+                      "detail":  "0 warnings"
+                  },
+                  {
+                      "name":  "unit-core",
+                      "status":  "PASS",
+                      "detail":  ""
+                  },
+                  {
+                      "name":  "arch",
+                      "status":  "PASS",
+                      "detail":  ""
+                  },
+                  {
+                      "name":  "contract",
+                      "status":  "PASS",
+                      "detail":  ""
+                  }
+              ]
+}

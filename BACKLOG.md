@@ -16,7 +16,7 @@
 - [ ] P0-logaudit — `tools/Nucleus.LogAudit` CLI (parse BepInEx log → JSON verdict). **Deferred to pre-Phase-3** (first playtest); audit.ps1 already has the `-LogPath` hook stubbed. **HV**
 
 ## Phase 1 — Extract pure libs (each extraction guarded by arch + per-lib unit + coverage)
-- [ ] P1-domain — create `libs/Nucleus.Domain`, move Core/Model + shared Command primitives; repoint tests/Core **HV**
+- [x] P1-domain — `libs/Nucleus.Domain` (20 closure-verified pure files); tests/Core repointed (ProjectRef + glob); codegen coreGenDir → libs/Nucleus.Domain/Generated; contract test reads mirror from Domain.dll; deploy bundles Nucleus.*.dll. Gate PASS (0w/118/9/11), deploy verified. **HV**
 - [ ] P1-squads — `libs/Nucleus.Squads` (Squad/SquadRoster/SquadFormer) + `Nucleus.Squads.Tests` **HV**
 - [ ] P1-production — `libs/Nucleus.Production` (ProductionQueue/Planner/Catalog) + tests **HV**
 - [ ] P1-campaign — `libs/Nucleus.Campaign` (brain/operations/objectives/planning/HqView) + tests **HV**

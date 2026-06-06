@@ -4,6 +4,14 @@
 > Append-only; newest at top of each section.
 
 ## Architecture decisions
+- **2026-06-06 · Phase 1 lib boundaries (from Core dependency analysis).** Domain leaf = 20 closure-verified
+  pure files (Model/*, Generated/*, Command/{AutonomyLevel,Doctrine,BattleLog,Objective,WorldSnapshot},
+  Ports/*, Planning/ThreatAssessor, Roles/RoleClassifier). **Entanglement found:** `RoleFamily`+`Composition`
+  reference `CombatPhase` (currently inside `PhaseGates.cs`), and Production types (ConvoyCatalog/
+  ProductionPlanner/ProductionQueue) use `Composition`→`RoleFamily`. To keep Squads and Production
+  *independent* (plan rule), `RoleFamily`, `Composition`, and a split-out `CombatPhase`(+`ForceState`) move
+  into **Domain** during the Squads/Production sub-step — NOT in P1-domain (kept minimal/low-risk). Also
+  noted (defer): `CommanderBrain` is a god-file (decompose later, not now — behavior-preserving move first).
 - **2026-06-06 · Shared campaign-domain lib, not cross-plugin calls.** AUTO brain stays a pure
   `CommanderBrain.Tick(snapshot, state)` calling down into `Nucleus.Squads`/`Nucleus.Production`;
   never a runtime call into the Squad/Build plugins (BepInEx load-order/absence fragility). Human and

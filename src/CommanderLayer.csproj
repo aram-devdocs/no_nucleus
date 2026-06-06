@@ -78,9 +78,18 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="Deploy" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetPath)"
-          DestinationFolder="$(Sandbox)\BepInEx\plugins\CommanderLayer"
-          Condition="Exists('$(Sandbox)')" />
+  <ItemGroup>
+    <!-- Pure leaf domain extracted to libs/Nucleus.Domain (namespaces still CommanderLayer.Core.*). -->
+    <ProjectReference Include="..\libs\Nucleus.Domain\Nucleus.Domain.csproj" />
+  </ItemGroup>
+
+  <Target Name="Deploy" AfterTargets="Build" Condition="Exists('$(Sandbox)')">
+    <!-- The plugin now depends on the extracted Nucleus.*.dll libs (copied next to it by the project
+         references), so deploy them alongside or BepInEx can't load the plugin at runtime. -->
+    <ItemGroup>
+      <NucleusDep Include="$(TargetDir)Nucleus.*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="$(TargetPath);@(NucleusDep)"
+          DestinationFolder="$(Sandbox)\BepInEx\plugins\CommanderLayer" />
   </Target>
 </Project>

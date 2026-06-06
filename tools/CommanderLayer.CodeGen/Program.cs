@@ -131,7 +131,9 @@ var deps = new List<Dep>
 
 string repoRoot = FindRepoRoot() ?? throw new Exception("Could not find repo root (lib/Assembly-CSharp.dll).");
 string dllPath = Path.Combine(repoRoot, "lib", "Assembly-CSharp.dll");
-string coreGenDir = Path.Combine(repoRoot, "src", "Core", "Generated");
+// Core mirrors (GameEnums/GameRef, namespace CommanderLayer.Core.Generated) live in the extracted pure
+// leaf lib Nucleus.Domain. gameGenDir (GameSdk/NativeAssets) relocates to its lib in Phase 2.
+string coreGenDir = Path.Combine(repoRoot, "libs", "Nucleus.Domain", "Generated");
 string gameGenDir = Path.Combine(repoRoot, "src", "Game", "Generated");
 string testGenDir = Path.Combine(repoRoot, "tests", "GameContract");
 Directory.CreateDirectory(coreGenDir);
