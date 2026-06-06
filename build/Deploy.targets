@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    Parameterized plugin deploy. A BepInEx plugin project sets <PluginName> (e.g. Nucleus.Platform)
+    and imports this; on Build it copies its output into the sandbox plugin folder. Shared libs do NOT
+    set <PluginName> and therefore do not self-deploy — they ride along in the platform's folder only,
+    so a given shared DLL ships exactly once ("dry deployments, no skew"). Never the Steam install.
+  -->
+  <Target Name="DeployPlugin" AfterTargets="Build"
+          Condition="'$(PluginName)' != '' And Exists('$(Sandbox)')">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(Sandbox)\BepInEx\plugins\$(PluginName)" />
+  </Target>
+</Project>

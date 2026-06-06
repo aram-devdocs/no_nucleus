@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    Nucleus monorepo — common build settings inherited by every project.
+    Imported before each project body, so a project's own <PropertyGroup> still overrides these.
+    Kept conservative so the existing single-plugin build stays byte-for-byte green; the
+    warnings-as-errors gate is applied per-project (and verified) rather than globally here.
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+
+    <!-- Referencing the game's own DLLs surfaces unavoidable framework version-conflict warnings;
+         demote the noisy one so a clean build stays meaningful. -->
+    <MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
+
+    <!-- Repo-root-relative locations. lib/ holds the gitignored game/Unity DLLs (setup-sandbox.ps1);
+         .sandbox/game is the deploy target (never the Steam install). -->
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <Lib>$(MSBuildThisFileDirectory)lib</Lib>
+    <Sandbox>$(MSBuildThisFileDirectory).sandbox\game</Sandbox>
+
+    <!-- Common package/authorship metadata for the SDK NuGet packages (overridden per-package as needed). -->
+    <Authors>Nucleus</Authors>
+    <Product>Nucleus</Product>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>

@@ -7,8 +7,8 @@
 
 ## Phase 0 — Tooling & ledger (HV unless noted)
 - [x] P0-ledger — STATUS/BACKLOG/DECISIONS/north-star files **HV**
-- [ ] P0-props — root `Directory.Build.props` (match existing settings exactly; verify monolith still 0-warnings) **HV**
-- [ ] P0-sln — `Nucleus.sln` referencing existing projects; `build/GameReferences.props`, `Deploy.targets`, `Packaging.props` **HV**
+- [x] P0-props — root `Directory.Build.props` (conservative; monolith verified still 0-warnings, 118+11) **HV**
+- [x] P0-sln — `Nucleus.sln` (4 existing projects) + `build/GameReferences.props`, `Deploy.targets`, `Packaging.props` (inert until imported) **HV**
 - [ ] P0-hooks — commit `.githooks/` (pre-commit/pre-push) + `core.hooksPath`; `scripts/check.ps1` + `scripts/audit.ps1` **HV**
 - [ ] P0-arch — `tests/Nucleus.Architecture.Tests` (Cecil dependency-graph/DAG/Unity-free rules; passes on current single DLL) **HV**
 - [ ] P0-testkit — `tests/Nucleus.TestKit` (FakeGame) + `tests/Nucleus.Integration.Tests` scaffold (≥1 real assertion) **HV**
@@ -33,4 +33,6 @@
 - [ ] P7 — rename CommanderLayer.*→Nucleus.*, `gh repo rename no_nucleus`, folder rename (human), doc rewrite **PT/human**
 
 ## Discovered (triage later)
-_(empty)_
+- **codegen nullable warnings** — `tools/CommanderLayer.CodeGen/Program.cs` emits 7 CS86xx warnings
+  (Nullable=enable inline). Invisible to the old baseline (built `src/` only). Must be fixed (or
+  Nullable scoped) before the warnings-as-errors gate (P0-hooks) goes solution-wide. **HV**

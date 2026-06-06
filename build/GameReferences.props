@@ -1,0 +1,29 @@
+<Project>
+  <!--
+    Shared references to the game's own DLLs (gitignored lib/, populated by setup-sandbox.ps1).
+    Imported by runtime projects that touch the engine (GameSdk, Ui, the BepInEx plugins).
+    All Private=false: the game/Unity/BepInEx assemblies exist at runtime and must NOT be copied
+    into plugin output (that would shadow the real ones). Pure libs (Domain/Squads/Production/
+    Campaign) never import this — they stay Unity-free, enforced by Nucleus.Architecture.Tests.
+
+    Reference BepInEx's OWN shipped 0Harmony/BepInEx (not NuGet HarmonyX, which pulls MonoMod.Backports
+    that BepInEx 5.4.23 does not ship). Reference the REAL unmodified Assembly-CSharp so the compiler
+    enforces accessibility — private access becomes a build error, not a runtime surprise.
+  -->
+  <ItemGroup>
+    <Reference Include="BepInEx"><HintPath>$(Lib)\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(Lib)\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(Lib)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(Lib)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mirage"><HintPath>$(Lib)\Mirage.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(Lib)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Lib)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TerrainModule"><HintPath>$(Lib)\UnityEngine.TerrainModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Lib)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Lib)\UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UIModule"><HintPath>$(Lib)\UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(Lib)\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UI"><HintPath>$(Lib)\UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.TextMeshPro"><HintPath>$(Lib)\Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

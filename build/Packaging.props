@@ -1,0 +1,21 @@
+<Project>
+  <!--
+    NuGet packaging metadata for the shipped SDK libraries (Nucleus.Abstractions/Domain/Squads/
+    Production/Campaign/GameSdk/Ui and the Nucleus.Sdk metapackage). A lib opts in by importing this
+    and setting <IsPackable>true</IsPackable>; the tag-triggered release workflow runs `dotnet pack`.
+    Deterministic + SourceLink + symbols so published packages are debuggable and reproducible.
+    The game/Unity DLLs are referenced Private=false and are NEVER packed (game IP).
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/aram-devdocs/no_nucleus</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/aram-devdocs/no_nucleus</RepositoryUrl>
+    <PackageTags>nuclear-option;bepinex;modding;sdk;nucleus</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>
