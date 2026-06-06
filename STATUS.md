@@ -6,7 +6,8 @@
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
 **Current phase:** Phase 3 — Host/Platform (spec written; P3a Abstractions DONE)
-**Next action:** P3b — build in-process `ModHost` in the plugin: lift Canvas/tick/native-capture/button-attach out of CommanderRuntime into a host that owns the single Canvas, the tick pump, the shared game services (one GameRoster/GameIntel/GameUnitCommands/GameProductionService), a ModRegistry, and a button registry arbitrating blank VirtualMFD slots. The 3 contended patches call the host. Keep behavior identical (single plugin). See specs/phase-3/P3-host.md.
+**Next action:** P3b-probe — create tests/Nucleus.Integration.Tests (net8.0) referencing Nucleus.Abstractions + a FakeMod/FakeGame, run a ModRegistry-style lifecycle test, to learn whether the Unity-referencing contract loads headlessly. If YES → move ModRegistry to a referenceable spot + write real host-lifecycle integration tests (FakeGame: register→init→tick→enable/disable, shared queue, no double-buy). If NO → host stays build+playtest-gated; proceed to the live flip (ModContext/IModUi/ModHost + reroute Plugin/patches) and queue a playtest packet.
+**P3b core done (not live):** src/Host/{LogSink, GameServices, ModRegistry}. CommanderRuntime still drives live (behavior unchanged).
 **Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 · contract 11). 7 libs: Domain/Squads/Production/Campaign/GameSdk/Ui (+Abstractions next).
 **src shell now:** Plugin.cs, Composition/CommanderRuntime, Patches/{MainMenuBadge,DynamicMapTick,VirtualMFD,AircraftTasking}, Game/CommanderService, Ui/{CommanderPanel,CommanderMapScreen,MapOverlay,OrderColors}.
 
@@ -25,7 +26,7 @@
 ## Work-items in flight
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
-| P3b | 3 | in-process ModHost | — | loop | next | lift Canvas/tick/services/registry out of CommanderRuntime |
+| P3b-probe | 3 | headless host-testability probe | — | loop | next | net8.0 test loads Abstractions? decides verify strategy |
 
 ## Pending playtests (Unity-gated, awaiting human)
 _(none yet)_

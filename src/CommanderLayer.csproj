@@ -86,6 +86,7 @@
     <ProjectReference Include="..\libs\Nucleus.Campaign\Nucleus.Campaign.csproj" />
     <ProjectReference Include="..\libs\Nucleus.GameSdk\Nucleus.GameSdk.csproj" />
     <ProjectReference Include="..\libs\Nucleus.Ui\Nucleus.Ui.csproj" />
+    <ProjectReference Include="..\libs\Nucleus.Abstractions\Nucleus.Abstractions.csproj" />
   </ItemGroup>
 
   <Target Name="Deploy" AfterTargets="Build" Condition="Exists('$(Sandbox)')">
