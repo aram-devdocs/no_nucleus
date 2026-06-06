@@ -17,6 +17,11 @@
                       "detail":  ""
                   },
                   {
+                      "name":  "sim",
+                      "status":  "PASS",
+                      "detail":  ""
+                  },
+                  {
                       "name":  "contract",
                       "status":  "PASS",
                       "detail":  ""

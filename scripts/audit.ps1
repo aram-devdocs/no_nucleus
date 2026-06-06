@@ -32,9 +32,10 @@ dotnet build "$root\Nucleus.sln" -c Release /p:TreatWarningsAsErrors=true 2>&1 |
 if ($LASTEXITCODE -eq 0) { $buildOk = $true; Add-Result 'build' 'PASS' '0 warnings' }
 else { Add-Result 'build' 'FAIL' "exit $LASTEXITCODE" }
 
-# 2. Always-on headless layers.
+# 2. Always-on headless layers (Unity-free; also run in cloud CI).
 Test-Project 'unit-core' 'tests\Core\CommanderLayer.Tests.csproj'
 Test-Project 'arch'      'tests\Nucleus.Architecture.Tests\Nucleus.Architecture.Tests.csproj'
+Test-Project 'sim'       'tests\Nucleus.Sim.Tests\Nucleus.Sim.Tests.csproj'
 
 # 3. Game-coupled layer (only when the licensed game DLL is present). Integration tests load the
 #    Unity-referencing Abstractions/Ui assemblies at runtime, so they need lib/ too.

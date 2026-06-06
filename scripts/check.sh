@@ -16,6 +16,9 @@ dotnet test "$root/tests/Core/CommanderLayer.Tests.csproj" -c Release --no-build
 echo "[check] architecture rules..."
 dotnet test "$root/tests/Nucleus.Architecture.Tests/Nucleus.Architecture.Tests.csproj" -c Release --no-build
 
+echo "[check] campaign sim (headless e2e)..."
+dotnet test "$root/tests/Nucleus.Sim.Tests/Nucleus.Sim.Tests.csproj" -c Release --no-build
+
 if [ -f "$root/lib/Assembly-CSharp.dll" ]; then
   echo "[check] game-contract tests..."
   dotnet test "$root/tests/GameContract/CommanderLayer.GameContract.Tests.csproj" -c Release --no-build

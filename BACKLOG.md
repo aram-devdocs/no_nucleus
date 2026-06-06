@@ -22,6 +22,13 @@
 - [x] P1-production — `libs/Nucleus.Production` (ConvoyCatalog/ProductionPlanner/ProductionQueue), Domain-only (arch-verified). Gate PASS. **HV**
 - [x] P1-campaign — `libs/Nucleus.Campaign` (CommanderBrain/State/HqView/Operation/PhaseGates/Proposal/TargetPrioritizer/ThreatBoard + Planning/{AssignmentManager,BattlePlan,OrderPlanner}); refs Domain+Squads+Production. **src/Core now empty/removed.** tests/Core fully on ProjectReferences. Gate PASS (0w/118/9/11). **PHASE 1 COMPLETE.** **HV**
 
+## Phase 6 — Sim (headless e2e; started early as the north-star regression net)
+- [~] P6-sim — `tests/Nucleus.Sim.Tests` harness (Pcg deterministic PRNG, SimUnit/SimWorld stepping the real
+  CommanderBrain over a seeded combined-arms battlefield) + 6 invariants: determinism (same seed→identical
+  trace), no-NaN over 1000 ticks, runs 2000 ticks no-throw, generates objectives, issues tasks, **war
+  progresses (enemy strength declines)**. Always-on (Unity-free; in cloud CI). Gate now 6 layers. **HV**
+  - [ ] deepen: production-within-funds, combined-arms phases advance, multi-seed fuzz, dual-faction (Phase 6 proper).
+
 ## Phase 2–7 — see plan (specs to be drafted as each phase is pulled)
 - [x] P2-gamesdk — `libs/Nucleus.GameSdk` (all src/Game except CommanderService) + Generated/; codegen gameGenDir retargeted (regen verified identical); NucleusLog seam added to Domain (libs log without referencing Plugin); InternalsVisibleTo("CommanderLayer") preserves same-assembly accessibility. Gate PASS (0w/118/9/11). **HV**
 - [x] P2-ui — `libs/Nucleus.Ui` (UiFactory/Theme/NativeColors/NativeIcons/Native.NativeUi/DragHandle/MainMenuBadge), Domain-only among Nucleus libs (Theme's ColorRgba→Color inlined to drop the GameSdk dep). Commander panels stay in app. Gate PASS (0w/118/9/11). **PHASE 2 COMPLETE** — 7 libs extracted; src is the thin app shell. **HV**
