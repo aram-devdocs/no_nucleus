@@ -10,7 +10,7 @@
 - [x] P0-props — root `Directory.Build.props` (conservative; monolith verified still 0-warnings, 118+11) **HV**
 - [x] P0-sln — `Nucleus.sln` (4 existing projects) + `build/GameReferences.props`, `Deploy.targets`, `Packaging.props` (inert until imported) **HV**
 - [ ] P0-hooks — commit `.githooks/` (pre-commit/pre-push) + `core.hooksPath`; `scripts/check.ps1` + `scripts/audit.ps1` **HV**
-- [ ] P0-arch — `tests/Nucleus.Architecture.Tests` (Cecil dependency-graph/DAG/Unity-free rules; passes on current single DLL) **HV**
+- [x] P0-arch — `tests/Nucleus.Architecture.Tests` (Cecil DAG/Unity-free/ownership rules + 4 synthetic proofs the rules bite) **HV**
 - [ ] P0-testkit — `tests/Nucleus.TestKit` (FakeGame) + `tests/Nucleus.Integration.Tests` scaffold (≥1 real assertion) **HV**
 - [ ] P0-sim — `tests/Nucleus.Sim` harness + `tests/Nucleus.Sim.Tests` (seeded PRNG, 1 invariant over the existing brain) **HV**
 - [ ] P0-coverage — coverlet wiring + ReportGenerator + per-lib threshold gate in audit.ps1 **HV**

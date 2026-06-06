@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{4320EBBC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommanderLayer.CodeGen", "tools\CommanderLayer.CodeGen\CommanderLayer.CodeGen.csproj", "{EECDBFE9-1226-40A5-9F77-22FDEEEA1156}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nucleus.Architecture.Tests", "tests\Nucleus.Architecture.Tests\Nucleus.Architecture.Tests.csproj", "{4AA1F092-AA2D-4B36-B9BA-CFE5290CF891}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,10 +42,15 @@ Global
 		{EECDBFE9-1226-40A5-9F77-22FDEEEA1156}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EECDBFE9-1226-40A5-9F77-22FDEEEA1156}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EECDBFE9-1226-40A5-9F77-22FDEEEA1156}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AA1F092-AA2D-4B36-B9BA-CFE5290CF891}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AA1F092-AA2D-4B36-B9BA-CFE5290CF891}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AA1F092-AA2D-4B36-B9BA-CFE5290CF891}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AA1F092-AA2D-4B36-B9BA-CFE5290CF891}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{CA2E259C-F52C-4FE4-A11E-1D7E009D4A86} = {CCF3846C-04DC-4953-A934-0927C6377710}
 		{946A5750-A86A-45CC-BC2B-31E20E33D708} = {CCF3846C-04DC-4953-A934-0927C6377710}
 		{EECDBFE9-1226-40A5-9F77-22FDEEEA1156} = {4320EBBC-952B-4F42-BA3A-42B79694706C}
+		{4AA1F092-AA2D-4B36-B9BA-CFE5290CF891} = {CCF3846C-04DC-4953-A934-0927C6377710}
 	EndGlobalSection
 EndGlobal
