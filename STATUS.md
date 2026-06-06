@@ -34,7 +34,8 @@
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
 | P3c | 3 | live host flip (tick) | ④ playtest | loop | built, playtest queued | await playtests/results/P3-host-tick.md |
-| P6-persist | 6 | campaign persistence model | — | loop | next (headless) | serializable snapshot of CommanderState + round-trip tests |
+| P6-hardening | 6 | doc/tooling hardening | — | loop | next (finite headless) | per-lib READMEs, ARCHITECTURE.md, api-snapshot gate |
+| ⛔ BLOCKED | 3-5 | P3d loader / Build / Squad splits | ④ | human | **parked on P3-host-tick playtest** | run .sandbox build, paste log → audit.ps1 -LogPath |
 | P6-sdk | 6 | SDK NuGet packaging | — | loop | libs packable + template done | setup-sdk + release.yml + metapackage-pack fix |
 
 ## Pending playtests (Unity-gated, awaiting human)
