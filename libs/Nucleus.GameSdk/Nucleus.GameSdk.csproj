@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nucleus.GameSdk</AssemblyName>
+    <!-- Engine-access layer: reads game state into the domain types and executes their outputs, plus the
+         codegen'd typed reflection seam (GameSdk/NativeAssets). Touches Unity/Assembly-CSharp, so it imports
+         the shared game references. NOT a pure lib (arch test permits it game refs). -->
+  </PropertyGroup>
+
+  <!-- The split is behavior-preserving: the app used these adapters as same-assembly internals. Restore
+       that exact accessibility across the boundary rather than widening the public API (the deliberate SDK
+       public surface is defined in the packaging phase). -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>CommanderLayer</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <Import Project="..\..\build\GameReferences.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nucleus.Domain\Nucleus.Domain.csproj" />
+    <ProjectReference Include="..\Nucleus.Squads\Nucleus.Squads.csproj" />
+    <ProjectReference Include="..\Nucleus.Production\Nucleus.Production.csproj" />
+    <ProjectReference Include="..\Nucleus.Campaign\Nucleus.Campaign.csproj" />
+  </ItemGroup>
+</Project>

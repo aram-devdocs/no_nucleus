@@ -60,7 +60,7 @@ namespace CommanderLayer.Game
             queue.Dequeue();
             player.CmdPurchaseConvoy(req.ConvoyName);
             _lastPurchase = UnityEngine.Time.timeSinceLevelLoad;
-            Plugin.Log?.LogInfo($"Production purchase: {req.ConvoyName} (cost {req.Cost:0}, funds {hq.factionFunds:0})");
+            CommanderLayer.Core.NucleusLog.Info($"Production purchase: {req.ConvoyName} (cost {req.Cost:0}, funds {hq.factionFunds:0})");
         }
 
         /// <summary>Cost of a convoy computed defensively from its constituents (the game's GetCost throws on a

@@ -5,9 +5,9 @@
 > Update this on every state transition. Source of truth for "what's next" — survives context compaction.
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
-**Current phase:** Phase 2 — Extract GameSdk + Ui + retarget codegen (Phase 1 COMPLETE: all 4 pure libs extracted, src/Core gone)
-**Next action:** P2-gamesdk — extract `libs/Nucleus.GameSdk` from src/Game/** (minus CommanderService, which is Commander-specific → stays for Phase 3). Move codegen gameGenDir → the lib; retarget GameSdk/NativeAssets generated paths. Then P2-ui (generic widgets → libs/Nucleus.Ui). Guard: GameContract + arch. NOTE: GameSdk/Ui touch Unity → import build/GameReferences.props; arch test allows them Unity refs (they're not pure libs).
-**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 [Domain/Squads/Production/Campaign all non-vacuous, full DAG] · contract 11)
+**Current phase:** Phase 2 — GameSdk DONE; Ui next
+**Next action:** P2-ui — extract generic widgets to `libs/Nucleus.Ui` (UiFactory/Theme/NativeColors/NativeIcons/Native/NativeUi/DragHandle/MainMenuBadge); imports GameReferences.props (Unity); arch allows Ui→Domain. Commander-specific UI (CommanderPanel/CommanderMapScreen/MapOverlay/OrderColors) stays in app for Phase 3. Likely needs InternalsVisibleTo too. Then Phase 3 (host/Platform + IMod + Commander as first mod).
+**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 [GameSdk→domain-libs verified] · contract 11)
 
 ## Phase status
 | Phase | Title | State | Notes |
@@ -24,7 +24,7 @@
 ## Work-items in flight
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
-| P2-gamesdk | 2 | extract Nucleus.GameSdk | — | loop | next | move src/Game/** (minus CommanderService), retarget codegen, gate |
+| P2-ui | 2 | extract Nucleus.Ui | — | loop | next | move generic widgets, wire, gate (likely IVT) |
 
 ## Pending playtests (Unity-gated, awaiting human)
 _(none yet)_

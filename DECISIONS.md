@@ -25,6 +25,12 @@
   native loader + source + Nexus + Steam Workshop mission "Nucleus Dynamic Warfare".** (User decisions.)
 
 ## Scope decisions
+- **2026-06-06 · Logging seam (NucleusLog) + InternalsVisibleTo for the lib split.** Shared libs must not
+  reference the BepInEx `Plugin` static. Added `CommanderLayer.Core.NucleusLog` (pure Action<string> sinks in
+  Domain; host wires them in Plugin.Awake). `CommanderDebugProbe` (reads `Plugin.CommanderDebug`) stays in the
+  app, not GameSdk. GameSdk uses `InternalsVisibleTo("CommanderLayer")` to preserve the exact same-assembly
+  accessibility the mechanical move relied on — the deliberate **SDK public surface** is defined later (Phase 6
+  packaging), not widened ad hoc now.
 - **2026-06-06 · Per-lib test projects deferred; tests/Core stays the aggregate for Phase 1.** The 118
   existing tests in tests/Core already exercise squad/production/campaign logic and reference each extracted
   lib. Splitting them into Nucleus.Squads.Tests/.Production.Tests/.Campaign.Tests is churn without new

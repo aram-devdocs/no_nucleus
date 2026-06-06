@@ -35,6 +35,11 @@ namespace CommanderLayer
         private void Awake()
         {
             Log = Logger;
+            // Wire the shared logging seam so the pure/SDK libs (Nucleus.GameSdk etc.) log through BepInEx
+            // without referencing this plugin. Defaults are no-ops (e.g. under unit tests).
+            Core.NucleusLog.Info = m => Log.LogInfo(m);
+            Core.NucleusLog.Warn = m => Log.LogWarning(m);
+            Core.NucleusLog.Error = m => Log.LogError(m);
             // Keep updating (and flushing logs) while the window is unfocused, so diagnostics survive alt-tab.
             Application.runInBackground = true;
 
