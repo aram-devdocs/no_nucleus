@@ -17,7 +17,8 @@
 
 ## Phase 1 — Extract pure libs (each extraction guarded by arch + per-lib unit + coverage)
 - [x] P1-domain — `libs/Nucleus.Domain` (20 closure-verified pure files); tests/Core repointed (ProjectRef + glob); codegen coreGenDir → libs/Nucleus.Domain/Generated; contract test reads mirror from Domain.dll; deploy bundles Nucleus.*.dll. Gate PASS (0w/118/9/11), deploy verified. **HV**
-- [ ] P1-squads — `libs/Nucleus.Squads` (Squad/SquadRoster/SquadFormer) + `Nucleus.Squads.Tests` **HV**
+- [x] P1-primitives — moved RoleFamily + Composition into Domain; split CombatPhase/ForceState out of PhaseGates.cs into Domain (Command/CombatPhase.cs). Unblocks independent Squads/Production. Gate PASS. **HV**
+- [x] P1-squads — `libs/Nucleus.Squads` (Squad/SquadFormer[+SquadConfig]/SquadRoster), refs Domain only (arch-verified non-vacuous). src+tests wired. Gate PASS (0w/118/9/11). (Per-lib Nucleus.Squads.Tests deferred — tests/Core aggregate covers it; see DECISIONS.) **HV**
 - [ ] P1-production — `libs/Nucleus.Production` (ProductionQueue/Planner/Catalog) + tests **HV**
 - [ ] P1-campaign — `libs/Nucleus.Campaign` (brain/operations/objectives/planning/HqView) + tests **HV**
 

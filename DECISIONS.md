@@ -24,6 +24,13 @@
 - **2026-06-06 · Brand = Nucleus; repo+folder = `no_nucleus`; distribution = NuGet (SDK) + Thunderstore +
   native loader + source + Nexus + Steam Workshop mission "Nucleus Dynamic Warfare".** (User decisions.)
 
+## Scope decisions
+- **2026-06-06 · Per-lib test projects deferred; tests/Core stays the aggregate for Phase 1.** The 118
+  existing tests in tests/Core already exercise squad/production/campaign logic and reference each extracted
+  lib. Splitting them into Nucleus.Squads.Tests/.Production.Tests/.Campaign.Tests is churn without new
+  coverage right now; do it as a later reorg (or when adding NEW per-lib tests). Arch test + 118 + contract
+  guard each extraction. ThreatBoard left in src/Core (→Campaign lib later) — not needed by Squads/Production.
+
 ## Pending decisions (options + recommended default; escalate before the gated action)
 - **Repo + folder rename** (`commander` → `no_nucleus`): irreversible-ish outward action. Default: do
   `gh repo rename no_nucleus` at Phase 7, hand the human the local folder-rename steps. **Park for explicit go.**

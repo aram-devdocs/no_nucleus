@@ -79,8 +79,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Pure leaf domain extracted to libs/Nucleus.Domain (namespaces still CommanderLayer.Core.*). -->
+    <!-- Pure libs extracted from Core (namespaces still CommanderLayer.Core.*). -->
     <ProjectReference Include="..\libs\Nucleus.Domain\Nucleus.Domain.csproj" />
+    <ProjectReference Include="..\libs\Nucleus.Squads\Nucleus.Squads.csproj" />
   </ItemGroup>
 
   <Target Name="Deploy" AfterTargets="Build" Condition="Exists('$(Sandbox)')">

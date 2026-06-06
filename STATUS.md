@@ -5,9 +5,9 @@
 > Update this on every state transition. Source of truth for "what's next" — survives context compaction.
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
-**Current phase:** Phase 1 — Extract pure libs (Nucleus.Domain DONE)
-**Next action:** P1-squads — move RoleFamily+Composition (+split CombatPhase/ForceState) into Domain, then extract `libs/Nucleus.Squads` (Squad/SquadFormer/SquadRoster/ThreatBoard); add `Nucleus.Squads.Tests`
-**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 [Domain non-vacuous] · contract 11); deploy bundles Nucleus.Domain.dll
+**Current phase:** Phase 1 — Extract pure libs (Domain + Squads DONE)
+**Next action:** P1-production — extract `libs/Nucleus.Production` (Command/{ConvoyCatalog,ProductionPlanner,ProductionQueue}), refs Domain only; wire src+tests; gate. Then P1-campaign (the rest of Command/* + Planning/* + ThreatBoard), then Phase 2 (GameSdk+Ui).
+**Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 [Domain+Squads non-vacuous] · contract 11)
 
 ## Phase status
 | Phase | Title | State | Notes |
@@ -24,7 +24,7 @@
 ## Work-items in flight
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
-| P1-domain | 1 | extract Nucleus.Domain | ① spec | loop | spec written | analyze Core deps, then move files |
+| P1-production | 1 | extract Nucleus.Production | — | loop | next | create lib, move 3 files, wire, gate |
 
 ## Pending playtests (Unity-gated, awaiting human)
 _(none yet)_

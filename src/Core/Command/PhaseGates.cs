@@ -3,16 +3,8 @@ using CommanderLayer.Core.Model;
 
 namespace CommanderLayer.Core.Command
 {
-    /// <summary>The combined-arms phases an operation against a defended target steps through, in order.</summary>
-    public enum CombatPhase { Recon, AirSuperiority, Sead, Strike, Assault, Capture, Hold }
-
-    /// <summary>Friendly force facts the gates threshold against (extended as more are wired through).</summary>
-    public readonly struct ForceState
-    {
-        /// <summary>Air-superiority fighters available to the operation.</summary>
-        public readonly int Fighters;
-        public ForceState(int fighters) { Fighters = fighters; }
-    }
+    // CombatPhase + ForceState live in Nucleus.Domain (Command/CombatPhase.cs) — same namespace, pure leaf —
+    // so the Domain-level RoleFamily can reference CombatPhase without depending up into this gating logic.
 
     /// <summary>
     /// Pure combined-arms gating: whether an operation may advance PAST a given phase, thresholded by
