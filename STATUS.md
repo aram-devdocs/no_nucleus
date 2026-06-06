@@ -6,7 +6,8 @@
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
 **Current phase:** Phase 3 — Host/Platform (spec written; P3a Abstractions DONE)
-**Next action (headless, while P3c playtest pending):** draft the user-requested **docs deliverables** — `docs/TESTING.md` (manual test steps), `docs/TESTING-WORKSHEET.md` (fill-in feedback sheet), `docs/DEPLOYMENT.md` (CI/CD + accounts + GH secrets: NUGET_API_KEY/TCLI_AUTH_TOKEN/Steam, self-hosted runner). Then `setup-sdk` script + `release.yml` pack/push job + metapackage pack fix + dual-faction Sim. Resume P3d (loader UI) once playtests/results/P3-host-tick.md lands.
+**Next action (headless, while P3c playtest pending):** build `tools/Nucleus.LogAudit` (Phase-0 deferral) — parse a BepInEx/Player.log into a JSON PASS/FAIL verdict (patches applied? mods loaded? exceptions? expected metrics?), non-zero exit on FAIL; wire the `-LogPath` hook already stubbed in audit.ps1. Makes the pending P3-host-tick playtest return mechanically checkable. Then setup-sdk + release.yml + metapackage-pack fix + dual-faction Sim. Resume P3d (loader UI) once playtests/results/P3-host-tick.md lands.
+**Docs landed:** docs/TESTING.md, docs/TESTING-WORKSHEET.md, docs/DEPLOYMENT.md.
 **SDK DX so far:** 7 libs packable + IP-clean; `dotnet new nucleus-mod` template smoke-tested (renames namespace/plugin/GUID/version).
 **PENDING PLAYTEST:** playtests/P3-host-tick.md (host-driven tick — confirm panel/commander still work). Check playtests/results/ each wake.
 **Sim landed:** 14 headless tests over the real brain (determinism, no-NaN, 2000-tick stability, objectives, tasks, war-progresses, operations-opened, phases-advance, 6-seed fuzz). Gate = 6 layers.
@@ -31,7 +32,7 @@
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
 | P3c | 3 | live host flip (tick) | ④ playtest | loop | built, playtest queued | await playtests/results/P3-host-tick.md |
-| P6-docs | 6 | deliverable docs | — | loop | next (headless) | TESTING + TESTING-WORKSHEET + DEPLOYMENT |
+| P0-logaudit | 6 | Nucleus.LogAudit CLI | — | loop | next (headless) | parse BepInEx log → JSON verdict; wire audit.ps1 -LogPath |
 | P6-sdk | 6 | SDK NuGet packaging | — | loop | libs packable + template done | setup-sdk + release.yml + metapackage-pack fix |
 
 ## Pending playtests (Unity-gated, awaiting human)
