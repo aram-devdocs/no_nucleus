@@ -49,7 +49,7 @@ namespace CommanderLayer.Ui
             }
         }
 
-        private static Canvas FindMenuCanvas()
+        public static Canvas FindMenuCanvas()
         {
             var canvases = Resources.FindObjectsOfTypeAll<Canvas>();
             if (canvases == null)

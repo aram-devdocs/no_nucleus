@@ -19,9 +19,12 @@ namespace CommanderLayer.Patches
         {
             try
             {
-                var go = MainMenuBadge.Create($"Commander mod loaded  -  v{Plugin.Version}");
+                var go = MainMenuBadge.Create($"Nucleus loaded  -  v{Plugin.Version}");
                 Created = go != null;
                 Plugin.Log?.LogInfo(Created ? "Main-menu badge created." : "Main-menu badge: no canvas (IMGUI fallback).");
+
+                // The mod loader: a MODS button + a panel listing registered mods with per-mod toggles.
+                Host.MainMenuLoader.Build(Plugin.Host?.Registry);
             }
             catch (Exception e)
             {
