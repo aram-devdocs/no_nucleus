@@ -30,6 +30,9 @@ namespace Nucleus.Patches
             // Tick flows through the mod host (registry -> enabled mods -> Commander's runtime).
             try { PlatformPlugin.Host?.Tick(); }
             catch (Exception e) { PlatformPlugin.Log?.LogError("Update tick threw: " + e); }
+            // Dev harness: drive the in-mission phase of the auto-loader (no-op unless armed).
+            try { Host.MissionAutoLoader.TickMission(); }
+            catch (Exception e) { PlatformPlugin.Log?.LogError("Autoload mission-tick threw: " + e); }
         }
     }
 }

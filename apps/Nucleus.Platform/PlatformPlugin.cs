@@ -50,6 +50,8 @@ namespace Nucleus
 
             var harmony = new Harmony(Guid);
             ApplyPatch(harmony, typeof(Patches.MainMenuBadgePatch));
+            ApplyPatch(harmony, typeof(Patches.MainMenuTickPatch));
+            ApplyPatch(harmony, typeof(Patches.MissionManagerTickPatch));
             ApplyPatch(harmony, typeof(Patches.DynamicMapUpdateTickPatch));
             ApplyPatch(harmony, typeof(Patches.VirtualMFDPatch));
 
@@ -57,6 +59,9 @@ namespace Nucleus
 
             // Dev: optionally dump the game's built-in mission TextAssets so we can fork one (env-gated, no-op off).
             Nucleus.Host.MissionExporter.MaybeExport(Log);
+            // Dev test harness: optionally auto-load a mission + emit in-mission markers (trigger-gated, no-op off).
+            // Driven by the MainMenu.Update + DynamicMap.Update patches (this game pumps no Update on our objects).
+            Nucleus.Host.MissionAutoLoader.Maybe(Log);
         }
 
         private static void ApplyPatch(Harmony harmony, Type patchType)

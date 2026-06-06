@@ -2,7 +2,7 @@
 .SYNOPSIS
   Dump the game's built-in mission TextAssets (Escalation, etc.) to disk so they can be FORKED into Nucleus
   missions. The built-in missions ship as Unity Resources TextAssets (no loose file on disk), so only code
-  running inside the game can read them — the platform mod's MissionExporter does the dump, gated on the
+  running inside the game can read them - the platform mod's MissionExporter does the dump, gated on the
   NUCLEUS_EXPORT_MISSIONS environment variable. This script builds+deploys, boots the game with that var set,
   waits for the export to finish, kills the game, and copies the result into ./artifacts/missions-export.
 
@@ -27,7 +27,7 @@ $env:NUCLEUS_EXPORT_MISSIONS = '1'
 Write-Host "[export] booting game to dump built-in missions..." -ForegroundColor Cyan
 & (Join-Path $PSScriptRoot 'smoketest.ps1') -NoBuild -WaitMarker 'MISSIONEXPORT] done' -TimeoutSec 120 | Out-Null
 
-if (-not (Test-Path $dump)) { throw "No export produced at $dump — did the platform mod load?" }
+if (-not (Test-Path $dump)) { throw "No export produced at $dump - did the platform mod load?" }
 New-Item -ItemType Directory -Force $dest | Out-Null
 Copy-Item (Join-Path $dump '*.json') $dest -Force
 $n = (Get-ChildItem $dest -Filter *.json).Count

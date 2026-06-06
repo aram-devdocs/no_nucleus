@@ -33,4 +33,30 @@ namespace Nucleus.Patches
             }
         }
     }
+
+    /// <summary>Postfix on MainMenu.Update — the only per-frame hook at the menu (this game pumps no Update on
+    /// our plugin objects). Drives the dev mission auto-loader's menu phase (no-op unless the harness armed it).</summary>
+    [HarmonyPatch(typeof(MainMenu), "Update")]
+    internal static class MainMenuTickPatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix()
+        {
+            try { Host.MissionAutoLoader.TickMenu(); }
+            catch (Exception e) { PlatformPlugin.Log?.LogError("MainMenu tick threw: " + e); }
+        }
+    }
+
+    /// <summary>Postfix on MissionManager.Update — runs every frame once a mission is active (before/independent
+    /// of the player spawning, unlike DynamicMap.Update). Drives the auto-loader's in-mission census phase.</summary>
+    [HarmonyPatch(typeof(MissionManager), "Update")]
+    internal static class MissionManagerTickPatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix()
+        {
+            try { Host.MissionAutoLoader.TickMission(); }
+            catch (Exception e) { PlatformPlugin.Log?.LogError("MissionManager tick threw: " + e); }
+        }
+    }
 }

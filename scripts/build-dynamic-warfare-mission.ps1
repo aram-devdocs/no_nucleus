@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   Build the "Nucleus Dynamic Warfare" mission by FORKING the game's shipped Escalation mission (an enormous
-  attrition war with all airbases active — the ideal base for the Nucleus attrition game mode). Escalation is
+  attrition war with all airbases active - the ideal base for the Nucleus attrition game mode). Escalation is
   the game's IP and ships as a Unity Resources TextAsset, so it is NOT redistributed in this repo; this script
   produces the fork LOCALLY from your own game files. It swaps in the Nucleus description and writes the result
   to the repo working tree (gitignored) and installs it into your user Missions folder.
@@ -37,7 +37,7 @@ try { $null = $out | ConvertFrom-Json } catch { throw "Forked mission is not val
 $name = 'Nucleus Dynamic Warfare'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
-# 1) repo working tree (gitignored — game IP is never committed).
+# 1) repo working tree (gitignored - game IP is never committed).
 $repoDir = Join-Path $repo "missions\$name"
 New-Item -ItemType Directory -Force $repoDir | Out-Null
 [System.IO.File]::WriteAllText((Join-Path $repoDir "$name.json"), $out, $utf8NoBom)
