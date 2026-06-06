@@ -23,8 +23,10 @@ namespace Nucleus.Patches
                 Created = go != null;
                 PlatformPlugin.Log?.LogInfo(Created ? "Main-menu badge created." : "Main-menu badge: no canvas (IMGUI fallback).");
 
-                // The mod loader: a MODS button + a panel listing registered mods with per-mod toggles.
-                Host.MainMenuLoader.Build(PlatformPlugin.Host?.Registry);
+                // NOTE: the old custom-Canvas "MODS" overlay loader is removed — it was an unresponsive
+                // add-on bolted over the native menu. The native main-menu entry (cloned from the game's own
+                // menu button + a native page) replaces it in P8 Foundation B. Per-mod enable/disable remains
+                // available via the BepInEx ConfigurationManager (Mods.<id>.Enabled) until then.
             }
             catch (Exception e)
             {

@@ -1,43 +1,76 @@
 using System.Collections.Generic;
 using Nucleus.Abstractions;
 using Nucleus.Game.Generated;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace Nucleus.Host
 {
     /// <summary>
     /// The host-owned map-bezel button registry. Mods register a <see cref="MapButtonSpec"/> in Initialize;
-    /// when the MFD map opens, the host attaches each to a distinct blank bezel slot. Runs AFTER the Commander
-    /// runtime's own CMD attach, and treats an already-labelled blank as taken, so it never collides with CMD
-    /// and gives BLD/SQD/... their own slots. Attaches each mod's button once.
+    /// when the MFD map opens, the host adds each as a NATIVE bezel button by cloning one of the game's own
+    /// bezel buttons — so it inherits the game's exact style and is placed by the game's own layout group
+    /// (responsive by construction), then appending it to the MFD's button list so the game shows/hides it
+    /// with the rest (<c>ToggleAllButtons</c>). No reflection slot-hijacking, no custom canvas. Each mod's
+    /// button is added once.
     /// </summary>
     public sealed class HostButtons : IButtonRegistry
     {
         private readonly List<MapButtonSpec> _specs = new List<MapButtonSpec>();
         private readonly HashSet<string> _attached = new HashSet<string>();
         private bool _selfTested;
+        private bool _hookSeen;
 
         public void RegisterMapButton(MapButtonSpec spec) { if (spec != null) _specs.Add(spec); }
-        public void RegisterMainMenuItem(MenuItemSpec spec) { /* main-menu items handled by MainMenuLoader */ }
+        public void RegisterMainMenuItem(MenuItemSpec spec) { /* main-menu items handled natively in the menu */ }
 
         public void AttachTo(VirtualMFD mfd)
         {
             if (mfd == null || _specs.Count == 0) return;
 
-            var blanks = new List<Button>();
-            Collect(GameSdk.VirtualMFD_rightButtons(mfd), GameSdk.VirtualMFD_rightScreens(mfd), blanks);
-            Collect(GameSdk.VirtualMFD_leftButtons(mfd), GameSdk.VirtualMFD_leftScreens(mfd), blanks);
+            // Prefer the right bezel; fall back to the left. Clone one of its real buttons as the template.
+            var buttons = GameSdk.VirtualMFD_rightButtons(mfd);
+            var screens = GameSdk.VirtualMFD_rightScreens(mfd);
+            int rightCount = buttons?.Count ?? -1;
+            if (buttons == null || buttons.Count == 0)
+            {
+                buttons = GameSdk.VirtualMFD_leftButtons(mfd);
+                screens = GameSdk.VirtualMFD_leftScreens(mfd);
+            }
+            if (!_hookSeen)
+            {
+                _hookSeen = true;
+                PlatformPlugin.Log?.LogInfo($"[NUCLEUS:METRIC] mfdMaximizeHook=1 rightButtons={rightCount} chosenButtons={(buttons?.Count ?? -1)}");
+            }
+            if (buttons == null || buttons.Count == 0) return;
 
-            var used = new HashSet<Button>();
+            var template = FirstReal(buttons);
+            if (template == null) return;
+
             foreach (var spec in _specs)
             {
                 if (_attached.Contains(spec.ModId)) continue;
-                Button slot = null;
-                foreach (var b in blanks)
-                    if (!used.Contains(b) && IsAvailable(b)) { slot = b; break; }
-                if (slot == null) break; // no more blank slots
-                Attach(slot, spec);
-                used.Add(slot);
+
+                var go = Object.Instantiate(template.gameObject, template.transform.parent);
+                go.name = "NucleusBezel_" + spec.ModId;
+                var btn = go.GetComponent<Button>();
+                if (btn == null) { Object.Destroy(go); continue; }
+
+                var label = go.GetComponentInChildren<Text>(true);
+                if (label != null) { label.text = spec.Label; label.enabled = true; label.gameObject.SetActive(true); }
+
+                // The cloned persistent onClick still points at the template's PressButton(index) — drop it and
+                // drive the mod directly. (Panels move into native MFD screens in the next phase.)
+                btn.onClick.RemoveAllListeners();
+                var onClick = spec.OnClick;
+                if (onClick != null) btn.onClick.AddListener(() => onClick());
+                btn.enabled = true;
+                go.SetActive(true);
+
+                // Register with the MFD so the game's ToggleAllButtons manages our button's visibility too.
+                // Keep the parallel screens list aligned (null = no native screen ⇒ PressButton is a no-op).
+                buttons.Add(btn);
+                screens?.Add(null);
                 _attached.Add(spec.ModId);
             }
 
@@ -49,40 +82,10 @@ namespace Nucleus.Host
             }
         }
 
-        private static void Collect(List<Button> buttons, List<MFDScreen> screens, List<Button> into)
+        private static Button FirstReal(List<Button> buttons)
         {
-            if (buttons == null) return;
-            for (int i = 0; i < buttons.Count; i++)
-            {
-                var b = buttons[i];
-                if (b == null) continue;
-                bool hasScreen = screens != null && i < screens.Count && screens[i] != null;
-                if (!hasScreen) into.Add(b);
-            }
-        }
-
-        // A no-screen button is available only if it isn't already labelled — this skips the slot the
-        // Commander runtime claimed for CMD (and any we claimed on a prior open).
-        private static bool IsAvailable(Button b)
-        {
-            var t = b.GetComponentInChildren<Text>(true);
-            return t == null || string.IsNullOrWhiteSpace(t.text);
-        }
-
-        private static void Attach(Button btn, MapButtonSpec spec)
-        {
-            btn.enabled = true;
-            btn.gameObject.SetActive(true);
-            var label = btn.GetComponentInChildren<Text>(true);
-            if (label != null)
-            {
-                label.text = spec.Label;
-                label.enabled = true;
-                label.gameObject.SetActive(true);
-            }
-            btn.onClick.RemoveAllListeners();
-            var onClick = spec.OnClick;
-            if (onClick != null) btn.onClick.AddListener(() => onClick());
+            foreach (var b in buttons) if (b != null) return b;
+            return null;
         }
     }
 }
