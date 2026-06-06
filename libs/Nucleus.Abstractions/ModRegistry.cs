@@ -19,10 +19,15 @@ namespace CommanderLayer.Abstractions
 
         private readonly List<Entry> _entries = new List<Entry>();
         private readonly Func<IMod, IModContext> _contextFor;
+        private readonly Action<string, bool> _persist;
 
-        public ModRegistry(Func<IMod, IModContext> contextFor)
+        /// <param name="contextFor">Factory that builds a mod's context at initialize time.</param>
+        /// <param name="persist">Optional: called with (modId, enabled) whenever a mod is toggled, so the host
+        /// can save the choice (e.g. to BepInEx config). No-op by default.</param>
+        public ModRegistry(Func<IMod, IModContext> contextFor, Action<string, bool> persist = null)
         {
             _contextFor = contextFor ?? throw new ArgumentNullException(nameof(contextFor));
+            _persist = persist;
         }
 
         public IEnumerable<IMod> Mods
@@ -58,6 +63,7 @@ namespace CommanderLayer.Abstractions
             e.Enabled = on;
             if (on) { EnsureInitialized(e); e.Mod.OnEnabled(); }
             else e.Mod.OnDisabled();
+            _persist?.Invoke(id, on);
         }
 
         public void ShutdownAll()

@@ -18,13 +18,17 @@ namespace CommanderLayer.Host
         private readonly HostButtons _buttons = new HostButtons();
         private readonly LogSink _log;
 
-        public ModHost(ManualLogSource log)
+        public ModHost(ManualLogSource log,
+            System.Func<string, bool> readEnabled = null,
+            System.Action<string, bool> writeEnabled = null)
         {
             _log = new LogSink(log);
-            _registry = new ModRegistry(mod => new ModContext(mod, _log, _game, _buttons));
-            // Install the registration handler so mods (this assembly, and separate plugins in Phase 4+)
-            // resolve through the host. Mods that registered earlier are flushed by SetHandler.
-            ModPlatform.SetHandler(m => _registry.Add(m, enabled: true));
+            var read = readEnabled ?? (_ => true);
+            // persist (writeEnabled) saves a runtime toggle; read seeds each mod's initial enabled state.
+            _registry = new ModRegistry(mod => new ModContext(mod, _log, _game, _buttons), writeEnabled);
+            // Install the registration handler so mods (this assembly + separate plugins) resolve through the
+            // host. Mods that registered before the host was ready are flushed by SetHandler.
+            ModPlatform.SetHandler(m => _registry.Add(m, read(m.Info.Id)));
         }
 
         public ModRegistry Registry => _registry;

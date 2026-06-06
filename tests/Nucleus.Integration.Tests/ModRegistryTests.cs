@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CommanderLayer.Abstractions;
 using Xunit;
 
@@ -82,6 +83,19 @@ namespace Nucleus.Integration.Tests
             r.Add(new FakeMod("a"), enabled: true);
             r.Add(new FakeMod("a"), enabled: true);
             Assert.Equal(1, r.Count);
+        }
+
+        [Fact]
+        public void SetEnabled_invokes_the_persist_callback()
+        {
+            var saved = new List<(string id, bool on)>();
+            var r = new ModRegistry(_ => null, (id, on) => saved.Add((id, on)));
+            r.Add(new FakeMod("a"), enabled: true);
+            r.SetEnabled("a", false);
+            r.SetEnabled("a", true);
+            Assert.Equal(2, saved.Count);
+            Assert.Equal(("a", false), saved[0]);
+            Assert.Equal(("a", true), saved[1]);
         }
 
         [Fact]

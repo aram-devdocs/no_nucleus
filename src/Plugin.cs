@@ -33,6 +33,21 @@ namespace CommanderLayer
         internal static CommanderRuntime Runtime;
         internal static Host.ModHost Host;
 
+        // Per-mod enabled state, bound lazily to the F1 config (Mods.<id>.Enabled) so the loader toggle persists.
+        private readonly System.Collections.Generic.Dictionary<string, ConfigEntry<bool>> _modEnabled
+            = new System.Collections.Generic.Dictionary<string, ConfigEntry<bool>>();
+        private ConfigEntry<bool> ModEntry(string id)
+        {
+            if (!_modEnabled.TryGetValue(id, out var e))
+            {
+                e = Config.Bind("Mods", id + ".Enabled", true, $"Enable the '{id}' mod.");
+                _modEnabled[id] = e;
+            }
+            return e;
+        }
+        private bool ModEnabled(string id) => ModEntry(id).Value;
+        private void SetModEnabled(string id, bool on) => ModEntry(id).Value = on;
+
         private void Awake()
         {
             Log = Logger;
@@ -71,7 +86,9 @@ namespace CommanderLayer
             // Stand up the in-process mod host and register Commander as the first hosted mod. The per-frame
             // tick now flows through the host registry (Host.Tick -> registry -> CommanderMod -> runtime),
             // introducing the platform pattern with behavior preserved (single plugin, Phase 3).
-            Host = new Host.ModHost(Logger);
+            // Per-mod enabled state persists in the F1 config (Mods.<id>.Enabled), so the loader toggle is
+            // remembered across launches.
+            Host = new Host.ModHost(Logger, ModEnabled, SetModEnabled);
             Abstractions.ModPlatform.Register(new Host.CommanderMod(Runtime));
 
             var harmony = new Harmony(Guid);

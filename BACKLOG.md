@@ -68,6 +68,10 @@
   (OnClick logs; real panels need host UI layer). Emits [NUCLEUS:SELFTEST] bezel-buttons-attached + count.
   Build+7 gates green, deployed. CMD path untouched (low risk). **PT** (next run auto-verifies via self-test).
 
+- [x] P-persist — mod enable-state persists: ModRegistry gained an optional persist callback (called on
+  SetEnabled); ModHost takes read/write delegates; Plugin binds them to Mods.<id>.Enabled F1 config (default
+  true). Loader toggle remembered across launches. Headless test: SetEnabled invokes persist (integration 9). **HV**
+
 ## Discovered (triage later)
 - [x] **codegen nullable warnings** — resolved: codegen inherits `Nullable=disable` from root props
   (build tool, not SDK surface). Solution now 0 warnings under `-p:TreatWarningsAsErrors=true`.
