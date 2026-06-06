@@ -27,6 +27,11 @@
                       "detail":  ""
                   },
                   {
+                      "name":  "installer",
+                      "status":  "PASS",
+                      "detail":  ""
+                  },
+                  {
                       "name":  "contract",
                       "status":  "PASS",
                       "detail":  ""

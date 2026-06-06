@@ -37,6 +37,7 @@ Test-Project 'unit-core' 'tests\Core\Nucleus.Domain.Tests.csproj'
 Test-Project 'arch'      'tests\Nucleus.Architecture.Tests\Nucleus.Architecture.Tests.csproj'
 Test-Project 'sim'       'tests\Nucleus.Sim.Tests\Nucleus.Sim.Tests.csproj'
 Test-Project 'logaudit'  'tests\Nucleus.LogAudit.Tests\Nucleus.LogAudit.Tests.csproj'
+Test-Project 'installer' 'tests\Nucleus.Installer.Tests\Nucleus.Installer.Tests.csproj'
 
 # 3. Game-coupled layer (only when the licensed game DLL is present). Integration tests load the
 #    Unity-referencing Abstractions/Ui assemblies at runtime, so they need lib/ too.
