@@ -11,6 +11,8 @@ namespace Nucleus.Core.Generated
         public const string VirtualMFD_rightButtons = "rightButtons";
         public const string VirtualMFD_leftScreens = "leftScreens";
         public const string VirtualMFD_rightScreens = "rightScreens";
+        public const string MainMenu_missionsButton = "missionsButton";
+        public const string MainMenu_overlayMenuLayer = "overlayMenuLayer";
         public const string PilotBaseState_aircraft = "aircraft";
         public const string PilotBaseState_destination = "destination";
     }

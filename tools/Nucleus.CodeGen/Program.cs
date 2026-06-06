@@ -40,6 +40,10 @@ var deps = new List<Dep>
     new("VirtualMFD", "leftScreens",  "field", Reflected: true),
     new("VirtualMFD", "rightScreens", "field", Reflected: true),
 
+    // ---- MainMenu: clone a native menu button (missionsButton) to add a "NUCLEUS" entry natively ----
+    new("MainMenu", "missionsButton",  "field", Reflected: true),
+    new("MainMenu", "overlayMenuLayer", "field", Reflected: true),
+
     // ---- DynamicMap: tick driver + projection + open/close ----
     new("DynamicMap", "mapDisplayFactor", "field", Public: true),
     new("DynamicMap", "iconLayer",        "field", Public: true),

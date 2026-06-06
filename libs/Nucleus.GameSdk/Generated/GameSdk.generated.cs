@@ -35,6 +35,20 @@ namespace Nucleus.Game.Generated
         /// <summary>VirtualMFD.rightScreens — set.</summary>
         public static void VirtualMFD_rightScreens_Set(global::VirtualMFD instance, global::System.Collections.Generic.List<global::MFDScreen> value) => _VirtualMFD_rightScreens.SetValue(instance, value);
 
+        private static readonly global::System.Reflection.FieldInfo _MainMenu_missionsButton =
+            global::HarmonyLib.AccessTools.Field(typeof(global::MainMenu), "missionsButton");
+        /// <summary>MainMenu.missionsButton (private Button) — get.</summary>
+        public static global::UnityEngine.UI.Button MainMenu_missionsButton(global::MainMenu instance) => (global::UnityEngine.UI.Button)_MainMenu_missionsButton.GetValue(instance);
+        /// <summary>MainMenu.missionsButton — set.</summary>
+        public static void MainMenu_missionsButton_Set(global::MainMenu instance, global::UnityEngine.UI.Button value) => _MainMenu_missionsButton.SetValue(instance, value);
+
+        private static readonly global::System.Reflection.FieldInfo _MainMenu_overlayMenuLayer =
+            global::HarmonyLib.AccessTools.Field(typeof(global::MainMenu), "overlayMenuLayer");
+        /// <summary>MainMenu.overlayMenuLayer (private Transform) — get.</summary>
+        public static global::UnityEngine.Transform MainMenu_overlayMenuLayer(global::MainMenu instance) => (global::UnityEngine.Transform)_MainMenu_overlayMenuLayer.GetValue(instance);
+        /// <summary>MainMenu.overlayMenuLayer — set.</summary>
+        public static void MainMenu_overlayMenuLayer_Set(global::MainMenu instance, global::UnityEngine.Transform value) => _MainMenu_overlayMenuLayer.SetValue(instance, value);
+
         private static readonly global::System.Reflection.FieldInfo _PilotBaseState_aircraft =
             global::HarmonyLib.AccessTools.Field(typeof(global::PilotBaseState), "aircraft");
         /// <summary>PilotBaseState.aircraft (private Aircraft) — get.</summary>

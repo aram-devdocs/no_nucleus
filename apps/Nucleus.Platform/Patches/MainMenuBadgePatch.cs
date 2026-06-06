@@ -15,7 +15,7 @@ namespace Nucleus.Patches
         public static bool Created;
 
         [HarmonyPostfix]
-        private static void Postfix()
+        private static void Postfix(MainMenu __instance)
         {
             try
             {
@@ -23,10 +23,9 @@ namespace Nucleus.Patches
                 Created = go != null;
                 PlatformPlugin.Log?.LogInfo(Created ? "Main-menu badge created." : "Main-menu badge: no canvas (IMGUI fallback).");
 
-                // NOTE: the old custom-Canvas "MODS" overlay loader is removed — it was an unresponsive
-                // add-on bolted over the native menu. The native main-menu entry (cloned from the game's own
-                // menu button + a native page) replaces it in P8 Foundation B. Per-mod enable/disable remains
-                // available via the BepInEx ConfigurationManager (Mods.<id>.Enabled) until then.
+                // Add a native "NUCLEUS" button into the game's own main menu (cloned from the missions button)
+                // that opens a native panel listing the mods with ON/OFF toggles. No custom overlay canvas.
+                Host.NativeMenu.Build(__instance, PlatformPlugin.Host?.Registry);
             }
             catch (Exception e)
             {

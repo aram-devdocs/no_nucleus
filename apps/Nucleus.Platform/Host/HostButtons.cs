@@ -80,9 +80,10 @@ namespace Nucleus.Host
                     screens.Add(screen);
 
                     bool onLeft = left;
-                    btn.onClick.RemoveAllListeners();
                     var extra = spec.OnClick;
-                    btn.onClick.AddListener(() =>
+                    // Drop the clone's inherited persistent onClick (it would toggle the template's screen) and
+                    // drive ours: the game's PressButton toggles OUR paired screen (native highlight + hide).
+                    NativeButtons.Rewire(btn, () =>
                     {
                         if (onLeft) mfd.PressLeftButton(btn); else mfd.PressRightButton(btn);
                         extra?.Invoke();

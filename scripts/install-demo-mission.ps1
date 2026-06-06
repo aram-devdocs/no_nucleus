@@ -1,27 +1,30 @@
 <#
 .SYNOPSIS
-  Install the "Commander Debug" demo mission into the game's user-missions folder so it appears in the
-  in-game mission browser. Writes only to the user profile (LocalLow), never the Steam install.
+  Install every bundled mission (each folder under missions/) into the game's user-missions folder so they
+  appear in the in-game mission browser — including "Nucleus Dynamic Warfare" and "Commander Debug".
+  Writes only to the user profile (LocalLow), never the Steam install.
 #>
 [CmdletBinding()]
 param([switch]$Force)
 $ErrorActionPreference = 'Stop'
 
 $repo = Split-Path $PSScriptRoot -Parent
-$name = 'Commander Debug'
-$src  = Join-Path $repo "missions\$name"
-if (-not (Test-Path $src)) { throw "Demo mission template not found at $src" }
+$missionsSrc = Join-Path $repo 'missions'
+if (-not (Test-Path $missionsSrc)) { throw "Mission templates folder not found at $missionsSrc" }
 
 # UserMissionDirectory = <persistentDataPath>/Missions  (persistentDataPath = LocalLow\Shockfront\NuclearOption)
 $missionsRoot = Join-Path $env:USERPROFILE 'AppData\LocalLow\Shockfront\NuclearOption\Missions'
-$dest = Join-Path $missionsRoot $name
-
 New-Item -ItemType Directory -Force $missionsRoot | Out-Null
-if ((Test-Path $dest) -and -not $Force) {
-    Write-Host "[mission] already installed at $dest (use -Force to overwrite)" -ForegroundColor Yellow
-} else {
+
+foreach ($dir in Get-ChildItem -Directory $missionsSrc) {
+    $name = $dir.Name
+    $dest = Join-Path $missionsRoot $name
+    if ((Test-Path $dest) -and -not $Force) {
+        Write-Host "[mission] already installed: '$name' (use -Force to overwrite)" -ForegroundColor Yellow
+        continue
+    }
     if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
-    Copy-Item -Recurse $src $dest
+    Copy-Item -Recurse $dir.FullName $dest
     Write-Host "[mission] installed '$name' -> $dest" -ForegroundColor Green
 }
-Write-Host "[mission] Launch the game; it appears in the mission browser as '$name'."
+Write-Host "[mission] Launch the game; the missions appear in the singleplayer mission browser."

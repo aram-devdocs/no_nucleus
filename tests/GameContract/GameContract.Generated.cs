@@ -19,6 +19,8 @@ namespace Nucleus.GameContract.Tests
             if (!Game.Type("VirtualMFD").Fields.Any(x => x.Name == "rightButtons")) fail.Add("VirtualMFD.rightButtons (field)");
             if (!Game.Type("VirtualMFD").Fields.Any(x => x.Name == "leftScreens")) fail.Add("VirtualMFD.leftScreens (field)");
             if (!Game.Type("VirtualMFD").Fields.Any(x => x.Name == "rightScreens")) fail.Add("VirtualMFD.rightScreens (field)");
+            if (!Game.Type("MainMenu").Fields.Any(x => x.Name == "missionsButton")) fail.Add("MainMenu.missionsButton (field)");
+            if (!Game.Type("MainMenu").Fields.Any(x => x.Name == "overlayMenuLayer")) fail.Add("MainMenu.overlayMenuLayer (field)");
             if (!Game.Type("DynamicMap").Fields.Any(x => x.Name == "mapDisplayFactor" && x.IsPublic)) fail.Add("DynamicMap.mapDisplayFactor (field,public)");
             if (!Game.Type("DynamicMap").Fields.Any(x => x.Name == "iconLayer" && x.IsPublic)) fail.Add("DynamicMap.iconLayer (field,public)");
             if (!Game.Type("DynamicMap").Methods.Any(x => x.Name == "TryGetCursorCoordinates" && x.IsPublic)) fail.Add("DynamicMap.TryGetCursorCoordinates (method,public)");
