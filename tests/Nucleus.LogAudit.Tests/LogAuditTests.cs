@@ -10,7 +10,7 @@ namespace Nucleus.LogAudit.Tests
         private static List<string> HealthyLog() => new()
         {
             "[Info   :   BepInEx] Loading [Commander Layer 0.1.0]",
-            "[Info   :Commander Layer] Commander Layer loaded.",
+            "[Info   :Commander Layer] Nucleus Platform loaded.",
             "[Info   :Commander Layer] Patched: MainMenuBadgePatch",
             "[Info   :Commander Layer] Patched: DynamicMapUpdateTickPatch",
             "[Info   :Commander Layer] Patched: VirtualMFDPatch",

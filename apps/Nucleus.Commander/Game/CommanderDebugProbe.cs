@@ -23,7 +23,7 @@ namespace CommanderLayer.Game
             // water/land + height ground-truth needed to place ground units + airbases correctly next pass.
             if (!_autoTerrainDone && AutoTerrainDump()) _autoTerrainDone = true;
 
-            if (!Plugin.CommanderDebug) return;
+            if (!CommanderPlugin.CommanderDebug) return;
             _tick++;
             LogRoster();   // UID stability
             LogTracking(); // KILL / prune detection
@@ -39,7 +39,7 @@ namespace CommanderLayer.Game
         {
             if (!GameManager.GetLocalHQ(out var hq) || hq == null) return false;
             float sea = Datum.SeaLevel.y;
-            Plugin.Log?.LogInfo($"[TERRAIN] === raycast surface map (down-cast) === sea={sea:0.0}");
+            CommanderPlugin.Log?.LogInfo($"[TERRAIN] === raycast surface map (down-cast) === sea={sea:0.0}");
 
             for (int gz = -25000; gz <= 25000; gz += 5000)
             {
@@ -50,7 +50,7 @@ namespace CommanderLayer.Game
                     float h = SurfaceHeight(gx, gz, sea);
                     sb.Append(h <= sea + 1f ? "  ~~~~" : $" {h,5:0}"); // ~~~~ = water, number = land height
                 }
-                Plugin.Log?.LogInfo(sb.ToString());
+                CommanderPlugin.Log?.LogInfo(sb.ToString());
             }
 
             var units = UnitRegistry.allUnits;
@@ -61,9 +61,9 @@ namespace CommanderLayer.Game
                     var p = u.transform.position;
                     float h = SurfaceHeight(p.x, p.z, sea);
                     string kind = h <= sea + 1f ? "WATER" : "land";
-                    Plugin.Log?.LogInfo($"[TERRAIN] unit {u.unitName,-18} pos=({p.x,7:0},{p.z,7:0}) surfaceH={h,6:0} {kind} (unitY={p.y:0})");
+                    CommanderPlugin.Log?.LogInfo($"[TERRAIN] unit {u.unitName,-18} pos=({p.x,7:0},{p.z,7:0}) surfaceH={h,6:0} {kind} (unitY={p.y:0})");
                 }
-            Plugin.Log?.LogInfo("[TERRAIN] === end map ===");
+            CommanderPlugin.Log?.LogInfo("[TERRAIN] === end map ===");
             return true;
         }
 
@@ -102,7 +102,7 @@ namespace CommanderLayer.Game
                 if (inScene) scene++;
                 if (sample == null) sample = $"{c.name}{(inScene ? " (scene)" : " (asset)")}";
             }
-            Plugin.Log?.LogInfo($"[S0:UI] {label} total={all.Length} sceneInstances={scene} sample={sample ?? "none"}");
+            CommanderPlugin.Log?.LogInfo($"[S0:UI] {label} total={all.Length} sceneInstances={scene} sample={sample ?? "none"}");
             return all.Length;
         }
 
@@ -117,10 +117,10 @@ namespace CommanderLayer.Game
             {
                 if (u == null || u.NetworkHQ != hq) continue;
                 string id = u.persistentID.ToString();
-                if (!_firstSeenTick.ContainsKey(id)) { _firstSeenTick[id] = _tick; Plugin.Log?.LogInfo($"[S0:UID] new {id} {u.unitName} t={_tick}"); }
+                if (!_firstSeenTick.ContainsKey(id)) { _firstSeenTick[id] = _tick; CommanderPlugin.Log?.LogInfo($"[S0:UID] new {id} {u.unitName} t={_tick}"); }
                 n++;
             }
-            if (_tick % 5 == 0) Plugin.Log?.LogInfo($"[S0:UID] friendly count={n} distinctSeen={_firstSeenTick.Count} t={_tick}");
+            if (_tick % 5 == 0) CommanderPlugin.Log?.LogInfo($"[S0:UID] friendly count={n} distinctSeen={_firstSeenTick.Count} t={_tick}");
         }
 
         // KILL: known-enemy tracking entries — does destroying one prune it from trackingDatabase, and when?
@@ -133,14 +133,14 @@ namespace CommanderLayer.Game
             int disabled = 0;
             foreach (var kv in db)
                 if (kv.Value != null && kv.Value.TryGetUnit(out var u) && u != null && u.disabled) disabled++;
-            Plugin.Log?.LogInfo($"[S0:KILL] tracked={db.Count} disabledStillTracked={disabled} t={_tick}");
+            CommanderPlugin.Log?.LogInfo($"[S0:KILL] tracked={db.Count} disabledStillTracked={disabled} t={_tick}");
         }
 
         // TERRAIN: water-vs-land across a coarse grid → confirms the sampling API + seeds sandbox coordinates.
         private void LogTerrain()
         {
             var terrain = Terrain.activeTerrain;
-            Plugin.Log?.LogInfo($"[S0:TERRAIN] activeTerrain={(terrain != null ? terrain.name : "null")} sea={Datum.SeaLevel.y:0.0}");
+            CommanderPlugin.Log?.LogInfo($"[S0:TERRAIN] activeTerrain={(terrain != null ? terrain.name : "null")} sea={Datum.SeaLevel.y:0.0}");
             if (terrain == null) return;
             float baseY = terrain.transform.position.y;
             for (int gz = -30000; gz <= 30000; gz += 10000)
@@ -149,7 +149,7 @@ namespace CommanderLayer.Game
                     var p = new Vector3(gx, 0f, gz);
                     float h = terrain.SampleHeight(p) + baseY;
                     string kind = h <= Datum.SeaLevel.y ? "WATER" : "land";
-                    Plugin.Log?.LogInfo($"[S0:TERRAIN] ({gx},{gz}) h={h:0} {kind}");
+                    CommanderPlugin.Log?.LogInfo($"[S0:TERRAIN] ({gx},{gz}) h={h:0} {kind}");
                 }
         }
     }

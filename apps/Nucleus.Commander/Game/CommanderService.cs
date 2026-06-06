@@ -50,7 +50,7 @@ namespace CommanderLayer.Game
                 var bo = new CommanderOrder("ord-" + (++_counter), kind, world, 0f, domains);
                 var bs = new OrderState(bo) { Status = OrderStatus.Complete, Summary = result };
                 _mgr.AddExisting(bs);
-                Plugin.Log?.LogInfo($"Build commission: {result}");
+                CommanderPlugin.Log?.LogInfo($"Build commission: {result}");
                 return bs;
             }
 
@@ -63,7 +63,7 @@ namespace CommanderLayer.Game
             foreach (var t in plan.Tasks) _cmds.Execute(t);
             _committed = _mgr.CommittedUnitIds(roster);
             RefreshAirIntent();
-            Plugin.Log?.LogInfo($"Order {order.Id} ({kind}, {domains}, r={r:0}) at {world}: {plan.Tasks.Count} unit(s) tasked.");
+            CommanderPlugin.Log?.LogInfo($"Order {order.Id} ({kind}, {domains}, r={r:0}) at {world}: {plan.Tasks.Count} unit(s) tasked.");
             return _mgr.Orders[_mgr.Orders.Count - 1];
         }
 
@@ -92,7 +92,7 @@ namespace CommanderLayer.Game
 
             // Autonomous commander (on by default — "do nothing = the side fights"). Generates objectives
             // from fog-of-war intel and tasks auto-formed squads. Coexists with manual orders.
-            if (Plugin.EnableAutoCommander)
+            if (CommanderPlugin.EnableAutoCommander)
             {
                 var known = _intel.KnownEnemiesNear(new Vec3(0f, 0f, 0f), float.MaxValue); // all tracked enemies
                 _auto.HomeBase = ForceCentroid(roster); // proximity reference for target prioritization
@@ -165,7 +165,7 @@ namespace CommanderLayer.Game
         /// commander's autonomy level). Drives the in-panel mode selector — the single source of control.</summary>
         public CommanderMode CurrentMode()
         {
-            if (!Plugin.EnableAutoCommander) return CommanderMode.Off;
+            if (!CommanderPlugin.EnableAutoCommander) return CommanderMode.Off;
             return _auto.Autonomy switch
             {
                 AutonomyLevel.Assisted => CommanderMode.Assisted,
@@ -178,7 +178,7 @@ namespace CommanderLayer.Game
         /// autonomous commander entirely; the rest enable it at the matching autonomy level.</summary>
         public void SetMode(CommanderMode mode)
         {
-            Plugin.EnableAutoCommander = mode != CommanderMode.Off;
+            CommanderPlugin.EnableAutoCommander = mode != CommanderMode.Off;
             switch (mode)
             {
                 case CommanderMode.Manual: _auto.Autonomy = AutonomyLevel.Manual; break;

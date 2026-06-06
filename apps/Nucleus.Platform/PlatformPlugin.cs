@@ -1,0 +1,65 @@
+using System;
+using System.Collections.Generic;
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using HarmonyLib;
+using UnityEngine;
+
+namespace CommanderLayer
+{
+    /// <summary>
+    /// The Nucleus platform/host plugin. Loaded first; mods hard-depend on it. Owns the mod host (the single
+    /// tick pump + shared game services + bezel-button registry), patches the three contended game methods
+    /// (DynamicMap.Update, VirtualMFD.onMapMaximized, MainMenu.Start), wires the shared logging seam, and
+    /// persists each mod's enabled state to config.
+    /// </summary>
+    [BepInPlugin(Guid, "Nucleus Platform", Version)]
+    public class PlatformPlugin : BaseUnityPlugin
+    {
+        public const string Guid = "com.nucleus.platform";
+        public const string Version = "0.1.0";
+
+        internal static ManualLogSource Log;
+        internal static Host.ModHost Host;
+
+        // Per-mod enabled state, bound lazily to config (Mods.<id>.Enabled) so the loader toggle persists.
+        private readonly Dictionary<string, ConfigEntry<bool>> _modEnabled = new Dictionary<string, ConfigEntry<bool>>();
+        private ConfigEntry<bool> ModEntry(string id)
+        {
+            if (!_modEnabled.TryGetValue(id, out var e))
+            {
+                e = Config.Bind("Mods", id + ".Enabled", true, $"Enable the '{id}' mod.");
+                _modEnabled[id] = e;
+            }
+            return e;
+        }
+        private bool ModEnabled(string id) => ModEntry(id).Value;
+        private void SetModEnabled(string id, bool on) => ModEntry(id).Value = on;
+
+        private void Awake()
+        {
+            Log = Logger;
+            // Shared logging seam so the pure/SDK libs log through BepInEx without referencing this plugin.
+            Core.NucleusLog.Info = m => Log.LogInfo(m);
+            Core.NucleusLog.Warn = m => Log.LogWarning(m);
+            Core.NucleusLog.Error = m => Log.LogError(m);
+            Application.runInBackground = true;
+
+            Host = new Host.ModHost(Logger, ModEnabled, SetModEnabled);
+
+            var harmony = new Harmony(Guid);
+            ApplyPatch(harmony, typeof(Patches.MainMenuBadgePatch));
+            ApplyPatch(harmony, typeof(Patches.DynamicMapUpdateTickPatch));
+            ApplyPatch(harmony, typeof(Patches.VirtualMFDPatch));
+
+            Log.LogInfo("Nucleus Platform loaded.");
+        }
+
+        private static void ApplyPatch(Harmony harmony, Type patchType)
+        {
+            try { harmony.PatchAll(patchType); Log.LogInfo("Patched: " + patchType.Name); }
+            catch (Exception e) { Log.LogError($"Patch {patchType.Name} failed: " + e.Message); }
+        }
+    }
+}

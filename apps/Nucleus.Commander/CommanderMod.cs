@@ -1,12 +1,12 @@
 using CommanderLayer.Abstractions;
 using CommanderLayer.Composition;
 
-namespace CommanderLayer.Host
+namespace CommanderLayer.Commander
 {
     /// <summary>
-    /// Commander as the first hosted mod. Phase 3: a thin wrapper over the existing CommanderRuntime so the
-    /// host/registry/tick pattern is introduced with behavior preserved exactly. Later phases move the
-    /// Canvas/screen/bezel wiring onto the host services and slim this down.
+    /// Commander as a hosted mod: a thin wrapper over CommanderRuntime. Registers the CMD bezel button (the
+    /// host attaches it to a blank MFD slot) which toggles the Commander panel; the runtime owns its own
+    /// overlay canvas/screen.
     /// </summary>
     public sealed class CommanderMod : IMod
     {
@@ -18,13 +18,22 @@ namespace CommanderLayer.Host
         {
             Id = "commander",
             DisplayName = "Commander",
-            Version = Plugin.Version,
+            Version = CommanderPlugin.Version,
             Author = "Nucleus",
             Description = "Autonomous theater commander + manual map orders.",
         };
 
-        // The runtime self-initializes on its first Tick (EnsureCanvas/EnsureScreen), so nothing to do here.
-        public void Initialize(IModContext ctx) { }
+        public void Initialize(IModContext ctx)
+        {
+            // Claim the CMD bezel button; the host attaches it to a blank MFD slot when the map opens.
+            ctx.Buttons.RegisterMapButton(new MapButtonSpec
+            {
+                ModId = Info.Id,
+                Label = "CMD",
+                OnClick = () => _runtime.ToggleScreen(),
+            });
+        }
+
         public void Tick(IModTickContext t) => _runtime.Tick();
         public void OnEnabled() { }
         public void OnDisabled() { }

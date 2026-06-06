@@ -37,22 +37,29 @@ namespace CommanderLayer.Composition
         private bool _firstTick = true;
         private bool _loggedPanel;
         private float _nextManage;
-        private GUIStyle _fallbackStyle;
 
         public CommanderRuntime()
         {
             _player = new GamePlayerContext();
             _projection = new DynamicMapProjection();
-            _service = new CommanderService(new CommanderConfig { ArriveRadius = Plugin.ArriveRadius });
-            Plugin.Log?.LogInfo("CommanderRuntime constructed.");
+            _service = new CommanderService(new CommanderConfig { ArriveRadius = CommanderPlugin.ArriveRadius });
+            CommanderPlugin.Log?.LogInfo("CommanderRuntime constructed.");
         }
 
         /// <summary>True while the modal is open (used by the map-pan guard).</summary>
         public bool ModalOpen => _screen != null && _screen.IsOpen;
 
+        /// <summary>Open/close the Commander panel — wired to the host-attached CMD bezel button.</summary>
+        public void ToggleScreen()
+        {
+            EnsureCanvas();
+            EnsureScreen();
+            _screen?.Toggle();
+        }
+
         public void Tick()
         {
-            if (_firstTick) { _firstTick = false; Plugin.Log?.LogInfo("CommanderRuntime first Tick — driver alive."); }
+            if (_firstTick) { _firstTick = false; CommanderPlugin.Log?.LogInfo("CommanderRuntime first Tick — driver alive."); }
 
             EnsureCanvas();
             EnsureScreen();
@@ -90,7 +97,7 @@ namespace CommanderLayer.Composition
                 if (Input.GetMouseButtonDown(0))
                 {
                     var state = _service.PlaceOrder(_armed.Value, hover, _screen.Domains, _screen.RangeMeters);
-                    Plugin.Log?.LogInfo($"Placed {state.Order.Kind}: {state.Summary}");
+                    CommanderPlugin.Log?.LogInfo($"Placed {state.Order.Kind}: {state.Summary}");
                     _armed = null;
                     _overlay?.ClearHover();
                 }
@@ -116,7 +123,7 @@ namespace CommanderLayer.Composition
             if (ModalOpen && !_loggedPanel)
             {
                 _loggedPanel = true;
-                Plugin.Log?.LogInfo("[panel] " + _screen.DebugInfo());
+                CommanderPlugin.Log?.LogInfo("[panel] " + _screen.DebugInfo());
             }
         }
 
@@ -155,7 +162,7 @@ namespace CommanderLayer.Composition
             var leftScreens = GameSdk.VirtualMFD_leftScreens(mfd);
 
             var btn = FindBlankButton(rightButtons, rightScreens) ?? FindBlankButton(leftButtons, leftScreens);
-            if (btn == null) { Plugin.Log?.LogWarning("No blank MFD bezel button available for CMD."); return; }
+            if (btn == null) { CommanderPlugin.Log?.LogWarning("No blank MFD bezel button available for CMD."); return; }
 
             btn.enabled = true;
             btn.gameObject.SetActive(true);
@@ -170,7 +177,7 @@ namespace CommanderLayer.Composition
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => _screen?.Toggle());
             _cmdButton = btn;
-            Plugin.Log?.LogInfo($"CMD button attached (label set={_cmdLabel != null}).");
+            CommanderPlugin.Log?.LogInfo($"CMD button attached (label set={_cmdLabel != null}).");
         }
 
         private static Button FindBlankButton(List<Button> buttons, List<MFDScreen> screens)
@@ -197,7 +204,7 @@ namespace CommanderLayer.Composition
             go.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
             go.AddComponent<GraphicRaycaster>();
             _canvas.enabled = false;
-            Plugin.Log?.LogInfo("Commander canvas created.");
+            CommanderPlugin.Log?.LogInfo("Commander canvas created.");
         }
 
         private void EnsureScreen()
@@ -217,7 +224,7 @@ namespace CommanderLayer.Composition
                 onToggleSquadManual: id => _service.ToggleSquadManual(id),
                 onBuyConvoy: name => _service.BuyConvoy(name));
             TryAddNativeBorder(_screen.PanelRoot, _theme.Accent);
-            Plugin.Log?.LogInfo("Commander panel built.");
+            CommanderPlugin.Log?.LogInfo("Commander panel built.");
         }
 
         private static bool IsPointerOverUi()
@@ -241,7 +248,7 @@ namespace CommanderLayer.Composition
             if (assets.playerNameFont != null)
             {
                 UiFactory.Font = assets.playerNameFont;
-                Plugin.Log?.LogInfo("Using native game font (GameAssets.playerNameFont).");
+                CommanderPlugin.Log?.LogInfo("Using native game font (GameAssets.playerNameFont).");
             }
             if (!NativeColors.Captured)
             {
@@ -275,15 +282,5 @@ namespace CommanderLayer.Composition
             }
         }
 
-        public void DrawMenuFallback()
-        {
-            if (MainMenuBadgePatch.Created || MissionManager.i != null) return;
-            if (_fallbackStyle == null)
-            {
-                _fallbackStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold };
-                _fallbackStyle.normal.textColor = new Color(0.4f, 0.8f, 1f);
-            }
-            GUI.Label(new Rect(16f, 12f, 420f, 24f), $"Commander mod loaded  v{Plugin.Version}", _fallbackStyle);
-        }
     }
 }

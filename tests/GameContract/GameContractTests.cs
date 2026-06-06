@@ -329,7 +329,7 @@ namespace CommanderLayer.GameContract.Tests
             {
                 foreach (var cfg in new[] { "Release", "Debug" })
                 {
-                    var p = Path.Combine(dir.FullName, "src", "bin", cfg, "netstandard2.1", "CommanderLayer.dll");
+                    var p = Path.Combine(dir.FullName, "apps", "Nucleus.Commander", "bin", cfg, "netstandard2.1", "Nucleus.Commander.dll");
                     if (File.Exists(p)) return p;
                 }
                 dir = dir.Parent;

@@ -57,8 +57,8 @@ namespace CommanderLayer.Host
             panel.gameObject.SetActive(false);
             _panel = panel.gameObject;
 
-            Plugin.Log?.LogInfo($"[NUCLEUS:SELFTEST] PASS loader-ui-built");
-            Plugin.Log?.LogInfo($"[NUCLEUS:METRIC] loaderMods={registry.Count}");
+            PlatformPlugin.Log?.LogInfo($"[NUCLEUS:SELFTEST] PASS loader-ui-built");
+            PlatformPlugin.Log?.LogInfo($"[NUCLEUS:METRIC] loaderMods={registry.Count}");
         }
 
         private static void Toggle()

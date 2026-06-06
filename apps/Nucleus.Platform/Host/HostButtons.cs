@@ -44,8 +44,8 @@ namespace CommanderLayer.Host
             if (!_selfTested && _attached.Count > 0)
             {
                 _selfTested = true;
-                Plugin.Log?.LogInfo($"[NUCLEUS:METRIC] bezelButtons={_attached.Count}");
-                Plugin.Log?.LogInfo("[NUCLEUS:SELFTEST] PASS bezel-buttons-attached");
+                PlatformPlugin.Log?.LogInfo($"[NUCLEUS:METRIC] bezelButtons={_attached.Count}");
+                PlatformPlugin.Log?.LogInfo("[NUCLEUS:SELFTEST] PASS bezel-buttons-attached");
             }
         }
 

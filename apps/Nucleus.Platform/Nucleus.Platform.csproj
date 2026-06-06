@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nucleus.Platform</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <Sandbox>$(MSBuildThisFileDirectory)..\..\.sandbox\game</Sandbox>
+  </PropertyGroup>
+
+  <Import Project="..\..\build\GameReferences.props" />
+
+  <!-- The platform SHIPS the shared libs once (Private=true → copied to its output, then deployed). Mods
+       reference the same libs Private=false and ship only their own DLL ("no skew"). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\Nucleus.Abstractions\Nucleus.Abstractions.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Domain\Nucleus.Domain.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Squads\Nucleus.Squads.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Production\Nucleus.Production.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Campaign\Nucleus.Campaign.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.GameSdk\Nucleus.GameSdk.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Ui\Nucleus.Ui.csproj" />
+  </ItemGroup>
+
+  <Target Name="Deploy" AfterTargets="Build" Condition="Exists('$(Sandbox)')">
+    <ItemGroup>
+      <NucleusDep Include="$(TargetDir)Nucleus.*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="$(TargetPath);@(NucleusDep)" DestinationFolder="$(Sandbox)\BepInEx\plugins\Nucleus.Platform" />
+  </Target>
+</Project>

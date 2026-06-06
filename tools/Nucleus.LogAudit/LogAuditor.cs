@@ -34,7 +34,7 @@ namespace Nucleus.LogAudit
             var all = lines as IList<string> ?? lines.ToList();
             var r = new AuditReport();
 
-            bool loaded = all.Any(l => l.Contains("Commander Layer loaded"));
+            bool loaded = all.Any(l => l.Contains("Nucleus Platform loaded"));
             int patches = all.Count(l => l.Contains("Patched: "));
             bool firstTick = all.Any(l => l.Contains("first Tick"));
 
@@ -48,7 +48,7 @@ namespace Nucleus.LogAudit
             r.Metrics["exceptions"] = exceptions.Count;
             r.Exceptions = exceptions;
 
-            Add(r, "plugin-loaded", loaded, loaded ? "" : "'Commander Layer loaded.' not found");
+            Add(r, "plugin-loaded", loaded, loaded ? "" : "'Nucleus Platform loaded.' not found");
             Add(r, "patches-applied", patches >= expectedPatches, $"{patches}/{expectedPatches}");
             Add(r, "runtime-tick", firstTick, firstTick ? "" : "'first Tick' not found (host tick may not reach the runtime)");
             Add(r, "no-exceptions", exceptions.Count == 0, exceptions.Count == 0 ? "" : $"{exceptions.Count} exception/error line(s)");

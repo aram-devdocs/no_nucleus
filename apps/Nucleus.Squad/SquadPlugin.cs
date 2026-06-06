@@ -8,7 +8,7 @@ namespace Nucleus.Squad
     /// through <see cref="ModPlatform"/>'s pending-buffer so load order relative to the host does not matter.
     /// </summary>
     [BepInPlugin("com.nucleus.squad", "Nucleus Squad", "0.1.0")]
-    [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class SquadPlugin : BaseUnityPlugin
     {
         private void Awake() => ModPlatform.Register(new SquadMod());

@@ -11,7 +11,7 @@ namespace Nucleus.Build
     /// platform is extracted as its own com.nucleus.platform plugin.)
     /// </summary>
     [BepInPlugin("com.nucleus.build", "Nucleus Build", "0.1.0")]
-    [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class BuildPlugin : BaseUnityPlugin
     {
         private void Awake() => ModPlatform.Register(new BuildMod());
