@@ -29,17 +29,26 @@ Unity-free; no app references another app; `Campaign` is the only lib over both 
 
 ## Build · test · run
 
-```pwsh
-pwsh scripts/setup-sandbox.ps1   # one-time: locate the game, mirror it to .sandbox, copy lib/ DLLs, install BepInEx
-pwsh scripts/check.ps1           # fast gate: build (warnings-as-errors) + Core unit + architecture rules
-pwsh scripts/audit.ps1           # full gate: 7 layers -> PASS/FAIL dashboard + artifacts/audit-summary.json
-pwsh scripts/run.ps1             # build -> deploy plugin to .sandbox -> launch the game
+A `Makefile` wraps the common workflows (run `make` with no target for the full list):
+
+```sh
+make sandbox      # one-time: locate the game, mirror it to .sandbox, copy lib/ DLLs, install BepInEx
+make dev          # build all mods -> deploy to .sandbox -> launch the game
+make commander    # rebuild+deploy just one mod -> launch (also: platform | build-mod | squad | warfare)
+make test         # full gate (8 layers) -> PASS/FAIL dashboard + artifacts/audit-summary.json
+make check        # fast gate: build (warnings-as-errors) + Core unit + architecture rules
+make logaudit     # turn the last in-game BepInEx log into a mechanical verdict
+make mission      # install the demo mission into your user Missions folder
+make codegen      # regenerate the typed game SDK (after a game update)
 ```
 
-The quality gate (`audit.ps1`): **build** (0 warnings) · **unit** (pure Core) · **arch** (dependency graph) ·
-**sim** (headless campaign-brain e2e) · **logaudit** · **contract** (Mono.Cecil vs the real `Assembly-CSharp`) ·
-**integration** (host mod-lifecycle). The pure layers also run in cloud CI; the game-coupled layers run only
-where `lib/Assembly-CSharp.dll` is present. See [docs/TESTING.md](docs/TESTING.md).
+The underlying scripts in `scripts/` (`.ps1` / `.sh`) still work directly if you prefer.
+
+The quality gate (`make test` / `scripts/audit.ps1`): **build** (0 warnings) · **unit** (pure Core) ·
+**arch** (dependency graph) · **sim** (headless campaign-brain e2e) · **logaudit** · **installer** ·
+**contract** (Mono.Cecil vs the real `Assembly-CSharp`) · **integration** (host mod-lifecycle). The pure
+layers also run in cloud CI; the game-coupled layers run only where `lib/Assembly-CSharp.dll` is present.
+See [docs/TESTING.md](docs/TESTING.md).
 
 ## How it integrates with the game
 
