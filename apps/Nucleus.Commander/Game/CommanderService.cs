@@ -19,7 +19,7 @@ namespace Nucleus.Game
         private readonly GameProduction _production = new GameProduction();
         private readonly GameCapture _capture = new GameCapture();
         private readonly CommanderDebugProbe _debug = new CommanderDebugProbe();
-        private readonly CommanderState _auto = new CommanderState();
+        private CommanderState _auto = new CommanderState();
         private readonly GameProductionService _prodService = new GameProductionService();
         private readonly ProductionQueue _prodQueue = new ProductionQueue();
         private Core.Command.ConvoyCatalog _catalog = new Core.Command.ConvoyCatalog(new List<Core.Command.ConvoyOption>());
@@ -231,6 +231,22 @@ namespace Nucleus.Game
                     op.Autonomy = op.Autonomy == AutonomyLevel.Manual ? AutonomyLevel.Auto : AutonomyLevel.Manual;
                     return;
                 }
+        }
+
+        // ---- Campaign persistence (save / resume) ----
+        /// <summary>Save the autonomous campaign — objectives, operations, squads, doctrine, autonomy and the
+        /// id counters — to disk so a multi-hour war can be resumed exactly. Transient per-tick intel is not
+        /// saved (it is re-derived from the live game next tick). See <see cref="Core.Persistence.CampaignStore"/>.</summary>
+        public void SaveCampaign(string path) => Core.Persistence.CampaignStore.Save(path, _auto);
+
+        /// <summary>Resume a saved campaign from disk, replacing the live autonomous state. Returns false (and
+        /// changes nothing) if no save exists at <paramref name="path"/>.</summary>
+        public bool LoadCampaign(string path)
+        {
+            if (!Core.Persistence.CampaignStore.TryLoad(path, out var restored)) return false;
+            _auto = restored;
+            CommanderPlugin.Log?.LogInfo($"Resumed campaign: {_auto.Objectives.Count} objective(s), {_auto.Operations.Count} operation(s).");
+            return true;
         }
 
         public IReadOnlyList<UnitView> CurrentRoster() => _roster.BuildRoster();
