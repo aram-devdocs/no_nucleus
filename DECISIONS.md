@@ -44,6 +44,15 @@
   coverage right now; do it as a later reorg (or when adding NEW per-lib tests). Arch test + 118 + contract
   guard each extraction. ThreatBoard left in src/Core (→Campaign lib later) — not needed by Squads/Production.
 
+## Scope decisions (cont.)
+- **2026-06-06 · Dual-faction Sim asserts PLANNING, not attrition.** `DualSimWorld` runs `CommanderBrain` for
+  both sides over one battlefield. Robust headless invariants: both brains detect the enemy + generate
+  objectives (both factions command), deterministic, no-NaN, no-throw. **Not** asserted: that ground units
+  assault/attrit — combined-arms doctrine gates ground advance behind softening the target (Strike phase),
+  which needs air/artillery, and aircraft are steered by intent zones (not per-unit `UnitTask`), which the
+  coarse sim doesn't model. Forcing a "war resolves" assertion would misrepresent the doctrine. Modeling
+  aircraft-intent + artillery softening in-sim is a future deepening if we want attrition-level invariants.
+
 ## Pending decisions (options + recommended default; escalate before the gated action)
 - **Repo + folder rename** (`commander` → `no_nucleus`): irreversible-ish outward action. Default: do
   `gh repo rename no_nucleus` at Phase 7, hand the human the local folder-rename steps. **Park for explicit go.**

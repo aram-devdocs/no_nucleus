@@ -28,7 +28,8 @@
   trace), no-NaN over 1000 ticks, runs 2000 ticks no-throw, generates objectives, issues tasks, **war
   progresses (enemy strength declines)**. Always-on (Unity-free; in cloud CI). Gate now 6 layers. **HV**
   - [x] deepen — operations-opened, **combat phases advance past Recon**, multi-seed fuzz (6 seeds: deterministic+finite+active). Sim layer now 14 tests. **HV**
-  - [ ] deepen further (Phase 6 proper): dual-faction (both sides run brains), persistence save/resume, production-within-funds in-sim.
+  - [x] dual-faction Sim — `DualSimWorld` runs CommanderBrain for BOTH sides over one battlefield; 3 invariants: both factions detect+plan objectives, deterministic, no-NaN. (Attrition not asserted — doctrine-gated + aircraft intent unmodeled; see DECISIONS.) Sim layer now 17 tests.
+  - [ ] deepen further (Phase 6 proper): persistence save/resume; model aircraft-intent + artillery softening in-sim for attrition-level invariants.
 
 ## Phase 6 — deliverable docs (user-requested)
 - [x] P6-docs — `docs/TESTING.md` (headless gates + in-game steps), `docs/TESTING-WORKSHEET.md` (fill-in

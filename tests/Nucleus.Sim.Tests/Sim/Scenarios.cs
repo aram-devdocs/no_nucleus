@@ -65,5 +65,20 @@ namespace Nucleus.Sim
             };
             return (friendly, enemy);
         }
+
+        /// <summary>Two mobile armored forces facing each other ~6 km apart — for the dual-faction sim where
+        /// BOTH sides run a brain. Pure armor (no aircraft): aircraft are steered by intent zones rather than
+        /// per-unit tasks, which the sim doesn't model, so a ground clash cleanly exercises both brains fighting.</summary>
+        public static (List<SimUnit> a, List<SimUnit> b) DualForces()
+        {
+            List<SimUnit> Force(string p, float ox, float oz) => new List<SimUnit>
+            {
+                FriendlyArmor($"{p}-armor-1", ox, oz),
+                FriendlyArmor($"{p}-armor-2", ox + 200f, oz),
+                FriendlyArmor($"{p}-armor-3", ox, oz + 200f),
+                FriendlyArmor($"{p}-armor-4", ox + 200f, oz + 200f),
+            };
+            return (Force("a", 0f, 0f), Force("b", 6000f, 0f));
+        }
     }
 }
