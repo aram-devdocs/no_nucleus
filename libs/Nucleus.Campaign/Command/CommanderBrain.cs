@@ -84,12 +84,14 @@ namespace Nucleus.Core.Command
                 && state.OperationFor(o.Id) == null
                 && !AnyThreatNear(snapshot, o.Position, coverage));
 
-            // 3. New objectives from known enemy clusters — only when the AI is the objective-creator.
-            //    (When the human creates objectives, they are added to state.Objectives via the service.)
+            // 3. New objectives from known enemy clusters — only when the AI is the objective-creator. Each
+            //    gets a unique MONOTONIC id (GenerateObjectives' tick-local ids would collide across ticks and
+            //    corrupt OperationFor / LastObjectiveByUnit / RemoveObjective).
             if (state.AiCreatesObjectives)
                 foreach (var obj in GenerateObjectives(snapshot.KnownEnemies, state.Objectives, state.BrainConfig,
                              state.HomeBase, state.Doctrine))
-                    state.Objectives.Add(obj);
+                    state.Objectives.Add(new Objective(state.NextObjectiveId(), obj.Kind, obj.Position,
+                        obj.Source, obj.TargetId, obj.Priority));
 
             // 4. AUTO-FILL: when on, open an operation for each uncovered objective and assign suitable squads —
             //    one per needed family (so each combat phase has its squad), regardless of location (no range).

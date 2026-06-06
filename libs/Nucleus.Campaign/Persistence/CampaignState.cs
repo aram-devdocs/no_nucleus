@@ -21,6 +21,7 @@ namespace Nucleus.Core.Persistence
                 AiAutoFill = state.AiAutoFill,
                 HomeBase = state.HomeBase,
                 OperationIdSeed = state.OperationIdSeed,
+                ObjectiveIdSeed = state.ObjectiveIdSeed,
                 SquadBatchSeed = state.Squads.BatchSeed,
                 RiskTolerance = state.Doctrine.RiskTolerance,
                 ForceRatio = state.Doctrine.ForceRatio,
@@ -69,6 +70,7 @@ namespace Nucleus.Core.Persistence
                 AiAutoFill = snap.AiAutoFill,
                 HomeBase = snap.HomeBase,
                 OperationIdSeed = snap.OperationIdSeed,
+                ObjectiveIdSeed = snap.ObjectiveIdSeed,
             };
             state.Squads.BatchSeed = snap.SquadBatchSeed;
 

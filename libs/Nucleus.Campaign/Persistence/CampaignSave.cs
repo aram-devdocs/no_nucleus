@@ -31,7 +31,7 @@ namespace Nucleus.Core.Persistence
 
             Line(sb, Header, I(s.Version));
             Line(sb, "META", B(s.AiCreatesObjectives), B(s.AiAutoFill), F(s.HomeBase.X), F(s.HomeBase.Y), F(s.HomeBase.Z),
-                I(s.OperationIdSeed), I(s.SquadBatchSeed));
+                I(s.OperationIdSeed), I(s.SquadBatchSeed), I(s.ObjectiveIdSeed));
             Line(sb, "TUNE", F(s.RiskTolerance), F(s.ForceRatio), F(s.ClusterRadius), F(s.CoverageRadius),
                 I(s.MaxSquadsPerOperation), F(s.FormRadius), I(s.MaxSquadSize), F(s.DepletedFraction));
 
@@ -104,6 +104,7 @@ namespace Nucleus.Core.Persistence
                         snap.HomeBase = new Vec3(PF(f, 3), PF(f, 4), PF(f, 5));
                         snap.OperationIdSeed = PI(f, 6);
                         snap.SquadBatchSeed = PI(f, 7);
+                        snap.ObjectiveIdSeed = PI(f, 8);
                         break;
                     case "TUNE":
                         snap.RiskTolerance = PF(f, 1);

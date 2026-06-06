@@ -177,29 +177,44 @@ namespace Nucleus.Game
             return id;
         }
 
+        // Edit/Move mutate the Objective IN PLACE — the live operation shares the reference, so its tasking,
+        // completion and phase logic follow the change (no stale-position desync).
         public void EditObjective(string id, ObjectiveKind? kind = null, float? priority = null)
         {
-            int i = _auto.Objectives.FindIndex(o => o.Id == id);
-            if (i < 0) return;
-            var o = _auto.Objectives[i];
+            var o = _auto.Objectives.Find(x => x.Id == id);
+            if (o == null) return;
             if (priority.HasValue) o.Priority = priority.Value;
-            if (kind.HasValue && kind.Value != o.Kind)
-                _auto.Objectives[i] = new Objective(o.Id, kind.Value, o.Position, o.Source, o.TargetId, o.Priority);
+            if (kind.HasValue) o.Kind = kind.Value;
         }
 
         public void MoveObjective(string id, Vec3 world)
         {
-            int i = _auto.Objectives.FindIndex(o => o.Id == id);
-            if (i < 0) return;
-            var o = _auto.Objectives[i];
-            _auto.Objectives[i] = new Objective(o.Id, o.Kind, world, o.Source, o.TargetId, o.Priority);
+            var o = _auto.Objectives.Find(x => x.Id == id);
+            if (o != null) o.Position = world;
         }
 
         public void RemoveObjective(string id)
         {
             _auto.Objectives.RemoveAll(o => o.Id == id);
             var op = _auto.OperationFor(id);
-            if (op != null) { op.Status = OperationStatus.Failed; }
+            if (op != null) op.Status = OperationStatus.Failed; // next tick frees its squads + prunes it
+        }
+
+        /// <summary>Assign a squad to an objective (the human-driven path when AI Auto-fill is off): open or
+        /// extend that objective's operation with the squad. The brain then advances its phases + tasks it.</summary>
+        public void AssignSquad(string objectiveId, string squadId)
+        {
+            var obj = _auto.Objectives.Find(o => o.Id == objectiveId);
+            var squad = _auto.Squads.ById(squadId);
+            if (obj == null || squad == null) return;
+            var op = _auto.OperationFor(objectiveId);
+            if (op == null)
+            {
+                op = new Operation(_auto.NextOperationId(), obj, new[] { squadId }) { Status = OperationStatus.Active };
+                _auto.Operations.Add(op);
+            }
+            else if (!op.SquadIds.Contains(squadId)) op.SquadIds.Add(squadId);
+            squad.AssignedOperationId = op.Id;
         }
 
         // ---- Manual production (buy troops) ----

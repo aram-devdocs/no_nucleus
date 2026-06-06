@@ -194,7 +194,7 @@ namespace Nucleus.Ui
                 // SQUADS — name + what it's doing + an AUTO/MANUAL toggle (manage each squad).
                 UiFactory.PreferredHeight(UiFactory.Label("SquadsHdr", layout.transform, "SQUADS", 12f, theme.Accent).gameObject, 18f);
                 _squadsContainer = UiFactory.VerticalLayout("HqSquads", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
-                _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, "No squads yet. Open CMD and set the Commander to MANUAL or AUTO to organize your forces into squads.", 12f, theme.Muted);
+                _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, "No squads yet. Squads form automatically from your forces as the war starts.", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_squadsEmpty.gameObject, 48f);
             }
 

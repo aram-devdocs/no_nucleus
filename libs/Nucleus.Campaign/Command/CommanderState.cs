@@ -39,10 +39,18 @@ namespace Nucleus.Core.Command
         public HashSet<string> ConfirmedObjectives { get; } = new HashSet<string>();
 
         private int _opId;
+        private int _objId;
 
         /// <summary>The operation-id counter (last issued). Exposed so persistence can save/restore it,
         /// keeping <see cref="NextOperationId"/> from colliding with restored ids. Same-assembly only.</summary>
         internal int OperationIdSeed { get => _opId; set => _opId = value; }
+
+        /// <summary>The auto-objective-id counter (last issued). Persisted so monotonic ids survive save/resume
+        /// and never collide across ticks.</summary>
+        internal int ObjectiveIdSeed { get => _objId; set => _objId = value; }
+
+        /// <summary>A unique, monotonic auto-objective id (never reused across ticks).</summary>
+        public string NextObjectiveId() => "auto-obj-" + (++_objId);
 
         public CommanderState(SquadConfig squadCfg = null, Doctrine doctrine = null, BrainConfig brainCfg = null)
         {

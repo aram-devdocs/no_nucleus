@@ -31,6 +31,8 @@ namespace Nucleus.Core.Command
         void EditObjective(string id, ObjectiveKind? kind = null, float? priority = null);
         void RemoveObjective(string id);
         void MoveObjective(string id, Vec3 world);
+        /// <summary>Assign a squad to an objective (the human path when Auto-fill is off): opens/extends its operation.</summary>
+        void AssignSquad(string objectiveId, string squadId);
 
         // ---- commands ----
         void ToggleSquadManual(string squadId);

@@ -14,7 +14,7 @@ namespace Nucleus.Core.Persistence
     /// </summary>
     public sealed class CampaignSnapshot
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2; // v2: two toggles replace the autonomy enum; + ObjectiveIdSeed
 
         public int Version = CurrentVersion;
 
@@ -24,6 +24,7 @@ namespace Nucleus.Core.Persistence
         public Vec3 HomeBase;
         public int OperationIdSeed;   // last issued operation-id counter
         public int SquadBatchSeed;    // auto-form batch counter
+        public int ObjectiveIdSeed;   // last issued auto-objective-id counter
 
         // Tunables (Doctrine / BrainConfig / SquadConfig).
         public float RiskTolerance = 0.5f;

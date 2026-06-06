@@ -161,6 +161,24 @@ namespace Nucleus.Tests
         }
 
         [Fact]
+        public void Auto_objectives_get_unique_ids_across_ticks()
+        {
+            // Regression: a tick-local objective-id counter would re-issue "auto-obj-0" for a NEW cluster on a
+            // later tick (the first stays "covered"), colliding ids and hiding the new threat. Ids must be
+            // unique + monotonic across ticks so OperationFor / RemoveObjective / LastObjectiveByUnit stay sound.
+            var state = new CommanderState(SquadCfg(), null, Cfg());
+            var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
+
+            CommanderBrain.Tick(new WorldSnapshot(roster, new List<EnemyView> { E("eA", P(5000, 0)) }), state);
+            CommanderBrain.Tick(new WorldSnapshot(roster,
+                new List<EnemyView> { E("eA", P(5000, 0)), E("eC", P(90000, 90000)) }), state);
+
+            var ids = state.Objectives.Select(o => o.Id).ToList();
+            Assert.True(state.Objectives.Count >= 2, "both clusters tracked");
+            Assert.Equal(ids.Count, ids.Distinct().Count());   // no duplicate ids
+        }
+
+        [Fact]
         public void Tick_yields_a_manual_operation()
         {
             // Per-op Manual override: flip an operation to Manual and the brain stops tasking its squads
