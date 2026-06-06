@@ -21,7 +21,7 @@ namespace Nucleus.Composition
         private readonly IMapProjection _projection;
         private readonly CommanderService _service;
 
-        private CommanderMapScreen _screen;
+        private CommanderPanel _panel;
         private MapOverlay _overlay;
         private Theme _theme;
         private DynamicMap _lastMap;
@@ -50,13 +50,14 @@ namespace Nucleus.Composition
         /// </summary>
         public void BuildPanel(RectTransform parent)
         {
-            if (_screen != null || parent == null) return;
+            if (_panel != null || parent == null) return;
             CaptureNativeButtonSprite();
             CaptureNativeAssets();
             _player.TryGetLocalFaction(out var faction);
             _theme = Theme.FromFaction(faction);
-            // CMD screen = manual orders + commander mode only. Build/Squad/Warfare own the other sections.
-            _screen = new CommanderMapScreen(parent, _theme,
+            // CMD screen = manual orders + commander mode only — built the SAME way as every other mod
+            // (a CommanderPanel filling the host's standard ModPanel chrome). Build/Squad/Warfare own the rest.
+            _panel = new CommanderPanel(parent, _theme,
                 onArm: k => _armed = k,
                 onClearAll: () => _service.ClearAll(),
                 onClearOrder: id => _service.Clear(id),
@@ -66,8 +67,7 @@ namespace Nucleus.Composition
                 onToggleSquadManual: id => _service.ToggleSquadManual(id),
                 onBuyConvoy: name => _service.BuyConvoy(name),
                 sections: CommanderPanel.PanelSections.Orders | CommanderPanel.PanelSections.Mode);
-            TryAddNativeBorder(_screen.PanelRoot, _theme.Accent);
-            _screen.SetOpen(true); // always visible within the native MFD screen; the game gates the screen itself
+            UiFactory.Stretch(_panel.Root);
             CommanderPlugin.Log?.LogInfo("Commander panel built into native MFD screen.");
         }
 
@@ -98,20 +98,20 @@ namespace Nucleus.Composition
                 _overlay?.Clear();
                 _armed = null;
             }
-            else if (_screen != null)
+            else if (_panel != null)
             {
                 // Live placement preview while armed.
                 if (_armed.HasValue && !IsPointerOverUi() && _projection.TryCursorToWorld(out var hover))
                 {
                     bool isBuild = _armed.Value == OrderKind.Build;
-                    _hoverPreview = isBuild ? null : _service.PreviewAt(_armed.Value, hover, _screen.Domains, _screen.RangeMeters);
+                    _hoverPreview = isBuild ? null : _service.PreviewAt(_armed.Value, hover, _panel.Domains, _panel.RangeMeters);
                     bool canPlace = isBuild || (_hoverPreview != null && _hoverPreview.CanPlace);
-                    _overlay?.SetHover(hover, _screen.RangeMeters, _service.Config.ThreatRadius, _armed.Value, canPlace,
+                    _overlay?.SetHover(hover, _panel.RangeMeters, _service.Config.ThreatRadius, _armed.Value, canPlace,
                         PreviewPositions(_hoverPreview));
 
                     if (Input.GetMouseButtonDown(0))
                     {
-                        var state = _service.PlaceOrder(_armed.Value, hover, _screen.Domains, _screen.RangeMeters);
+                        var state = _service.PlaceOrder(_armed.Value, hover, _panel.Domains, _panel.RangeMeters);
                         CommanderPlugin.Log?.LogInfo($"Placed {state.Order.Kind}: {state.Summary}");
                         _armed = null;
                         _overlay?.ClearHover();
@@ -125,12 +125,12 @@ namespace Nucleus.Composition
             }
 
             // Keep the panel content fresh (it renders only when the native screen shows it).
-            if (_screen != null)
+            if (_panel != null)
             {
                 _player.TryGetLocalFaction(out var faction);
-                _screen.Render(_service.Orders, faction, _armed, _hoverPreview, NamesById());
-                _screen.RenderHq(_service.AutoHq(), _service.CurrentMode(), _service.BuildCatalog(), _service.Funds());
-                if (!_loggedPanel) { _loggedPanel = true; CommanderPlugin.Log?.LogInfo("[panel] " + _screen.DebugInfo()); }
+                _panel.Render(_service.Orders, faction, _armed, _hoverPreview, NamesById());
+                _panel.RenderHq(_service.AutoHq(), _service.CurrentMode(), _service.BuildCatalog(), _service.Funds());
+                if (!_loggedPanel) { _loggedPanel = true; CommanderPlugin.Log?.LogInfo("[panel] Commander panel rendering."); }
             }
         }
 
@@ -159,12 +159,6 @@ namespace Nucleus.Composition
 
         private static bool IsPointerOverUi()
             => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-
-        // Frame the panel with the game's own procedural border via the native-UI component library
-        // (NativeUi.Border -> NuclearOption.UI.BetterBorder) so it reads as a native window. The library call
-        // is itself guarded — a styling failure must never break the working panel.
-        private static void TryAddNativeBorder(RectTransform panel, Color accent)
-            => Nucleus.Ui.Native.NativeUi.Border(panel, accent);
 
         // Capture the game's own visual resources (font, HUD colors, map/threat icons) from the single
         // codegen'd source of truth — NativeAssets, a typed snapshot of GameAssets — and mirror them into

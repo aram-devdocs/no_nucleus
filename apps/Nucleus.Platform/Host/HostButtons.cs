@@ -148,25 +148,20 @@ namespace Nucleus.Host
             rt.sizeDelta = srcRt.sizeDelta; rt.anchoredPosition = srcRt.anchoredPosition;
             rt.localScale = srcRt.localScale; rt.localRotation = srcRt.localRotation; rt.localPosition = srcRt.localPosition;
 
-            // Fixed-size visible panel (top-left anchored) = the displayPanel. This is the proven-visible recipe.
-            var panelGo = new GameObject("Panel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            var prt = (RectTransform)panelGo.transform;
-            prt.SetParent(rt, worldPositionStays: false);
-            prt.anchorMin = new Vector2(0f, 1f); prt.anchorMax = new Vector2(0f, 1f); prt.pivot = new Vector2(0f, 1f);
-            prt.sizeDelta = new Vector2(470f, 900f);
-            prt.anchoredPosition = new Vector2(24f, -60f);
-            panelGo.GetComponent<Image>().color = new Color(0.05f, 0.07f, 0.10f, 0.94f);
-            content = prt;
+            // The ONE standard panel chrome (fixed-size, draggable, framed) — same for every mod. Its Root is
+            // the displayPanel the game toggles; the mod fills its Content.
+            var panel = new Nucleus.Ui.ModPanel(rt, Nucleus.Ui.Theme.Default, label);
+            content = panel.Content;
 
             var screen = go.AddComponent<MFDScreen>();
-            screen.displayPanel = panelGo;   // ShowScreen toggles the whole fixed-size panel
+            screen.displayPanel = panel.Root.gameObject;   // ShowScreen toggles the whole fixed-size panel
             screen.aircraftOnly = false;
-            screen.label = bezelLabel;        // Setup() writes shortName into the bezel button's label
+            screen.label = bezelLabel;                       // Setup() writes shortName into the bezel button's label
 
-            // Green "open" highlight: clone the native one (matches the game's colour) and frame the fixed panel.
+            // Green "open" highlight: clone the native one (matches the game's colour) and frame the panel.
             if (src.highlight != null)
             {
-                var hl = Object.Instantiate(src.highlight.gameObject, prt);
+                var hl = Object.Instantiate(src.highlight.gameObject, panel.Root);
                 hl.name = "Highlight";
                 var hlrt = (RectTransform)hl.transform;
                 hlrt.anchorMin = Vector2.zero; hlrt.anchorMax = Vector2.one;
@@ -180,7 +175,7 @@ namespace Nucleus.Host
             screen.Setup(mfd, label);
 
             // Start hidden until the bezel button is pressed.
-            panelGo.SetActive(false);
+            panel.Root.gameObject.SetActive(false);
             if (screen.highlight != null) screen.highlight.enabled = false;
             screen.isActive = false;
             return screen;
