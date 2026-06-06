@@ -86,7 +86,8 @@ namespace Nucleus.Architecture.Tests
             ["Nucleus.Squads"] = new() { "Nucleus.Domain" },
             ["Nucleus.Production"] = new() { "Nucleus.Domain" },
             ["Nucleus.Campaign"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production" },
-            ["Nucleus.Abstractions"] = new() { "Nucleus.Domain" },
+            // The host contract exposes the Theme type (Ui) on IModUi, so it references Domain + Ui.
+            ["Nucleus.Abstractions"] = new() { "Nucleus.Domain", "Nucleus.Ui" },
             // GameSdk is the engine-access integration layer: it converts game state into the domain types
             // and executes their outputs, so it may reference all four pure domain libs (but no app).
             ["Nucleus.GameSdk"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" },

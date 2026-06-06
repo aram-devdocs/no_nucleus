@@ -25,7 +25,12 @@
 ## Phase 2–7 — see plan (specs to be drafted as each phase is pulled)
 - [x] P2-gamesdk — `libs/Nucleus.GameSdk` (all src/Game except CommanderService) + Generated/; codegen gameGenDir retargeted (regen verified identical); NucleusLog seam added to Domain (libs log without referencing Plugin); InternalsVisibleTo("CommanderLayer") preserves same-assembly accessibility. Gate PASS (0w/118/9/11). **HV**
 - [x] P2-ui — `libs/Nucleus.Ui` (UiFactory/Theme/NativeColors/NativeIcons/Native.NativeUi/DragHandle/MainMenuBadge), Domain-only among Nucleus libs (Theme's ColorRgba→Color inlined to drop the GameSdk dep). Commander panels stay in app. Gate PASS (0w/118/9/11). **PHASE 2 COMPLETE** — 7 libs extracted; src is the thin app shell. **HV**
-- [ ] P3 — host/Platform + IMod + Commander as first mod **PT**
+- [~] P3 — host/Platform + IMod + Commander as first mod (single plugin initially; see specs/phase-3/P3-host.md) **PT**
+  - [x] P3a — `libs/Nucleus.Abstractions` contract (IMod/IModContext/IModUi/IModTickContext/ILogSink/IGameServices/IButtonRegistry/ModInfo/MapButtonSpec/MenuItemSpec/ModPlatform). Refs Domain+Ui (arch-verified). Gate PASS. **HV**
+  - [ ] P3b — in-process `ModHost` (owns single Canvas/tick pump/3 contended patches/native capture/shared game services/ModRegistry/button registry) **PT**
+  - [ ] P3c — `CommanderMod : IMod` (CommanderService + 4 panels + AircraftTaskingPatch); CommanderRuntime split host/mod **PT**
+  - [ ] P3d — loader UI (MainMenu "MODS" → list/toggle mods, persisted) **PT**
+  - [ ] P3-integration — `Nucleus.TestKit` FakeGame + `Nucleus.Integration.Tests` (lifecycle, slots, shared queue, no double-buy) **HV**
 - [ ] P4 — split Build **PT**
 - [ ] P5 — split Squad **PT**
 - [ ] P6 — Warfare + SDK pack + dotnet template + dual-faction sim + persistence **HV (+PT)**

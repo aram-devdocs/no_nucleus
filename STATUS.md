@@ -5,8 +5,8 @@
 > Update this on every state transition. Source of truth for "what's next" — survives context compaction.
 
 **Branch:** `nucleus-platform` · **Baseline (known-good):** build 0 warnings · 118 Core · 11 GameContract (2026-06-06)
-**Current phase:** Phase 3 — Host/Platform + IMod + Commander as first mod (PHASE 2 COMPLETE: 7 libs extracted)
-**Next action:** WRITE SPEC FIRST (specs/phase-3/) — this is the riskiest step (Canvas/tick/patch ownership inversion). Plan: create libs/Nucleus.Abstractions (IMod/IModContext/IModUi/IGameServices/IButtonRegistry/ModPlatform). Then split Plugin.cs+CommanderRuntime into a host (owns single Canvas/tick pump/the 3 contended patches/native capture/button registry/shared services) + Commander as the first IMod (CommanderService + the 4 commander panels + AircraftTaskingPatch). Behavior identical; verify with integration tests + (later) playtest.
+**Current phase:** Phase 3 — Host/Platform (spec written; P3a Abstractions DONE)
+**Next action:** P3b — build in-process `ModHost` in the plugin: lift Canvas/tick/native-capture/button-attach out of CommanderRuntime into a host that owns the single Canvas, the tick pump, the shared game services (one GameRoster/GameIntel/GameUnitCommands/GameProductionService), a ModRegistry, and a button registry arbitrating blank VirtualMFD slots. The 3 contended patches call the host. Keep behavior identical (single plugin). See specs/phase-3/P3-host.md.
 **Gate now:** `pwsh scripts/audit.ps1` → AUDIT: PASS (build 0w · unit-core 118 · arch 9 · contract 11). 7 libs: Domain/Squads/Production/Campaign/GameSdk/Ui (+Abstractions next).
 **src shell now:** Plugin.cs, Composition/CommanderRuntime, Patches/{MainMenuBadge,DynamicMapTick,VirtualMFD,AircraftTasking}, Game/CommanderService, Ui/{CommanderPanel,CommanderMapScreen,MapOverlay,OrderColors}.
 
@@ -25,7 +25,7 @@
 ## Work-items in flight
 | ID | Phase | Item | Gate | Owner | Last gate result | Next action |
 |----|-------|------|------|-------|------------------|-------------|
-| P3-spec | 3 | host/Platform spec | ① | loop | next | write specs/phase-3 before any host code |
+| P3b | 3 | in-process ModHost | — | loop | next | lift Canvas/tick/services/registry out of CommanderRuntime |
 
 ## Pending playtests (Unity-gated, awaiting human)
 _(none yet)_

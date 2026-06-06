@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nucleus.Abstractions</AssemblyName>
+    <!-- The host API a mod implements (IMod) and the services the host exposes (IModContext). References
+         Domain (the data types) + Ui (Theme) among Nucleus libs; touches Unity for RectTransform/Sprite. -->
+  </PropertyGroup>
+
+  <Import Project="..\..\build\GameReferences.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nucleus.Domain\Nucleus.Domain.csproj" />
+    <ProjectReference Include="..\Nucleus.Ui\Nucleus.Ui.csproj" />
+  </ItemGroup>
+</Project>
