@@ -41,33 +41,53 @@ namespace Nucleus.Host
             var canvas = template.GetComponentInParent<Canvas>();
             var root = canvas != null ? canvas.transform : template.transform.parent;
 
-            var panelGo = new GameObject("NucleusModsPanel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
+            // Fixed width, height fits content (ContentSizeFitter) so rows never squish; a vertical layout
+            // lays them out with real per-row heights. Parented under the game's own menu canvas.
+            var panelGo = new GameObject("NucleusLoaderPanel",
+                typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             var rt = (RectTransform)panelGo.transform;
             rt.SetParent(root, worldPositionStays: false);
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(380f, 70f + 40f * registry.Count);
+            rt.sizeDelta = new Vector2(480f, 0f);     // width fixed; height driven by the fitter
             rt.anchoredPosition = Vector2.zero;
-            panelGo.GetComponent<Image>().color = new Color(0.05f, 0.07f, 0.09f, 0.96f);
+            panelGo.GetComponent<Image>().color = new Color(0.05f, 0.07f, 0.09f, 0.97f);
+
             var vlg = panelGo.GetComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(12, 12, 12, 12);
-            vlg.spacing = 8f;
+            vlg.padding = new RectOffset(22, 22, 20, 20);
+            vlg.spacing = 10f;
+            vlg.childAlignment = TextAnchor.UpperCenter;
             vlg.childControlWidth = vlg.childControlHeight = true;
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
+            var fit = panelGo.GetComponent<ContentSizeFitter>();
+            fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
             var title = new GameObject("Title", typeof(RectTransform));
             title.transform.SetParent(rt, false);
             var ttmp = title.AddComponent<TextMeshProUGUI>();
-            ttmp.text = "NUCLEUS MODS";
-            ttmp.fontSize = 22f;
+            ttmp.text = "NUCLEUS LOADER";
+            ttmp.fontSize = 28f;
+            ttmp.fontStyle = FontStyles.Bold;
             ttmp.alignment = TextAlignmentOptions.Center;
+            Height(title, 44f);
+
+            var hint = new GameObject("Hint", typeof(RectTransform));
+            hint.transform.SetParent(rt, false);
+            var htmp = hint.AddComponent<TextMeshProUGUI>();
+            htmp.text = "Enable or disable mods:";
+            htmp.fontSize = 16f;
+            htmp.alignment = TextAlignmentOptions.Center;
+            htmp.color = new Color(0.7f, 0.78f, 0.85f, 1f);
+            Height(hint, 24f);
 
             foreach (var mod in registry.Mods)
             {
                 var id = mod.Info.Id;
                 var rowGo = Object.Instantiate(template.gameObject, rt);
                 rowGo.name = "ModToggle_" + id;
-                void Refresh() => SetLabel(rowGo, $"{mod.Info.DisplayName}:  {(registry.IsEnabled(id) ? "ON" : "OFF")}");
+                Height(rowGo, 48f);
+                void Refresh() => SetLabel(rowGo, $"{mod.Info.DisplayName}    {(registry.IsEnabled(id) ? "ON" : "OFF")}");
                 Refresh();
                 NativeButtons.Rewire(rowGo.GetComponent<Button>(), () =>
                 {
@@ -76,8 +96,21 @@ namespace Nucleus.Host
                 });
             }
 
+            var closeGo = Object.Instantiate(template.gameObject, rt);
+            closeGo.name = "NucleusLoaderClose";
+            Height(closeGo, 48f);
+            SetLabel(closeGo, "CLOSE");
+            NativeButtons.Rewire(closeGo.GetComponent<Button>(), () => { if (_panel != null) _panel.SetActive(false); });
+
             panelGo.SetActive(false);
             _panel = panelGo;
+        }
+
+        // Pin a row to an exact height so the vertical layout never collapses it (the "squished" look).
+        private static void Height(GameObject go, float h)
+        {
+            var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+            le.preferredHeight = h; le.minHeight = h; le.flexibleHeight = 0f;
         }
 
         private static void TogglePanel()

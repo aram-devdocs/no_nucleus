@@ -75,8 +75,13 @@ namespace Nucleus.Host
                     // 2. Fresh native MFDScreen modelled on a real one (placement/show/hide/highlight by the game).
                     var screen = BuildScreen(mfd, screenTemplate, spec.Label, btnText, out var content);
 
-                    // 3. Register the pair at the same index so PressButton(index) toggles our screen.
+                    // 3. Register the pair so PressButton(button)'s index lands on OUR screen. The native
+                    //    button/screen lists can differ in length (blank buttons have no screen), so pad the
+                    //    screens list to the button's index first — otherwise the lookup hits the wrong/missing
+                    //    screen and the button appears dead (this is why only the aligned side worked).
                     buttons.Add(btn);
+                    int idx = buttons.Count - 1;
+                    while (screens.Count < idx) screens.Add(null);
                     screens.Add(screen);
 
                     bool onLeft = left;
@@ -136,12 +141,19 @@ namespace Nucleus.Host
             screen.aircraftOnly = false;
             screen.label = bezelLabel;   // Setup() writes shortName into the bezel button's label
 
-            // Green "open" highlight: clone the native one so it matches exactly.
+            // Green "open" highlight: clone the native one (matches the game's colour) and stretch it to frame
+            // OUR content area — the native one is positioned for its own screen, so re-anchor it here.
             if (src.highlight != null)
             {
                 var hl = Object.Instantiate(src.highlight.gameObject, rt);
                 hl.name = "Highlight";
-                screen.highlight = hl.GetComponent<Image>();
+                var hlrt = (RectTransform)hl.transform;
+                hlrt.anchorMin = Vector2.zero; hlrt.anchorMax = Vector2.one;
+                hlrt.offsetMin = Vector2.zero; hlrt.offsetMax = Vector2.zero;
+                var hlImg = hl.GetComponent<Image>();
+                if (hlImg != null) hlImg.raycastTarget = false;
+                hl.transform.SetAsLastSibling(); // draw the frame over the content
+                screen.highlight = hlImg;
             }
 
             screen.Setup(mfd, label);

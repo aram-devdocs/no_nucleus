@@ -38,6 +38,8 @@ namespace Nucleus.Ui
         private readonly List<EntityRow> _squadRows = new List<EntityRow>();
         private readonly Transform _buildContainer;
         private readonly List<EntityRow> _buildRows = new List<EntityRow>();
+        // Empty-state hints (shown when a section has no data, so a screen never looks blank/broken).
+        private TextMeshProUGUI _buildEmpty, _squadsEmpty, _opsEmpty;
 
         private struct OpRow { public GameObject Go; public TextMeshProUGUI Label; public Image BtnImg; public TextMeshProUGUI BtnLabel; public string OpId; }
         // Generic interactive row: a label + an action button carrying an id (squad id / convoy name).
@@ -190,6 +192,8 @@ namespace Nucleus.Ui
                 // OPERATIONS — one interactive row per op with an AUTO/MANUAL toggle (take a slice).
                 UiFactory.PreferredHeight(UiFactory.Label("OpsHdr", layout.transform, "OPERATIONS", 12f, theme.Accent).gameObject, 18f);
                 _opsContainer = UiFactory.VerticalLayout("HqOps", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
+                _opsEmpty = UiFactory.Label("OpsEmpty", layout.transform, "No operations running. Open CMD and set the Commander to AUTO to fight the war (or ASSISTED to approve operations).", 12f, theme.Muted);
+                UiFactory.PreferredHeight(_opsEmpty.gameObject, 48f);
             }
 
             if (Has(PanelSections.Squads))
@@ -197,6 +201,8 @@ namespace Nucleus.Ui
                 // SQUADS — name + what it's doing + an AUTO/MANUAL toggle (manage each squad).
                 UiFactory.PreferredHeight(UiFactory.Label("SquadsHdr", layout.transform, "SQUADS", 12f, theme.Accent).gameObject, 18f);
                 _squadsContainer = UiFactory.VerticalLayout("HqSquads", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
+                _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, "No squads yet. Open CMD and set the Commander to MANUAL or AUTO to organize your forces into squads.", 12f, theme.Muted);
+                UiFactory.PreferredHeight(_squadsEmpty.gameObject, 48f);
             }
 
             if (Has(PanelSections.Build))
@@ -204,6 +210,8 @@ namespace Nucleus.Ui
                 // BUILD — buy troops: a row per convoy (name + contents + cost) with a BUY button.
                 UiFactory.PreferredHeight(UiFactory.Label("BuildHdr", layout.transform, "BUILD — buy troops", 12f, theme.Accent).gameObject, 18f);
                 _buildContainer = UiFactory.VerticalLayout("HqBuild", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
+                _buildEmpty = UiFactory.Label("BuildEmpty", layout.transform, "No convoys available for this faction/map yet.", 12f, theme.Muted);
+                UiFactory.PreferredHeight(_buildEmpty.gameObject, 36f);
             }
 
             if (Has(PanelSections.Feed))
@@ -268,6 +276,7 @@ namespace Nucleus.Ui
         private void RenderSquadRows(System.Collections.Generic.IReadOnlyList<Cmd.SquadView> squads)
         {
             int count = squads?.Count ?? 0;
+            if (_squadsEmpty != null) _squadsEmpty.gameObject.SetActive(count == 0);
             EnsureEntityRows(_squadRows, _squadsContainer, System.Math.Min(count, 6), "Squad",
                 id => _onToggleSquadManual?.Invoke(id));
             for (int i = 0; i < _squadRows.Count; i++)
@@ -293,6 +302,7 @@ namespace Nucleus.Ui
         {
             var opts = catalog?.Options;
             int count = opts?.Count ?? 0;
+            if (_buildEmpty != null) _buildEmpty.gameObject.SetActive(count == 0);
             EnsureEntityRows(_buildRows, _buildContainer, System.Math.Min(count, 6), "Build",
                 id => _onBuyConvoy?.Invoke(id));
             for (int i = 0; i < _buildRows.Count; i++)
@@ -435,6 +445,7 @@ namespace Nucleus.Ui
         private void RenderOpRows(IReadOnlyList<Nucleus.Core.Command.OperationView> ops)
         {
             int count = ops?.Count ?? 0;
+            if (_opsEmpty != null) _opsEmpty.gameObject.SetActive(count == 0);
             EnsureOpRows(System.Math.Min(count, 5)); // cap visible op rows
             for (int i = 0; i < _opRows.Count; i++)
             {
