@@ -37,6 +37,10 @@ namespace Nucleus.Ui
         private readonly Action<Cmd.ObjectiveKind> _onArmObjective;
         private readonly Action<string> _onSelectObjective;
         private readonly Action<string> _onRemoveObjective;
+        private readonly Action<string, string> _onAssignSquad;   // (objectiveId, squadId)
+        private Transform _assignContainer;
+        private TextMeshProUGUI _assignHdr;
+        private readonly List<EntityRow> _assignRows = new List<EntityRow>();
         private readonly Action<string, int> _onNudgePriority;
         private readonly Action<string> _onCycleKind;
         private Transform _objContainer;
@@ -108,7 +112,7 @@ namespace Nucleus.Ui
             Action<string> onToggleSquadManual = null, Action<string> onBuyConvoy = null,
             Action<Cmd.ObjectiveKind> onArmObjective = null, Action<string> onSelectObjective = null,
             Action<string> onRemoveObjective = null, Action<string, int> onNudgePriority = null,
-            Action<string> onCycleKind = null,
+            Action<string> onCycleKind = null, Action<string, string> onAssignSquad = null,
             PanelSections sections = PanelSections.All)
         {
             _sections = sections;
@@ -120,6 +124,7 @@ namespace Nucleus.Ui
             _onArmObjective = onArmObjective;
             _onSelectObjective = onSelectObjective;
             _onRemoveObjective = onRemoveObjective;
+            _onAssignSquad = onAssignSquad;
             _onNudgePriority = onNudgePriority;
             _onCycleKind = onCycleKind;
             _root = UiFactory.Panel("CommanderPanel", parent, theme.PanelBackground);
@@ -220,6 +225,12 @@ namespace Nucleus.Ui
                 UiFactory.Button("PrioUp", eRow.transform, "PRIO +", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, +1); });
                 UiFactory.Button("Retype", eRow.transform, "RETYPE", theme, () => { if (_selectedObjectiveId != null) _onCycleKind?.Invoke(_selectedObjectiveId); });
                 UiFactory.Button("ObjRemove", eRow.transform, "REMOVE", theme, () => { if (_selectedObjectiveId != null) { _onRemoveObjective?.Invoke(_selectedObjectiveId); _selectedObjectiveId = null; } });
+
+                // ASSIGN FORCE — when an objective is selected, list free, suitable squads to hand it. So the
+                // player can actually command ("assign this squad to that objective"), not only toggle autonomy.
+                _assignHdr = UiFactory.Label("AssignHdr", layout.transform, "", 11f, theme.Accent);
+                UiFactory.PreferredHeight(_assignHdr.gameObject, 16f);
+                _assignContainer = UiFactory.VerticalLayout("AssignList", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
             }
 
             if (Has(PanelSections.Mode))
@@ -443,6 +454,59 @@ namespace Nucleus.Ui
                             }
                     _objEditor.text = text;
                 }
+            }
+
+            RenderAssignList(hq);
+        }
+
+        // List free, suitable squads for the selected objective with an ASSIGN button (and any already-assigned
+        // squad with a RELEASE button), so the player can directly command who works an objective.
+        private void RenderAssignList(Cmd.HqSnapshot hq)
+        {
+            if (_assignContainer == null) return;
+            var ops = hq?.Operations;
+            var squads = hq?.Squads;
+
+            // Find the selected objective's kind.
+            Cmd.ObjectiveKind? selKind = null;
+            if (_selectedObjectiveId != null && ops != null)
+                foreach (var o in ops) if (o.ObjectiveId == _selectedObjectiveId) { selKind = o.Kind; break; }
+
+            if (selKind == null || squads == null)
+            {
+                if (_assignHdr != null) _assignHdr.text = "";
+                foreach (var r in _assignRows) r.Go.SetActive(false);
+                return;
+            }
+
+            var suitable = Cmd.Families.SuitableFor(selKind.Value);
+            // Free + suitable squads, plus squads already on THIS objective's operation (to release).
+            var candidates = new List<Cmd.SquadView>();
+            foreach (var s in squads)
+                if (string.IsNullOrEmpty(s.AssignedOperationId) && suitable.Contains(s.Family))
+                    candidates.Add(s);
+
+            if (_assignHdr != null)
+                _assignHdr.text = candidates.Count > 0 ? "ASSIGN FORCE → selected objective" : "ASSIGN FORCE — no free suitable squads";
+
+            int shown = System.Math.Min(candidates.Count, 4);
+            EnsureEntityRows(_assignRows, _assignContainer, shown, "Assign",
+                squadId => { if (_selectedObjectiveId != null) _onAssignSquad?.Invoke(_selectedObjectiveId, squadId); });
+            for (int i = 0; i < _assignRows.Count; i++)
+            {
+                var r = _assignRows[i];
+                if (i < shown)
+                {
+                    var s = candidates[i];
+                    r.Id = s.Id;
+                    string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
+                    r.Label.text = $"{s.Name} · {comp}";
+                    r.BtnLabel.text = "ASSIGN";
+                    r.BtnImg.color = _theme.Accent;
+                    r.Go.SetActive(true);
+                    _assignRows[i] = r;
+                }
+                else r.Go.SetActive(false);
             }
         }
 

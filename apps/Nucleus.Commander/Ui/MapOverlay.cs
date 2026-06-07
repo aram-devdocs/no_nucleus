@@ -117,7 +117,12 @@ namespace Nucleus.Ui
             if (haveSel)
             {
                 var irt = (RectTransform)_selInfo.transform;
-                irt.localPosition = new Vector3(selLocal.X + 12f, selLocal.Y + 20f, 0f);
+                // Edge-clamp: flip which side of the marker the header grows toward so it never clips off the
+                // map. Lower half → grow upward (pivot bottom); right half → grow leftward (pivot right).
+                bool low = selLocal.Y < 0f, right = selLocal.X > 0f;
+                irt.pivot = new Vector2(right ? 1f : 0f, low ? 0f : 1f);
+                _selInfo.alignment = right ? TMPro.TextAlignmentOptions.TopRight : TMPro.TextAlignmentOptions.TopLeft;
+                irt.localPosition = new Vector3(selLocal.X + (right ? -12f : 12f), selLocal.Y + (low ? 12f : 20f), 0f);
                 string threat = selOp.ThreatCount > 0
                     ? $"Threat {selOp.ThreatCount}" + (selOp.ThreatAirDefense > 0 ? $" ({selOp.ThreatAirDefense} SAM)" : "")
                     : "Threat —";

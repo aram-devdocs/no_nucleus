@@ -79,6 +79,7 @@ namespace Nucleus.Composition
                 onRemoveObjective: id => _service.RemoveObjective(id),
                 onNudgePriority: NudgePriority,
                 onCycleKind: CycleKind,
+                onAssignSquad: (objId, squadId) => _service.AssignSquad(objId, squadId),
                 sections: CommanderPanel.PanelSections.Objectives | CommanderPanel.PanelSections.Mode
                     | CommanderPanel.PanelSections.Feed); // show the AI's narrated decisions on the command screen
             UiFactory.Stretch(_panel.Root);
