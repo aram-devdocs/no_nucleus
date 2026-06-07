@@ -55,8 +55,8 @@ namespace Nucleus.Warfare
                 {
                     // Campaign view: operations + battle feed of the shared commander. Save/resume of the
                     // two-faction war is automatic (resume on load, persist on shutdown).
-                    _panel = new CommanderPanel(parent, ctx.Ui.Theme, onArm: null, onClearAll: null,
-                        onClearOrder: null, onToggleOpManual: id => ctx.Campaign?.ToggleOperationManual(id),
+                    _panel = new CommanderPanel(parent, ctx.Ui.Theme,
+                        onToggleOpManual: id => ctx.Campaign?.ToggleOperationManual(id),
                         sections: CommanderPanel.PanelSections.Scoreboard | CommanderPanel.PanelSections.Operations
                                 | CommanderPanel.PanelSections.Feed);
                     UiFactory.Stretch(_panel.Root);

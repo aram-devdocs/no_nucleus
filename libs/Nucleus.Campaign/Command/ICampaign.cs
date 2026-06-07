@@ -13,7 +13,6 @@ namespace Nucleus.Core.Command
     public interface ICampaign
     {
         // ---- read models ----
-        IReadOnlyList<OrderState> Orders { get; }
         IReadOnlyList<UnitView> LastRoster { get; }
         HqSnapshot Hq();
         ConvoyCatalog Catalog();

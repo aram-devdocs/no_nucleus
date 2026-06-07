@@ -36,23 +36,5 @@ namespace Nucleus.Core.Planning
             if (threat != null && threat.Count > 0) return OrderPhase.Engaging; // arrived, enemies present
             return OrderPhase.Holding;                                          // arrived, area quiet
         }
-
-        /// <summary>Short label for the plan view.</summary>
-        public static string Label(OrderPhase p)
-        {
-            switch (p)
-            {
-                case OrderPhase.Forming: return "forming up";
-                case OrderPhase.Advancing: return "advancing";
-                case OrderPhase.Engaging: return "engaging";
-                case OrderPhase.Suppressing: return "suppressing air defense";
-                case OrderPhase.Holding: return "holding";
-                case OrderPhase.AirTasking: return "air tasking";
-                case OrderPhase.Queued: return "queued";
-                case OrderPhase.Complete: return "complete";
-                case OrderPhase.Failed: return "failed";
-                default: return p.ToString().ToLowerInvariant();
-            }
-        }
     }
 }

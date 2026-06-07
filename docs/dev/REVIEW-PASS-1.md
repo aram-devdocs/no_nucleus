@@ -101,7 +101,17 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
   machinery (HoverMark/SizeRing/EnsureHover/HoverLine/ClearHover + _hover* fields + RingMin/MaxLocal consts +
   the ClearHover() call in Clear()); updated the class doc. No callers (grep-confirmed). Build 0 warn + Core 144
   + arch 9. (Last OrderColors refs now live only in CommanderPanel's dead C7 code → C10 lands with C7.)
-- Wave C remainder — dead-code removal (C7 CommanderPanel Orders block + Render overload,
+- **C7/C9/C10/C26 DONE** — removed the legacy manual-order surface (replaced by the objectives system):
+  C7 CommanderPanel — Orders section, dead Render(orders,…) overload + UnitSuffix/AddToggle/Flip/StepRange/
+  RefreshControls/EnsureRows, the _title/_status/_rangeLabel/_ordersHeader/_ordersContainer/_domToggles/
+  _attack.._move/_rows/_onClearOrder/_domains/_rangeKm members + DomToggle/RowWidgets structs + Domains/RangeMeters
+  props + the onArm/onClearAll/onClearOrder ctor params + the Orders enum flag (4 call sites updated). C9
+  CommanderService — PlaceOrder/PreviewAt/Orders/Clear/ClearAll/CurrentRoster + _production + the unreachable
+  _mgr.Orders loop in RefreshAirIntent; removed Orders from ICampaign (no consumer). _mgr KEPT (the live Tick
+  still calls _mgr.Tick/CommittedUnitIds — a no-op now, but CommanderService has no headless test so a deeper
+  removal is unverifiable; left as a future cleanup). C10 deleted OrderColors.cs (ObjectiveVisuals is the SSOT).
+  C26 deleted BattlePlan.Label (kept PhaseOf). Behavior-preserving subtraction. Build 0/0 + Core 144 + Sim 42 +
+  arch 9. (was: C7 CommanderPanel Orders block + Render overload,
   C9 CommanderService PlaceOrder/PreviewAt + _mgr + ICampaign.Orders, C10 OrderColors.cs, C26 BattlePlan.Label).
   Large, must be done together; behavior-preserving subtraction. HIGH value.
 - Wave G — public API (G11 ModData init-props + ModRegistry guard, G12 Vec3/ColorRgba value equality, G13 fix

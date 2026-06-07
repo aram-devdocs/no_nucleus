@@ -16,7 +16,6 @@ namespace Nucleus.Game
         private readonly GameRoster _roster = new GameRoster();
         private readonly GameIntel _intel = new GameIntel();
         private readonly GameUnitCommands _cmds = new GameUnitCommands();
-        private readonly GameProduction _production = new GameProduction();
         private readonly GameCapture _capture = new GameCapture();
         private readonly CommanderDebugProbe _debug = new CommanderDebugProbe();
         private CommanderState _auto = new CommanderState();
@@ -32,7 +31,6 @@ namespace Nucleus.Game
         }
 
         public CommanderConfig Config => _cfg;
-        public IReadOnlyList<OrderState> Orders => _mgr.Orders;
         /// <summary>Roster from the last Place/Tick (refreshed on the throttled management loop).</summary>
         public IReadOnlyList<UnitView> LastRoster { get; private set; } = new List<UnitView>();
 
@@ -50,44 +48,6 @@ namespace Nucleus.Game
         // Committed-units snapshot, refreshed on Place/Tick and reused by the per-frame hover preview so we
         // don't rebuild it every frame (review S1).
         private System.Collections.Generic.HashSet<string> _committed = new System.Collections.Generic.HashSet<string>();
-
-        /// <summary>Place an order at a world point: plan a suitable subset and command them. Host-side.</summary>
-        public OrderState PlaceOrder(OrderKind kind, Vec3 world, DomainSet domains, float radius)
-        {
-            // Build = commission-only: queue production at the base; no unit tasking, no rally.
-            if (kind == OrderKind.Build)
-            {
-                string result = _production.Commission();
-                var bo = new CommanderOrder("ord-" + (++_counter), kind, world, 0f, domains);
-                var bs = new OrderState(bo) { Status = OrderStatus.Complete, Summary = result };
-                _mgr.AddExisting(bs);
-                CommanderPlugin.Log?.LogInfo($"Build commission: {result}");
-                return bs;
-            }
-
-            var roster = _roster.BuildRoster();
-            SetRoster(roster);
-            float r = radius > 0f ? radius : _cfg.SelectionRadius;
-            var threat = ThreatAssessor.Assess(_intel.KnownEnemiesNear(world, r));
-            var order = new CommanderOrder("ord-" + (++_counter), kind, world, r, domains);
-            var plan = _mgr.AddOrder(order, roster, threat);
-            foreach (var t in plan.Tasks) _cmds.Execute(t);
-            _committed = _mgr.CommittedUnitIds(roster);
-            RefreshAirIntent();
-            CommanderPlugin.Log?.LogInfo($"Order {order.Id} ({kind}, {domains}, r={r:0}) at {world}: {plan.Tasks.Count} unit(s) tasked.");
-            return _mgr.Orders[_mgr.Orders.Count - 1];
-        }
-
-        /// <summary>Live preview of who'd be assigned at a hover point (uses the cached roster).</summary>
-        public AssignmentPreview PreviewAt(OrderKind kind, Vec3 world, DomainSet domains, float radius)
-        {
-            if (LastRoster.Count == 0) SetRoster(_roster.BuildRoster());
-            float r = radius > 0f ? radius : _cfg.SelectionRadius;
-            var threat = ThreatAssessor.Assess(_intel.KnownEnemiesNear(world, r));
-            var order = new CommanderOrder("preview", kind, world, r, domains);
-            // Honor cross-order exclusivity using the cached committed snapshot (refreshed on Place/Tick).
-            return OrderPlanner.Preview(order, LastRoster, threat, _cfg, _committed);
-        }
 
         /// <summary>Management tick (throttled by the runtime): validate/reassign/complete, re-issue tasks.</summary>
         public void Tick()
@@ -136,21 +96,12 @@ namespace Nucleus.Game
             _debug.Tick();   // S0 instrumentation (no-op unless CommanderDebug)
         }
 
-        // Publish aircraft ingress zones (consumed by the NoTarget patch) from BOTH layers:
-        //  • manual Air-domain orders — SEAD-before-strike: withhold while air defenses remain (ground softens first);
-        //  • autonomous operations whose combined-arms phase engages aircraft (recon/air-superiority/SEAD/strike),
-        //    so jets join the auto war while ground holds back for the assault phase.
+        // Publish aircraft ingress zones (consumed by the NoTarget patch) from the autonomous operations whose
+        // combined-arms phase engages aircraft (recon/air-superiority/SEAD/strike), so jets join the auto war
+        // while ground holds back for the assault phase.
         private void RefreshAirIntent()
         {
             var zones = new List<Vec3>();
-            foreach (var o in _mgr.Orders)
-            {
-                if (o.Status == OrderStatus.Complete || o.Status == OrderStatus.Failed) continue;
-                if ((o.Order.Domains & DomainSet.Air) == 0) continue;
-                var threat = ThreatAssessor.Assess(_intel.KnownEnemiesNear(o.Order.Position, _cfg.ThreatRadius));
-                if (OrderPlanner.SeadPending(o.Order, threat)) continue; // hold aircraft until air defenses fall
-                zones.Add(o.Order.Position);
-            }
             foreach (var op in _auto.Operations)
             {
                 if (op.Status != OperationStatus.Active) continue;
@@ -282,8 +233,5 @@ namespace Nucleus.Game
             return true;
         }
 
-        public IReadOnlyList<UnitView> CurrentRoster() => _roster.BuildRoster();
-        public void Clear(string orderId) => _mgr.Clear(orderId);
-        public void ClearAll() => _mgr.ClearAll();
     }
 }

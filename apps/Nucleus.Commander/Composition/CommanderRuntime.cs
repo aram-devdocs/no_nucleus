@@ -69,7 +69,6 @@ namespace Nucleus.Composition
             // mod (a CommanderPanel filling the host's standard ModPanel chrome). Build/Squad/Warfare own the
             // rest. Everything is objectives now: pick a kind, click the map to drop, select a marker to edit.
             _panel = new CommanderPanel(parent, _theme,
-                onArm: null, onClearAll: null, onClearOrder: null,
                 onSetAiCommander: on => _service.SetAiCreatesObjectives(on),
                 onSetAutoFill: on => _service.SetAiAutoFill(on),
                 onToggleOpManual: id => _service.ToggleOperationManual(id),

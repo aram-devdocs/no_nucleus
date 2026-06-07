@@ -36,8 +36,8 @@ namespace Nucleus.Build
                 Label = "BLD",
                 BuildContent = parent =>
                 {
-                    _panel = new CommanderPanel(parent, ctx.Ui.Theme, onArm: null, onClearAll: null,
-                        onClearOrder: null, onBuyConvoy: name => ctx.Campaign?.BuyConvoy(name),
+                    _panel = new CommanderPanel(parent, ctx.Ui.Theme,
+                        onBuyConvoy: name => ctx.Campaign?.BuyConvoy(name),
                         sections: CommanderPanel.PanelSections.Build);
                     UiFactory.Stretch(_panel.Root);
                 },
