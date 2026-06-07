@@ -511,7 +511,11 @@ namespace Nucleus.Ui
                 {
                     var s = squads[i];
                     r.Id = s.Id;
-                    r.Label.text = $"{s.Name} · {s.Family} ×{s.Strength} — {s.Activity}";
+                    // Composition ("2× MBT, 1× IFV") when known, else family ×strength; show have/need when under target.
+                    string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
+                    string need = s.TargetStrength > s.Strength ? $" ({s.Strength}/{s.TargetStrength})" : "";
+                    r.Label.text = $"{s.Name} · {comp}{need} — {s.Activity}";
+                    r.Label.color = s.Depleted ? new Color(1f, 0.5f, 0.5f) : _theme.Text;
                     bool manual = s.Autonomy == Cmd.AutonomyLevel.Manual;
                     r.BtnLabel.text = manual ? "MANUAL" : "AUTO";
                     r.BtnImg.color = manual ? _theme.Accent : _theme.ButtonIdle;

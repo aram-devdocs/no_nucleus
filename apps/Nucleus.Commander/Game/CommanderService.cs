@@ -155,8 +155,14 @@ namespace Nucleus.Game
             return new Vec3(x / roster.Count, y / roster.Count, z / roster.Count);
         }
 
-        /// <summary>Render-ready snapshot of the autonomous commander (ops/squads/production/feed) for the HQ UI.</summary>
-        public Core.Command.HqSnapshot AutoHq() => Core.Command.HqView.Build(_auto, _auto.Log, _prodQueue);
+        /// <summary>Render-ready snapshot of the autonomous commander (ops/squads/production/feed) for the HQ UI.
+        /// Passes a unit-id→role map (from the live roster) so squad rows can show composition ("2× MBT, 1× IFV").</summary>
+        public Core.Command.HqSnapshot AutoHq()
+        {
+            var roles = new Dictionary<string, Role>(LastRoster.Count);
+            foreach (var u in LastRoster) roles[u.Id] = u.Role;
+            return Core.Command.HqView.Build(_auto, _auto.Log, _prodQueue, 10, roles);
+        }
 
         // ---- ICampaign aliases (the shared-campaign contract the host exposes to every mod) ----
         public Core.Command.HqSnapshot Hq() => AutoHq();

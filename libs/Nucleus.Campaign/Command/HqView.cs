@@ -57,15 +57,23 @@ namespace Nucleus.Core.Command
         public RoleFamily Family { get; }
         public int Strength { get; }
         public SquadStatus Status { get; }
+        /// <summary>Convenience flag so the UI layer can red-flag a hurt squad without referencing the
+        /// SquadStatus enum (which lives in Nucleus.Squads, outside the Ui lib's allowed dependency set).</summary>
+        public bool Depleted => Status == SquadStatus.Depleted;
         public string AssignedOperationId { get; }
         public AutonomyLevel Autonomy { get; }
         /// <summary>What the squad is doing right now, e.g. "DestroyTarget — Strike" or "Reserve". For the UI.</summary>
         public string Activity { get; }
         /// <summary>The squad's member unit ids — so the map can track its units + draw lines to its objective.</summary>
         public IReadOnlyList<string> MemberUnitIds { get; }
+        /// <summary>Human composition, e.g. "2× MBT, 1× IFV" — empty when no roster role map was supplied.</summary>
+        public string Composition { get; }
+        /// <summary>Target strength (TargetComposition total) for "have/need" readouts; 0 when unknown.</summary>
+        public int TargetStrength { get; }
 
         public SquadView(string id, string name, RoleFamily family, int strength, SquadStatus status,
-            string assignedOperationId, AutonomyLevel autonomy, string activity, IReadOnlyList<string> memberUnitIds = null)
+            string assignedOperationId, AutonomyLevel autonomy, string activity, IReadOnlyList<string> memberUnitIds = null,
+            string composition = "", int targetStrength = 0)
         {
             Id = id;
             Name = name;
@@ -76,6 +84,8 @@ namespace Nucleus.Core.Command
             Autonomy = autonomy;
             Activity = activity ?? "";
             MemberUnitIds = memberUnitIds ?? new List<string>();
+            Composition = composition ?? "";
+            TargetStrength = targetStrength;
         }
     }
 
@@ -115,7 +125,7 @@ namespace Nucleus.Core.Command
     public static class HqView
     {
         public static HqSnapshot Build(CommanderState state, BattleLog log, ProductionQueue production,
-            int recentCount = 10)
+            int recentCount = 10, IReadOnlyDictionary<string, Role> unitRoles = null)
         {
             var operations = state.Operations
                 .Select(op => new OperationView(
@@ -141,7 +151,8 @@ namespace Nucleus.Core.Command
             var squads = state.Squads.Squads
                 .Select(s => new SquadView(
                     s.Id, s.Name, s.Family, s.Strength, s.Status, s.AssignedOperationId, s.Autonomy,
-                    SquadActivity(s, state), new List<string>(s.MemberUnitIds)))
+                    SquadActivity(s, state), new List<string>(s.MemberUnitIds),
+                    CompositionLabel(s, unitRoles), s.TargetComposition?.Total ?? 0))
                 .ToList();
 
             var productionLines = production != null
@@ -154,6 +165,25 @@ namespace Nucleus.Core.Command
 
             return new HqSnapshot(operations, squads, productionLines, recent,
                 state.AiCreatesObjectives, state.AiAutoFill);
+        }
+
+        /// <summary>Composition string from a unit-id→role map: "2× MBT, 1× IFV" (top 3 by count). Empty when
+        /// no map is supplied (e.g. the enemy-side Hq) — the UI then falls back to the family ×strength form.</summary>
+        private static string CompositionLabel(Squad s, IReadOnlyDictionary<string, Role> unitRoles)
+        {
+            if (unitRoles == null || s.MemberUnitIds == null || s.MemberUnitIds.Count == 0) return "";
+            var counts = new Dictionary<string, int>();
+            foreach (var id in s.MemberUnitIds)
+            {
+                if (!unitRoles.TryGetValue(id, out var role)) continue;
+                var lbl = RoleLabels.Short(role);
+                counts[lbl] = counts.TryGetValue(lbl, out var c) ? c + 1 : 1;
+            }
+            if (counts.Count == 0) return "";
+            return string.Join(", ", counts
+                .OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key)
+                .Take(3)
+                .Select(kv => $"{kv.Value}× {kv.Key}"));
         }
 
         /// <summary>What a squad is doing: its operation's objective + combat phase if engaged, else its
