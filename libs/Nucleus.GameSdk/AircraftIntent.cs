@@ -23,8 +23,6 @@ namespace Nucleus.Game
             if (centers != null) _zones.AddRange(centers);
         }
 
-        public static void Clear() => _zones.Clear();
-
         /// <summary>Nearest air-intent zone to a position, if tasking is enabled and any zone is active.</summary>
         public static bool TryNearest(Vec3 from, out Vec3 center)
         {

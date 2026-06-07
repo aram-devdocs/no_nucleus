@@ -6,8 +6,8 @@ namespace Nucleus.Core.Ports
 {
     // The read (provider) + write (executor) seams the CommanderBrain depends on. The brain is a pure
     // function of these, so the SAME brain drives the local player, an AI commander, and (future) networked
-    // commanders — only the Game-layer implementations swap. Implemented in P1c over the existing adapters
-    // (GameRoster / GameIntel / GameUnitCommands / GameProduction).
+    // commanders — only the Game-layer implementations swap. Implemented by the Game-layer adapters
+    // (GameRoster / GameIntel / GameUnitCommands).
 
     /// <summary>Live friendly roster (classified, Unity-free).</summary>
     public interface IForceProvider
