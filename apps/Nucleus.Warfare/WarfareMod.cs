@@ -79,17 +79,25 @@ namespace Nucleus.Warfare
         }
 
         private bool _setupApplied;
+        private string _lastMission;
 
         // Apply the pre-mission setup choices once the player has started: per-side commander kinds on the war
-        // scoreboard, and the local side's two command toggles (AI COMMANDER / AI AUTO-FILL).
+        // scoreboard, and the local side's two command toggles. Runs only after the war sides are name-bound
+        // (FeedAttrition), and latches ONLY when a side actually matched — otherwise it retries next tick, so a
+        // transient empty/single census on the START tick can't silently drop the config.
         private void ApplySetup()
         {
             if (_setupApplied || !Nucleus.Core.War.WarSetup.Configured || _campaign == null) return;
+            if (_bluforFaction == null) return; // sides not bound yet — wait, don't latch
+
+            bool matched = false;
             foreach (var kv in Nucleus.Core.War.WarSetup.Commanders)
             {
-                if (kv.Key == _campaign.War.Blufor.FactionName) _campaign.War.Blufor.Commander = kv.Value;
-                else if (kv.Key == _campaign.War.Opfor.FactionName) _campaign.War.Opfor.Commander = kv.Value;
+                if (kv.Key == _campaign.War.Blufor.FactionName) { _campaign.War.Blufor.Commander = kv.Value; matched = true; }
+                else if (kv.Key == _campaign.War.Opfor.FactionName) { _campaign.War.Opfor.Commander = kv.Value; matched = true; }
             }
+            if (!matched) return; // bound, but the setup names don't line up yet — retry next tick
+
             // Seed the local commander's toggles (the player's side).
             _ctx?.Campaign?.SetAiCreatesObjectives(Nucleus.Core.War.WarSetup.PlayerSideAiCommander);
             _ctx?.Campaign?.SetAiAutoFill(Nucleus.Core.War.WarSetup.AiAutoFill);
@@ -97,10 +105,21 @@ namespace Nucleus.Warfare
             _ctx?.Log.Info($"[NUCLEUS:SELFTEST] PASS war-setup-applied player='{Nucleus.Core.War.WarSetup.PlayerFaction}'");
         }
 
+        // A new mission/war means fresh setup + attrition binding — clear the latched state so it re-applies.
+        private void ResetForNewMissionIfNeeded()
+        {
+            var mission = _ctx?.Game?.CurrentMissionName;
+            if (mission == _lastMission) return;
+            _lastMission = mission;
+            _setupApplied = false;
+            _bluforFaction = _opforFaction = null;
+            _lastCensus.Clear();
+        }
+
         public void Tick(IModTickContext t)
         {
             _attritionClock += t.UnscaledDeltaTime;
-            if (_attritionClock >= 1f) { _attritionClock = 0f; FeedAttrition(); ApplySetup(); }
+            if (_attritionClock >= 1f) { _attritionClock = 0f; ResetForNewMissionIfNeeded(); FeedAttrition(); ApplySetup(); }
             var c = _ctx?.Campaign;
             if (_panel != null && c != null) _panel.RenderHq(c.Hq(), c.Catalog(), c.Funds());
             // The attrition board reads from the Warfare campaign (both factions' score/funds/losses + win state).

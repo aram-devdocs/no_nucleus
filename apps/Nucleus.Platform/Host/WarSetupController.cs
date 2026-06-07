@@ -18,6 +18,7 @@ namespace Nucleus.Host
         private readonly IGameServices _game;
         private readonly ManualLogSource _log;
         private WarSetupScreen _screen;
+        private System.Collections.Generic.List<string> _sides = new System.Collections.Generic.List<string>();
         private bool _done;          // setup finished (started or not our mode)
         private string _lastMission; // detect mission changes to reset
 
@@ -46,14 +47,34 @@ namespace Nucleus.Host
             if (_game.HasLocalFaction) { Dismiss(); _done = true; return; } // already joined (e.g. dev harness)
             if (_screen != null) return; // already showing
 
-            var factions = _game.FactionNames();
-            if (factions == null || factions.Count < 2) return; // wait for factions to register
+            // Offer only the two MAJOR combatants (by force), matching how the Warfare mod binds Blufor/Opfor —
+            // so the player can't pick a neutral/minor faction that the scoreboard never tracks.
+            var sides = MajorSides();
+            if (sides.Count < 2) return; // wait for factions/units to register
 
             var parent = FindCanvas();
             if (parent == null) return; // no canvas yet — try next frame
 
-            _screen = new WarSetupScreen(parent, Theme.Default, factions, OnStart);
-            _log.LogInfo($"[NUCLEUS:SELFTEST] PASS war-setup-shown factions={factions.Count}");
+            _sides = sides;
+            _screen = new WarSetupScreen(parent, Theme.Default, sides, OnStart);
+            _log.LogInfo($"[NUCLEUS:SELFTEST] PASS war-setup-shown factions={sides.Count}");
+        }
+
+        // The two factions with the most live force (units + airbases), name-sorted to match the Warfare mod.
+        private System.Collections.Generic.List<string> MajorSides()
+        {
+            var result = new System.Collections.Generic.List<string>();
+            try
+            {
+                var census = _game.WarCensus();
+                if (census == null) return result;
+                var ranked = new System.Collections.Generic.List<FactionCensus>(census);
+                ranked.Sort((a, b) => (b.AliveUnits + b.Airbases).CompareTo(a.AliveUnits + a.Airbases));
+                for (int i = 0; i < ranked.Count && i < 2; i++) result.Add(ranked[i].FactionName);
+                result.Sort(System.StringComparer.Ordinal);
+            }
+            catch { }
+            return result;
         }
 
         private void OnStart(string playerFaction, bool aiCommander, bool aiAutoFill)
@@ -61,8 +82,9 @@ namespace Nucleus.Host
             WarSetup.PlayerFaction = playerFaction;
             WarSetup.PlayerSideAiCommander = aiCommander;
             WarSetup.AiAutoFill = aiAutoFill;
+            // Build the map from the SAME side list the screen showed (not a fresh query that may have drifted).
             WarSetup.Commanders = new System.Collections.Generic.Dictionary<string, CommanderKind>();
-            foreach (var f in _game.FactionNames())
+            foreach (var f in _sides)
                 WarSetup.Commanders[f] = f == playerFaction ? CommanderKind.Human : CommanderKind.Ai;
             WarSetup.Configured = true;
 

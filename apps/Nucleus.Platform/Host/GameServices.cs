@@ -42,7 +42,10 @@ namespace Nucleus.Host
             return list;
         }
 
-        public bool HasLocalFaction => GameManager.GetLocalHQ(out var hq) && hq != null;
+        public bool HasLocalFaction
+        {
+            get { try { return GameManager.GetLocalHQ(out var hq) && hq != null; } catch { return false; } }
+        }
 
         public bool JoinFaction(string factionName)
         {
