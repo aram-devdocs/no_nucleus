@@ -19,8 +19,8 @@
 | WS1 | AI objective mix (capture/destroy/defend) | DONE | audit PASS (sim 33) + live CMD shows 2×Capture+1×Destroy | #2 |
 | WS3 | AI narration / barks in feed | DONE | audit PASS (sim 36) + live CMD FEED shows narrated ops | #3 |
 | WS6 | Map selection legibility | DONE | audit PASS + live: intent header + status-colored squad lines | #4 |
-| WS5 | In-flight HUD + world markers | NEXT | — | — |
-| WS7 | Squad legibility & usability | TODO | — | — |
+| WS5 | In-flight HUD + world markers | DONE | audit PASS + live: bottom-right HUD shows ops+intent while flying | #5 |
+| WS7 | Squad legibility & usability | NEXT | — | — |
 | WS8 | Build clarity | TODO | — | — |
 | WS2 | Personality genomes | TODO | — | — |
 | WS9 | Theme tokens + APP-6 symbology | TODO | — | — |

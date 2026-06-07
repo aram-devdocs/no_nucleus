@@ -28,6 +28,14 @@ Legend: [ ] to verify · screenshots are the loop's evidence, your eyes are the 
 - [ ] Confirm lines to assigned squads are colored by status (engaged=red, en route=cyan) and each squad cluster has a label.
 - [ ] Edge case to eyeball: when the objective is near the map border the header can clip — flag if it bothers you (clamp is a known follow-up).
 
+## WS5 — In-flight HUD
+- Evidence: `artifacts/screenshots/ws5-hud2/01-inflight-hud.png` — bottom-right HUD while flying.
+- [ ] Fly (map closed) and confirm the bottom-right HUD lists active ops (kind/phase/squads/priority), highlights the top one, and shows the AI intent line.
+- [ ] Press H — confirm it hides/shows. Confirm it never blocks clicking/aiming through it.
+- [ ] Confirm it disappears when you open the full map (no duplicate info) and reappears when you close it.
+- [ ] FOLLOW-UP to sanity-check: does the war/economy actually advance while you fly with the map closed? (The host tick is map-driven; flagged as a possible "tick the war in flight" fix.)
+
 <!-- The loop appends one block per workstream below as it completes them. -->
+
 
 
