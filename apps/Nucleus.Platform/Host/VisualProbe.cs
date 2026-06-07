@@ -95,6 +95,8 @@ namespace Nucleus.Host
             _shots.Add(new Shot { Name = "02-map-open", SettleSec = 3.0f, Action = () => Map()?.Maximize() });
             // 3-6) Each mod panel, opened by invoking its native bezel button's click.
             _shots.Add(new Shot { Name = "03-cmd", SettleSec = 2.0f, Action = () => PressBezel("commander") });
+            // Select the first objective so the map shows the WS6 selection detail (header + squad lines/labels).
+            _shots.Add(new Shot { Name = "03cmd-selected", SettleSec = 2.0f, Action = ClickFirstSelect });
             _shots.Add(new Shot { Name = "04-bld", SettleSec = 2.0f, Action = () => PressBezel("build") });
             _shots.Add(new Shot { Name = "05-sqd", SettleSec = 2.0f, Action = () => PressBezel("squad") });
             _shots.Add(new Shot { Name = "06-war", SettleSec = 2.0f, Action = () => PressBezel("warfare") });
@@ -181,6 +183,24 @@ namespace Nucleus.Host
             var btn = FindButton(name);
             if (btn == null) { _log.LogWarning($"[NUCLEUS:SHOT] bezel-not-found {name}"); return; }
             btn.onClick.Invoke();
+        }
+
+        // Click the first "SELECT" button in any open panel so an objective becomes selected (drives the
+        // selected-objective map detail). Matches on the button's TMP label text.
+        private static void ClickFirstSelect()
+        {
+            foreach (var b in Resources.FindObjectsOfTypeAll<Button>())
+            {
+                if (b == null || !b.isActiveAndEnabled) continue;
+                var lbl = b.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+                if (lbl != null && lbl.text != null && lbl.text.Trim() == "SELECT")
+                {
+                    b.onClick.Invoke();
+                    Trace("clicked SELECT");
+                    return;
+                }
+            }
+            Trace("no SELECT button found");
         }
 
         private static Button FindButton(string name)

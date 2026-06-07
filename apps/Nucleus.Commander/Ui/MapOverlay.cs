@@ -16,6 +16,8 @@ namespace Nucleus.Ui
         private readonly IMapProjection _projection;
         private readonly List<Image> _markers = new List<Image>();
         private readonly List<TMPro.TextMeshProUGUI> _objLabels = new List<TMPro.TextMeshProUGUI>();
+        private readonly List<TMPro.TextMeshProUGUI> _squadLabels = new List<TMPro.TextMeshProUGUI>();
+        private TMPro.TextMeshProUGUI _selInfo;   // "why/what" header for the selected objective
         private readonly List<Image> _lines = new List<Image>();
         private readonly List<Image> _hoverLines = new List<Image>();
         private readonly List<Image> _hoverMarks = new List<Image>(); // highlight ring on each selected unit
@@ -54,6 +56,7 @@ namespace Nucleus.Ui
         {
             int mi = 0;
             Vec3 selLocal = default; bool haveSel = false;
+            Nucleus.Core.Command.OperationView selOp = default;
             if (ops != null)
             {
                 foreach (var op in ops)
@@ -72,32 +75,57 @@ namespace Nucleus.Ui
                     lbl.color = sel ? NativeColors.Friendly : ObjectiveColor(op.Kind);
                     lbl.fontSize = sel ? 12f : 10f;
                     mi++;
-                    if (sel) { selLocal = local; haveSel = true; }
+                    if (sel) { selLocal = local; haveSel = true; selOp = op; }
                 }
             }
             for (int i = mi; i < _markers.Count; i++) _markers[i].gameObject.SetActive(false);
             for (int i = mi; i < _objLabels.Count; i++) _objLabels[i].gameObject.SetActive(false);
 
-            // When an objective is selected, draw a line from it to every unit of its assigned squads — so the
-            // player sees exactly who's working it and where they're headed.
-            int li = 0;
+            // When an objective is selected, draw a line from it to every unit of its assigned squads — colored
+            // by squad status — and a label at each squad's cluster ("Armor Alpha · engaged"), so the player
+            // sees exactly WHO is working it and WHAT they're doing, not just anonymous lines.
+            int li = 0, sl = 0;
             if (haveSel && squads != null && unitPositions != null)
             {
-                string selOpId = null;
-                foreach (var op in ops) if (op.ObjectiveId == selectedId) { selOpId = op.Id; break; }
-                if (selOpId != null)
-                    foreach (var sq in squads)
+                string selOpId = selOp.Id;
+                foreach (var sq in squads)
+                {
+                    if (sq.AssignedOperationId != selOpId || sq.MemberUnitIds == null) continue;
+                    var col = StatusColor(sq.Status);
+                    float cx = 0f, cy = 0f; int n = 0;
+                    foreach (var uid in sq.MemberUnitIds)
                     {
-                        if (sq.AssignedOperationId != selOpId || sq.MemberUnitIds == null) continue;
-                        foreach (var uid in sq.MemberUnitIds)
-                        {
-                            if (!unitPositions.TryGetValue(uid, out var uw)) continue;
-                            var ul = _projection.WorldToMapLocal(uw);
-                            DrawLine(Line(li++), new Vec3(selLocal.X, selLocal.Y, 0f), ul, NativeColors.Friendly);
-                        }
+                        if (!unitPositions.TryGetValue(uid, out var uw)) continue;
+                        var ul = _projection.WorldToMapLocal(uw);
+                        DrawLine(Line(li++), new Vec3(selLocal.X, selLocal.Y, 0f), ul, col);
+                        cx += ul.X; cy += ul.Y; n++;
                     }
+                    if (n > 0)
+                    {
+                        var slbl = SquadLabel(sl++);
+                        ((RectTransform)slbl.transform).localPosition = new Vector3(cx / n, cy / n + 8f, 0f);
+                        slbl.text = $"{sq.Name} · {StatusPhrase(sq.Status)}";
+                        slbl.color = col;
+                    }
+                }
             }
             for (int i = li; i < _lines.Count; i++) _lines[i].gameObject.SetActive(false);
+            for (int i = sl; i < _squadLabels.Count; i++) _squadLabels[i].gameObject.SetActive(false);
+
+            // The "why/what" header next to the selected objective: intent + phase + threat + ownership.
+            EnsureSelInfo();
+            if (haveSel)
+            {
+                var irt = (RectTransform)_selInfo.transform;
+                irt.localPosition = new Vector3(selLocal.X + 12f, selLocal.Y + 20f, 0f);
+                string threat = selOp.ThreatCount > 0
+                    ? $"Threat {selOp.ThreatCount}" + (selOp.ThreatAirDefense > 0 ? $" ({selOp.ThreatAirDefense} SAM)" : "")
+                    : "Threat —";
+                _selInfo.text = $"{KindName(selOp.Kind)}\n{selOp.Phase} · {selOp.Status}\n{threat}\n"
+                    + $"P{selOp.Priority:0.#} · {(selOp.PlayerOwned ? "you" : "AI")} · {selOp.SquadCount} sq";
+                _selInfo.gameObject.SetActive(true);
+            }
+            else _selInfo.gameObject.SetActive(false);
 
             EnsureSelRing();
             if (haveSel)
@@ -160,6 +188,71 @@ namespace Nucleus.Ui
             _selRing = UiFactory.Ring("ObjSelRing", _layer, NativeColors.Friendly);
             var rt = (RectTransform)_selRing.transform;
             rt.pivot = new Vector2(0.5f, 0.5f);
+        }
+
+        // Full readable name for the selected-objective header (vs. the terse per-marker KindTag).
+        private static string KindName(Nucleus.Core.Command.ObjectiveKind kind)
+        {
+            switch (kind)
+            {
+                case Nucleus.Core.Command.ObjectiveKind.CapturePoint: return "Capture point";
+                case Nucleus.Core.Command.ObjectiveKind.DestroyTarget: return "Destroy target";
+                case Nucleus.Core.Command.ObjectiveKind.DefendArea: return "Defend area";
+                case Nucleus.Core.Command.ObjectiveKind.ControlAirspace: return "Control airspace";
+                case Nucleus.Core.Command.ObjectiveKind.Resupply: return "Resupply";
+                default: return "Recon";
+            }
+        }
+
+        // Short phrase + color for a squad's status, so a line/label reads as "what is this squad doing".
+        private static string StatusPhrase(Nucleus.Core.Command.SquadStatus s)
+        {
+            switch (s)
+            {
+                case Nucleus.Core.Command.SquadStatus.Engaged: return "engaged";
+                case Nucleus.Core.Command.SquadStatus.Ready: return "en route";
+                case Nucleus.Core.Command.SquadStatus.Forming: return "forming";
+                case Nucleus.Core.Command.SquadStatus.Depleted: return "depleted";
+                default: return "reserve";
+            }
+        }
+
+        private static Color StatusColor(Nucleus.Core.Command.SquadStatus s)
+        {
+            switch (s)
+            {
+                case Nucleus.Core.Command.SquadStatus.Engaged: return NativeColors.Hostile;          // in contact
+                case Nucleus.Core.Command.SquadStatus.Ready: return NativeColors.Friendly;           // moving up
+                case Nucleus.Core.Command.SquadStatus.Forming: return new Color(0.6f, 0.8f, 1f);
+                case Nucleus.Core.Command.SquadStatus.Depleted: return new Color(0.6f, 0.6f, 0.6f);  // hurt
+                default: return new Color(0.5f, 0.55f, 0.6f);                                        // reserve
+            }
+        }
+
+        // Pooled label placed at a squad's unit cluster.
+        private TMPro.TextMeshProUGUI SquadLabel(int i)
+        {
+            while (_squadLabels.Count <= i)
+            {
+                var t = UiFactory.Label("SquadLabel" + _squadLabels.Count, _layer, "", 10f, Color.white);
+                var rt = t.rectTransform;
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(140f, 16f);
+                t.alignment = TMPro.TextAlignmentOptions.Center;
+                _squadLabels.Add(t);
+            }
+            _squadLabels[i].gameObject.SetActive(true);
+            return _squadLabels[i];
+        }
+
+        private void EnsureSelInfo()
+        {
+            if (_selInfo != null) return;
+            _selInfo = UiFactory.Label("ObjSelInfo", _layer, "", 11f, NativeColors.Friendly);
+            var rt = _selInfo.rectTransform;
+            rt.pivot = new Vector2(0f, 1f);                 // top-left anchored to the marker
+            rt.sizeDelta = new Vector2(150f, 64f);
+            _selInfo.alignment = TMPro.TextAlignmentOptions.TopLeft;
         }
 
         public void Render(IReadOnlyList<OrderState> orders, IReadOnlyDictionary<string, Vec3> unitPositions)
@@ -265,8 +358,10 @@ namespace Nucleus.Ui
         {
             foreach (var m in _markers) m.gameObject.SetActive(false);
             foreach (var l in _objLabels) l.gameObject.SetActive(false);
+            foreach (var l in _squadLabels) l.gameObject.SetActive(false);
             foreach (var l in _lines) l.gameObject.SetActive(false);
             if (_selRing != null) _selRing.gameObject.SetActive(false);
+            if (_selInfo != null) _selInfo.gameObject.SetActive(false);
             ClearHover();
         }
 
