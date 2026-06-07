@@ -101,6 +101,10 @@ if (Test-Path $shotsDir) {
         if ($base -match 'map|cmd|bld|sqd|war') {
             Save-Crop $_.FullName (Join-Path $outDir "$base-map.png") 0.34 0.0 0.40 1.0 | Out-Null
         }
+        # In-flight shot: zoom the bottom-right where the flight HUD renders.
+        if ($base -match 'inflight') {
+            Save-Crop $_.FullName (Join-Path $outDir "$base-hud.png") 0.60 0.55 0.40 0.45 | Out-Null
+        }
     }
 }
 

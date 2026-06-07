@@ -29,6 +29,8 @@ namespace Nucleus
         internal static bool EnableAircraftTasking;
         internal static bool EnableAutoCommander;
         internal static bool CommanderDebug;
+        internal static bool ShowFlightHud = true;
+        internal static KeyCode HudToggleKey = KeyCode.H;
 
         private void Awake()
         {
@@ -44,12 +46,20 @@ namespace Nucleus
                 "Hand idle forces to the autonomous Commander. Off by default = the native game AI runs the war; turn on to let the Commander coordinate.");
             var dbgCfg = Config.Bind("Commander", "CommanderDebug", false,
                 "Instrumentation: log debug lines (unit ids, kill tracking, terrain) for one playtest.");
+            var hudCfg = Config.Bind("Commander", "ShowFlightHud", true,
+                "Show a compact objective HUD in the bottom-right while flying (map closed).");
+            var hudKeyCfg = Config.Bind("Commander", "FlightHudToggleKey", KeyCode.H,
+                "Key to show/hide the in-flight objective HUD.");
 
             ArriveRadius = arriveCfg.Value;
             ArmKey = keyCfg.Value;
             EnableAircraftTasking = airCfg.Value;
             EnableAutoCommander = autoCfg.Value;
             CommanderDebug = dbgCfg.Value;
+            ShowFlightHud = hudCfg.Value;
+            HudToggleKey = hudKeyCfg.Value;
+            hudCfg.SettingChanged += (_, __) => ShowFlightHud = hudCfg.Value;
+            hudKeyCfg.SettingChanged += (_, __) => HudToggleKey = hudKeyCfg.Value;
             Game.AircraftIntent.Enabled = airCfg.Value;
             autoCfg.SettingChanged += (_, __) => EnableAutoCommander = autoCfg.Value;
             dbgCfg.SettingChanged += (_, __) => CommanderDebug = dbgCfg.Value;
@@ -63,6 +73,8 @@ namespace Nucleus
             var harmony = new Harmony(Guid);
             try { harmony.PatchAll(typeof(Patches.AircraftTaskingPatch)); Log.LogInfo("Patched: AircraftTaskingPatch"); }
             catch (Exception e) { Log.LogError("Patch AircraftTaskingPatch failed: " + e.Message); }
+            try { harmony.PatchAll(typeof(Patches.CommanderHudTickPatch)); Log.LogInfo("Patched: CommanderHudTickPatch"); }
+            catch (Exception e) { Log.LogError("Patch CommanderHudTickPatch failed: " + e.Message); }
 
             Log.LogInfo("Nucleus Commander loaded.");
         }

@@ -29,6 +29,8 @@ namespace Nucleus.Composition
         private Vec3 _pressWorld;                   // cursor world at mousedown — drag only starts past a dead-zone
         private bool _dragging;                     // true once the cursor moved beyond the dead-zone
         private Nucleus.Core.Command.HqSnapshot _lastHq;
+        private FlightHud _hud;                      // bottom-right objective HUD shown while flying (map closed)
+        private bool _hudVisible = true;
         private bool _firstTick = true;
         private bool _loggedPanel;
         private float _nextManage;
@@ -124,6 +126,52 @@ namespace Nucleus.Composition
                     if (!_loggedPanel) { _loggedPanel = true; CommanderPlugin.Log?.LogInfo("[panel] Commander panel rendering."); }
                 }
             }
+        }
+
+        private float _nextHud;
+
+        /// <summary>
+        /// Render the in-flight objective HUD. Driven by a MissionManager.Update patch (NOT the DynamicMap.Update
+        /// tick that drives the rest of this runtime) because that one stops firing while the map is closed —
+        /// exactly when the flight HUD must be visible. Self-contained: lazy-builds the widget on a screen-space
+        /// canvas, refreshes the Hq snapshot on its own throttle, shows while flying, hides while the map is open.
+        /// </summary>
+        public void TickHud()
+        {
+            if (!CommanderPlugin.ShowFlightHud) { _hud?.SetVisible(false); return; }
+
+            if (_hud == null)
+            {
+                var canvas = FindOverlayCanvas();
+                if (canvas == null) return;
+                _hud = new FlightHud(canvas.transform);
+                _hudVisible = true;
+            }
+            if (Input.GetKeyDown(CommanderPlugin.HudToggleKey)) _hudVisible = !_hudVisible;
+
+            var map = SceneSingleton<DynamicMap>.i;
+            bool open = map != null && DynamicMap.mapMaximized;
+            if (open || !_hudVisible) { _hud.SetVisible(false); return; }
+
+            if (Time.unscaledTime >= _nextHud)
+            {
+                _nextHud = Time.unscaledTime + 0.5f;     // cheap: refresh the snapshot a couple times a second
+                _lastHq = _service.AutoHq();
+                _hud.Render(_lastHq);
+            }
+        }
+
+        // The active top-most screen-space overlay canvas (same pick as the host's menu/setup widgets).
+        private static Canvas FindOverlayCanvas()
+        {
+            Canvas best = null;
+            foreach (var c in Object.FindObjectsOfType<Canvas>())
+            {
+                if (c == null || !c.isActiveAndEnabled) continue;
+                if (c.renderMode != RenderMode.ScreenSpaceOverlay) continue;
+                if (best == null || c.sortingOrder > best.sortingOrder) best = c;
+            }
+            return best;
         }
 
         // The drop-then-edit-in-place flow: with a kind armed, click drops a new objective; otherwise a click
