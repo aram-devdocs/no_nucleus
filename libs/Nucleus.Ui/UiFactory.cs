@@ -135,6 +135,28 @@ namespace Nucleus.Ui
             return img;
         }
 
+        /// <summary>A thin full-width horizontal rule for separating panel sections (visual hierarchy).</summary>
+        public static Image Divider(Transform parent, Color color)
+        {
+            var go = new GameObject("Divider", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            img.raycastTarget = false;
+            PreferredHeight(go, 2f);
+            return img;
+        }
+
+        /// <summary>A section header (accent, slightly larger) preceded by a divider — one consistent way to
+        /// start a panel section so the panel scans top-to-bottom instead of running together.</summary>
+        public static TextMeshProUGUI SectionHeader(Transform parent, string text, Theme theme)
+        {
+            Divider(parent, theme.Muted);
+            var h = Label(text.GetHashCode().ToString(), parent, text, 13f, theme.Accent);
+            PreferredHeight(h.gameObject, 20f);
+            return h;
+        }
+
         public static LayoutElement PreferredHeight(GameObject go, float height)
         {
             var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();

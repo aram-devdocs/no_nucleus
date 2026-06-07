@@ -196,7 +196,7 @@ namespace Nucleus.Ui
             {
                 // OBJECTIVES — the single command primitive. Pick a kind, click the map to DROP it, then select
                 // a marker to EDIT in place (priority, retype, remove). The AI fills it with squads (or you do).
-                UiFactory.PreferredHeight(UiFactory.Label("ObjHdr", layout.transform, "OBJECTIVES — drop on the map", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, "OBJECTIVES — drop on the map", theme);
 
                 // Palette: one button per objective kind; clicking arms that kind for the next map click.
                 var pRow1 = UiFactory.HorizontalLayout("ObjPalette1", layout.transform, 4f);
@@ -238,8 +238,7 @@ namespace Nucleus.Ui
             {
                 // The mod is always on. Two toggles: who creates objectives (AI or you), and whether the AI
                 // auto-fills objectives with squads (forms + recruits + assigns). Green when on.
-                _hqHeader = UiFactory.Label("HqHeader", layout.transform, "COMMANDER", 14f, theme.Accent);
-                UiFactory.PreferredHeight(_hqHeader.gameObject, 22f);
+                _hqHeader = UiFactory.SectionHeader(layout.transform, "COMMANDER", theme);
 
                 var aiCmdBtn = UiFactory.Button("AiCommander", layout.transform, "AI COMMANDER", theme,
                     () => onSetAiCommander?.Invoke(!_aiCommanderOn));
@@ -261,7 +260,7 @@ namespace Nucleus.Ui
             if (Has(PanelSections.Operations))
             {
                 // OPERATIONS — one interactive row per op with an AUTO/MANUAL toggle (take a slice).
-                UiFactory.PreferredHeight(UiFactory.Label("OpsHdr", layout.transform, "OPERATIONS", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, "OPERATIONS", theme);
                 _opsContainer = UiFactory.VerticalLayout("HqOps", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
                 _opsEmpty = UiFactory.Label("OpsEmpty", layout.transform, "No operations running. Drop an objective on the map (or enable AI COMMANDER) and the squads will form up and fight.", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_opsEmpty.gameObject, 48f);
@@ -270,7 +269,7 @@ namespace Nucleus.Ui
             if (Has(PanelSections.Squads))
             {
                 // SQUADS — name + what it's doing + an AUTO/MANUAL toggle (manage each squad).
-                UiFactory.PreferredHeight(UiFactory.Label("SquadsHdr", layout.transform, "SQUADS", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, "SQUADS", theme);
                 _squadsContainer = UiFactory.VerticalLayout("HqSquads", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
                 _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, "No squads yet. Squads form automatically from your forces as the war starts.", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_squadsEmpty.gameObject, 48f);
@@ -279,7 +278,7 @@ namespace Nucleus.Ui
             if (Has(PanelSections.Build))
             {
                 // BUILD — buy reinforcement convoys: a row per convoy (name + contents + cost) with a BUY button.
-                UiFactory.PreferredHeight(UiFactory.Label("BuildHdr", layout.transform, "BUILD — reinforce", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, "BUILD — reinforce", theme);
                 UiFactory.PreferredHeight(UiFactory.Label("BuildAircraft", layout.transform,
                     "AIRCRAFT — spawn from your airbases (not bought here).", 11f, theme.Muted).gameObject, 16f);
                 UiFactory.PreferredHeight(UiFactory.Label("BuildHint", layout.transform,
@@ -299,7 +298,7 @@ namespace Nucleus.Ui
             if (Has(PanelSections.Scoreboard))
             {
                 // SCOREBOARD — the attrition win condition: both factions' score (with a bar), funds, losses.
-                UiFactory.PreferredHeight(UiFactory.Label("ScoreHdr", layout.transform, "ATTRITION", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, "ATTRITION", theme);
                 _scoreTitle = UiFactory.Label("ScoreTitle", layout.transform,
                     "Drive the enemy's score to zero. It falls as a side loses units and bases — and as it spends on reinforcement (faster once bases are lost).",
                     11f, theme.Muted);
@@ -320,7 +319,7 @@ namespace Nucleus.Ui
             if (Has(PanelSections.Feed))
             {
                 // FEED — production status + recent battle events (what the commander is doing).
-                UiFactory.PreferredHeight(UiFactory.Label("FeedHdr", layout.transform, "FEED", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, "FEED", theme);
                 _hqBody = UiFactory.Label("HqBody", layout.transform, "", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_hqBody.gameObject, 110f);
             }
