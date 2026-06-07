@@ -12,6 +12,7 @@
 [CmdletBinding()]
 param(
     [string]$Mission = "Nucleus Dynamic Warfare",
+    [string]$Faction = "",          # optional: join this side and probe player-side behaviour (objectives)
     [int]$TimeoutSec = 220,
     [switch]$NoBuild
 )
@@ -32,11 +33,14 @@ if (-not $NoBuild) {
     if ($LASTEXITCODE -ne 0) { throw "build failed" }
 }
 if (Test-Path $log) { Clear-Content $log -ErrorAction SilentlyContinue }
-Set-Content -Path $trigger -Value $Mission -Encoding utf8   # arm the auto-loader
+$triggerValue = if ($Faction) { "$Mission|$Faction" } else { $Mission }
+Set-Content -Path $trigger -Value $triggerValue -Encoding utf8   # arm the auto-loader (Mission or Mission|Faction)
 
 Write-Host "[inmission] launching (auto-loading '$Mission', timeout ${TimeoutSec}s)..." -ForegroundColor Cyan
 $proc = Start-Process $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru
 
+# With a faction we wait for the post-join probe; otherwise just for the in-mission census.
+$doneMarker = if ($Faction) { 'no-phantom-objectives|phantom-objectives-on-friendlies' } else { 'inmission-units-present' }
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $hit = $null; $fail = $false
 while ((Get-Date) -lt $deadline) {
@@ -44,8 +48,8 @@ while ((Get-Date) -lt $deadline) {
     if ($proc.HasExited) { break }
     if (Test-Path $log) {
         $text = Get-Content $log -Raw -ErrorAction SilentlyContinue
-        if ($text -match 'inmission-units-present') { $hit = $true; break }
-        if ($text -match 'SELFTEST\] FAIL mission-autoload|NullReferenceException|MissingMethodException|MissingFieldException') { $fail = $true; break }
+        if ($text -match $doneMarker) { $hit = $true; break }
+        if ($text -match 'SELFTEST\] FAIL (mission-autoload|join|probe)|NullReferenceException|MissingMethodException|MissingFieldException') { $fail = $true; break }
     }
 }
 

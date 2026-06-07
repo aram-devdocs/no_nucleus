@@ -20,6 +20,9 @@ namespace Nucleus.Host
         // The shared live campaign, published once by the Commander mod and read by Build/Squad/Warfare.
         private Nucleus.Core.Command.ICampaign _campaign;
 
+        /// <summary>The shared live campaign (null until the Commander mod publishes it). For the dev harness.</summary>
+        public Nucleus.Core.Command.ICampaign Campaign => _campaign;
+
         public ModHost(ManualLogSource log,
             System.Func<string, bool> readEnabled = null,
             System.Action<string, bool> writeEnabled = null)

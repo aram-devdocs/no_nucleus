@@ -21,30 +21,36 @@ namespace Nucleus.Host
     /// </summary>
     internal static class MissionAutoLoader
     {
-        private enum Phase { Off, WaitNetwork, LoadIssued, Done }
+        private enum Phase { Off, WaitNetwork, LoadIssued, Joining, Probing, Done }
         private static Phase _phase = Phase.Off;
         private static string _name;
+        private static string _faction;     // optional: join this side and probe player-side behaviour
         private static ManualLogSource _log;
         private static float _armedAt = -1f;
         private static float _loadAt = -1f;
+        private static float _joinAt = -1f;
         private static readonly GameWar _war = new GameWar();
+        private static readonly GameRoster _roster = new GameRoster();
 
         public static void Maybe(ManualLogSource log)
         {
-            string name = null;
+            string raw = null;
             try
             {
                 var path = System.IO.Path.Combine(Application.dataPath, "..", "nucleus-autoload.txt");
-                if (System.IO.File.Exists(path)) name = System.IO.File.ReadAllText(path).Trim();
+                if (System.IO.File.Exists(path)) raw = System.IO.File.ReadAllText(path).Trim();
             }
             catch { /* fall through to env var */ }
-            if (string.IsNullOrEmpty(name)) name = Environment.GetEnvironmentVariable("NUCLEUS_AUTOLOAD_MISSION");
-            if (string.IsNullOrEmpty(name)) return; // not in harness mode
+            if (string.IsNullOrEmpty(raw)) raw = Environment.GetEnvironmentVariable("NUCLEUS_AUTOLOAD_MISSION");
+            if (string.IsNullOrEmpty(raw)) return; // not in harness mode
 
-            _name = name;
+            // Format: "Mission Name" or "Mission Name|Faction" (join that side and probe player-side behaviour).
+            var parts = raw.Split('|');
+            _name = parts[0].Trim();
+            _faction = parts.Length > 1 ? parts[1].Trim() : null;
             _log = log;
             _phase = Phase.WaitNetwork;
-            log.LogInfo($"[NUCLEUS] mission auto-loader armed for '{name}'");
+            log.LogInfo($"[NUCLEUS] mission auto-loader armed for '{_name}'" + (_faction != null ? $" join='{_faction}'" : ""));
         }
 
         /// <summary>Driven every frame at the main menu (MainMenu.Update patch). Waits for networking, then
@@ -95,8 +101,13 @@ namespace Nucleus.Host
         /// census (faction counts, airbases, the game's scripted-objective count) and the in-mission marker.</summary>
         public static void TickMission()
         {
-            if (_phase != Phase.LoadIssued) return;
+            if (_phase == Phase.LoadIssued) { TickCensus(); return; }
+            if (_phase == Phase.Joining) { TickJoin(); return; }
+            if (_phase == Phase.Probing) { TickProbe(); return; }
+        }
 
+        private static void TickCensus()
+        {
             var census = _war.Census();
             int units = 0;
             foreach (var f in census) units += f.AliveUnits;
@@ -118,6 +129,61 @@ namespace Nucleus.Host
             }
             _log.LogInfo($"[NUCLEUS:METRIC] inmission factions={factions} units={totalUnits} airbases={totalBases} gameObjectives={SafeGameObjectiveCount()}");
             _log.LogInfo("[NUCLEUS:SELFTEST] PASS inmission-units-present");
+            _phase = _faction != null ? Phase.Joining : Phase.Done;
+        }
+
+        // Join the requested side (replicates JoinMenu.JoinFaction) so the Commander brain runs for a local
+        // faction — lets the harness verify player-side behaviour (objectives, phantom-objective regression).
+        private static void TickJoin()
+        {
+            try
+            {
+                if (!GameManager.GetLocalPlayer<Player>(out var player) || player == null) return; // wait for local player
+                var hq = FactionRegistry.HqFromName(_faction);
+                if (hq == null) { _log.LogError($"[NUCLEUS:SELFTEST] FAIL join-no-hq faction='{_faction}'"); _phase = Phase.Done; return; }
+
+                player.SetFaction(hq);
+                var map = SceneSingleton<DynamicMap>.i;
+                if (map != null) { map.SetFaction(hq); map.Maximize(); }
+                _log.LogInfo($"[NUCLEUS:SELFTEST] PASS joined-faction name='{_faction}'");
+                _phase = Phase.Probing;
+                _joinAt = Time.realtimeSinceStartup;
+            }
+            catch (Exception e)
+            {
+                _log.LogError("[NUCLEUS:SELFTEST] FAIL join-exception " + e);
+                _phase = Phase.Done;
+            }
+        }
+
+        // After joining, let the Commander brain run, then probe OUR objectives: count them, and count how many
+        // sit on top of a FRIENDLY unit (within 2 km) — the #17 phantom-objective regression. Should be 0.
+        private static void TickProbe()
+        {
+            if (Time.realtimeSinceStartup - _joinAt < 8f) return; // give the brain time to generate objectives
+            try
+            {
+                var roster = _roster.BuildRoster();
+                var hq = PlatformPlugin.Host?.Campaign?.Hq();
+                int ours = hq?.Operations?.Count ?? 0;
+                int enemies = new GameIntel().KnownEnemiesNear(new Nucleus.Core.Model.Vec3(0, 0, 0), 5_000_000f).Count;
+
+                int phantom = 0;
+                if (hq?.Operations != null)
+                {
+                    foreach (var op in hq.Operations)
+                        foreach (var u in roster)
+                            if (op.Position.HorizontalDistanceTo(u.Position) < 2000f) { phantom++; break; }
+                }
+                _log.LogInfo($"[NUCLEUS:METRIC] postjoin roster={roster.Count} enemies={enemies} ourObjectives={ours} phantomObjectives={phantom}");
+                _log.LogInfo(phantom == 0
+                    ? "[NUCLEUS:SELFTEST] PASS no-phantom-objectives"
+                    : "[NUCLEUS:SELFTEST] FAIL phantom-objectives-on-friendlies");
+            }
+            catch (Exception e)
+            {
+                _log.LogError("[NUCLEUS:SELFTEST] FAIL probe-exception " + e);
+            }
             _phase = Phase.Done;
         }
 
