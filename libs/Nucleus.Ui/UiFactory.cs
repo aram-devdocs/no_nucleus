@@ -69,15 +69,6 @@ namespace Nucleus.Ui
             return tmp;
         }
 
-        /// <summary>A centered placeholder label filling its parent — for mod screens whose real content
-        /// lands in a later phase, so the native MFD screen is non-empty and proves the bezel/highlight path.</summary>
-        public static TextMeshProUGUI Placeholder(Transform parent, string text)
-        {
-            var label = Label("Placeholder", parent, text, 18f, new Color(0.85f, 0.9f, 0.95f, 1f), TextAlignmentOptions.Center);
-            Stretch(label.rectTransform);
-            return label;
-        }
-
         public static Button Button(string name, Transform parent, string text, Theme theme, UnityAction onClick)
         {
             var rt = Panel(name, parent, theme.ButtonIdle);

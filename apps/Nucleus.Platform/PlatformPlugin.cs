@@ -68,6 +68,9 @@ namespace Nucleus
             Nucleus.Host.VisualProbe.Maybe(Log);
         }
 
+        // Game quitting: let each mod tear down (e.g. Warfare persists the campaign so a multi-hour war survives).
+        private void OnApplicationQuit() => Host?.Registry.ShutdownAll();
+
         private static void ApplyPatch(Harmony harmony, Type patchType)
         {
             try { harmony.PatchAll(patchType); Log.LogInfo("Patched: " + patchType.Name); }

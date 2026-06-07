@@ -1,10 +1,8 @@
 namespace Nucleus.Core.Command
 {
-    /// <summary>
-    /// Tunable command rules. A single <see cref="RiskTolerance"/> master (0 = cautious, 1 = aggressive)
-    /// derives the combined-arms thresholds in P2 (air-superiority ratio, residual-AD tolerance, soften
-    /// fraction) and the force-sizing ratio. Pure data; layered per Commander/Operation/Squad later.
-    /// </summary>
+    /// <summary>Tunable command rules. A single <see cref="RiskTolerance"/> master (0 = cautious, 1 = aggressive)
+    /// derives the combined-arms phase thresholds (air-superiority ratio, residual-AD tolerance, soften fraction)
+    /// and the force-sizing ratio.</summary>
     public sealed class Doctrine
     {
         public float RiskTolerance { get; set; } = 0.5f;

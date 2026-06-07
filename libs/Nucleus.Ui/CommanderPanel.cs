@@ -546,11 +546,6 @@ namespace Nucleus.Ui
             }
         }
 
-        public void SetVisible(bool visible)
-        {
-            if (_root != null) _root.gameObject.SetActive(visible);
-        }
-
         private void RenderOpRows(IReadOnlyList<Nucleus.Core.Command.OperationView> ops)
         {
             int count = ops?.Count ?? 0;

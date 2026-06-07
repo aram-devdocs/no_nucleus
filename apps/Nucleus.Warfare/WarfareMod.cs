@@ -58,7 +58,7 @@ namespace Nucleus.Warfare
             });
         }
 
-        /// <summary>The live campaign (for the mission driver / future Warfare panel).</summary>
+        /// <summary>The live campaign (for the mission driver).</summary>
         public WarfareCampaign Campaign => _campaign;
 
         /// <summary>Persist the current war so it can be resumed next session.</summary>

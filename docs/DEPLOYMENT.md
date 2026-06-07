@@ -21,10 +21,10 @@ this tool). Ship it alongside the built plugin folders in a GitHub Release zip.
 (`Private=false`); verified: a lib's nupkg contains only its own DLL. Consumers bring their own via `setup-sdk`.
 
 ## GitHub Actions
-- **`ci.yml`** (in place): on every push/PR, an ubuntu job runs the always-on headless layers (Core unit +
+- **`ci.yml`**: on every push/PR, an ubuntu job runs the always-on headless layers (Core unit +
   architecture + campaign sim) with no game DLLs; the full `check.sh` (solution build + contract +
   integration) runs only when `lib/Assembly-CSharp.dll` is present.
-- **`release.yml`** (pending): on tag `v*`, two jobs —
+- **`release.yml`**: on tag `v*`, two jobs —
   - **pack**: `dotnet pack` the SDK libs (+ `snupkg` symbols, deterministic, SourceLink) → `dotnet nuget push`
     to nuget.org. Gated on the api-snapshot being green so public-surface changes are intentional.
   - **package**: build each plugin, assemble `manifest.json` + `icon.png` + `README`, zip, publish via the
@@ -60,7 +60,3 @@ Add each: repo **Settings → Secrets and variables → Actions → New reposito
 2. `pwsh scripts/audit.ps1` green (all layers).
 3. Tag `vX.Y.Z` and push → `release.yml` packs+pushes NuGet and publishes Thunderstore.
 4. Publish/refresh the Steam Workshop mission if the campaign changed.
-
-## Repo + folder rename (Phase 7)
-`gh repo rename no_nucleus`; then **you** rename the local folder (a shell can't rename its own cwd): close the
-session, `mv nuclear_option_command no_nucleus`, reopen. Update the remote URL if needed.
