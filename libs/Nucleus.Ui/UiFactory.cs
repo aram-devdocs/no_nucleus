@@ -135,6 +135,31 @@ namespace Nucleus.Ui
             return img;
         }
 
+        /// <summary>A functional vertical scrollbar (track + draggable handle) to attach to a ScrollRect — so the
+        /// player can SEE and grab the scroll, not just wheel blindly. Anchored to the parent's right edge.</summary>
+        public static Scrollbar VerticalScrollbar(Transform parent, Theme theme, float width = 10f)
+        {
+            var go = new GameObject("Scrollbar", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Scrollbar));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+            rt.anchorMin = new Vector2(1f, 0f); rt.anchorMax = new Vector2(1f, 1f); rt.pivot = new Vector2(1f, 0.5f);
+            rt.sizeDelta = new Vector2(width, 0f); rt.anchoredPosition = Vector2.zero;
+            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.35f);   // track
+
+            var area = new GameObject("SlidingArea", typeof(RectTransform));
+            var art = (RectTransform)area.transform; art.SetParent(rt, false);
+            art.anchorMin = Vector2.zero; art.anchorMax = Vector2.one; art.offsetMin = Vector2.zero; art.offsetMax = Vector2.zero;
+
+            var handle = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var hrt = (RectTransform)handle.transform; hrt.SetParent(art, false);
+            hrt.anchorMin = Vector2.zero; hrt.anchorMax = Vector2.one; hrt.offsetMin = Vector2.zero; hrt.offsetMax = Vector2.zero;
+            var himg = handle.GetComponent<Image>(); himg.color = theme.Accent;
+
+            var sb = go.GetComponent<Scrollbar>();
+            sb.handleRect = hrt; sb.targetGraphic = himg; sb.direction = Scrollbar.Direction.BottomToTop;
+            return sb;
+        }
+
         /// <summary>A thin full-width horizontal rule for separating panel sections (visual hierarchy).</summary>
         public static Image Divider(Transform parent, Color color)
         {

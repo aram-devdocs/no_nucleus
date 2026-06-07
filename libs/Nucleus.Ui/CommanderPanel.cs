@@ -143,6 +143,10 @@ namespace Nucleus.Ui
             scroll.content = lrt; scroll.viewport = viewport;
             scroll.horizontal = false; scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 24f;
+            // Visible, grabbable scrollbar — the panel often exceeds its height; without this the player can't
+            // tell it scrolls (wheel-only was undiscoverable). Permanent so the affordance is always shown.
+            scroll.verticalScrollbar = UiFactory.VerticalScrollbar(_root, theme);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
 
             bool Has(PanelSections s) => (_sections & s) != 0;
 
