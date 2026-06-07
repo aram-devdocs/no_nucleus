@@ -6,11 +6,8 @@ using UnityEngine.UI;
 
 namespace Nucleus.Ui
 {
-    /// <summary>
-    /// Map overlay on the icon layer: a selectable, labelled marker per live objective (color-coded by kind),
-    /// status-colored lines to the assigned squads' units, and a "why/what" header for the selected objective.
-    /// Pooled, no per-frame allocations. Clear() hides everything (map closed).
-    /// </summary>
+    /// <summary>Map overlay on the icon layer: a selectable labelled marker per objective (colored by kind),
+    /// status-colored lines to assigned squads, and a "why/what" header for the selection. Pooled.</summary>
     public sealed class MapOverlay
     {
         private readonly Transform _layer;
@@ -26,8 +23,7 @@ namespace Nucleus.Ui
         public MapOverlay(Transform iconLayer, IMapProjection projection)
         {
             _projection = projection;
-            // Draw our overlay in a child container pinned as the FIRST sibling of the icon layer, so the
-            // game's own unit icons/labels render ON TOP of us — our markers add context, never bury info.
+            // First sibling of the icon layer, so the game's own unit icons render ON TOP of our markers.
             var go = new GameObject("CommanderOverlay", typeof(RectTransform));
             var rt = (RectTransform)go.transform;
             rt.SetParent(iconLayer, false);
@@ -39,9 +35,8 @@ namespace Nucleus.Ui
             _layer = rt;
         }
 
-        /// <summary>Draw a selectable marker per live objective (colored by kind), with a ring on the selected
-        /// one. The objective list comes from the same operations read-model the panel renders, so the map and
-        /// the panel always agree. Replaces the old range-order overlay (everything is objectives now).</summary>
+        /// <summary>Draw a selectable marker per objective (colored by kind), ring on the selected one. Reads the
+        /// same operations read-model the panel renders, so map and panel always agree.</summary>
         public void RenderObjectives(IReadOnlyList<Nucleus.Core.Command.OperationView> ops, string selectedId,
             IReadOnlyList<Nucleus.Core.Command.SquadView> squads = null,
             IReadOnlyDictionary<string, Vec3> unitPositions = null)
@@ -60,13 +55,12 @@ namespace Nucleus.Ui
                     bool sel = op.ObjectiveId == selectedId;
                     ((RectTransform)marker.transform).localPosition = new Vector3(local.X, local.Y, 0f);
                     marker.color = ObjectiveVisuals.Color(op.Kind);
-                    // A compact label so the player can read what each marker is without selecting it.
                     var lbl = Label(mi);
                     ((RectTransform)lbl.transform).localPosition = new Vector3(local.X + 10f, local.Y, 0f);
-                    lbl.text = ObjectiveVisuals.Name(op.Kind);   // a plain word ("Capture point"), not "CAP P0.8"
+                    lbl.text = ObjectiveVisuals.Name(op.Kind);
                     lbl.color = sel ? NativeColors.Friendly : ObjectiveVisuals.Color(op.Kind);
                     lbl.fontSize = sel ? 13f : 11f;
-                    // Contrast pill behind the label so it reads over any terrain; sized to the text, drawn behind.
+                    // Contrast pill so the label reads over any terrain; sized to the text, drawn behind it.
                     var bg = LabelBg(mi);
                     var brt = (RectTransform)bg.transform;
                     brt.localPosition = new Vector3(local.X + 10f - 3f, local.Y, 0f);
@@ -80,9 +74,8 @@ namespace Nucleus.Ui
             for (int i = mi; i < _objLabels.Count; i++) _objLabels[i].gameObject.SetActive(false);
             for (int i = mi; i < _labelBgs.Count; i++) _labelBgs[i].gameObject.SetActive(false);
 
-            // When an objective is selected, draw a line from it to every unit of its assigned squads — colored
-            // by squad status — and a label at each squad's cluster ("Armor Alpha · engaged"), so the player
-            // sees exactly WHO is working it and WHAT they're doing, not just anonymous lines.
+            // For the selection, draw a status-colored line to each assigned squad's units + a cluster label
+            // ("Armor Alpha · engaged"), so the player sees who is working it, not anonymous lines.
             int li = 0, sl = 0;
             if (haveSel && squads != null && unitPositions != null)
             {
@@ -252,13 +245,12 @@ namespace Nucleus.Ui
                 var img = UiFactory.LineImage("CmdMarker" + _markers.Count, _layer, Color.white);
                 var rt = (RectTransform)img.transform;
                 rt.pivot = new Vector2(0.5f, 0.5f);
-                // Use the game's own target sprite so the marker reads as native iconography (tinted by the
-                // order color). Kept small so a cluster of objectives doesn't bury the map (was 20px).
+                // The game's own target sprite, tinted by the kind color, so the marker reads as native.
                 if (NativeIcons.Warhead != null)
                 {
                     img.sprite = NativeIcons.Warhead;
                     img.preserveAspect = true;
-                    rt.sizeDelta = new Vector2(16f, 16f);   // a touch larger so objectives read at map zoom
+                    rt.sizeDelta = new Vector2(16f, 16f);
                 }
                 else rt.sizeDelta = new Vector2(11f, 11f);
                 _markers.Add(img);

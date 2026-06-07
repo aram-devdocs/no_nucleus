@@ -5,12 +5,8 @@ using UnityEngine.EventSystems;
 
 namespace Nucleus.Host
 {
-    /// <summary>
-    /// In-process host (single plugin, Phase 3): owns the mod registry + the shared game services and drives
-    /// the per-frame tick over enabled mods. The DynamicMap.Update Harmony postfix calls <see cref="Tick"/>.
-    /// Canvas/bezel-button/loader ownership is introduced as Build/Squad arrive (Phase 4-5); for now Commander
-    /// keeps its own runtime and the host adds only the registry/tick layer.
-    /// </summary>
+    /// <summary>In-process host: owns the mod registry + shared game services and drives the per-frame tick over
+    /// enabled mods. The DynamicMap.Update Harmony postfix calls <see cref="Tick"/>.</summary>
     public sealed class ModHost
     {
         private readonly ModRegistry _registry;
@@ -61,10 +57,8 @@ namespace Nucleus.Host
             if (!_selfTested) TrySelfTest();
         }
 
-        // One-shot structured self-test, emitted once the mission is live (roster readable). The lines are
-        // machine-readable ([NUCLEUS:METRIC]/[NUCLEUS:SELFTEST]) so tools/Nucleus.LogAudit verifies a playtest
-        // automatically instead of by hand. Their PRESENCE proves the host tick reached this point; their
-        // ABSENCE in a future log is itself the regression signal.
+        // One-shot machine-readable self-test (once a mission's roster is readable) that tools/Nucleus.LogAudit
+        // verifies automatically; its absence in a future log is itself the regression signal.
         private void TrySelfTest()
         {
             System.Collections.Generic.IReadOnlyList<Core.Model.UnitView> roster;
