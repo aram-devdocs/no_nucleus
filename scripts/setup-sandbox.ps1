@@ -151,7 +151,7 @@ Info "copied real Assembly-CSharp.dll into lib/"
 $unityDlls = 'UnityEngine.dll','UnityEngine.CoreModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.IMGUIModule.dll',
              'UnityEngine.InputLegacyModule.dll','UnityEngine.TextRenderingModule.dll','UnityEngine.UIModule.dll',
              'UnityEngine.UI.dll','UnityEngine.TerrainModule.dll','UnityEngine.TerrainPhysicsModule.dll',
-             'Mirage.dll','Unity.TextMeshPro.dll'
+             'UnityEngine.ScreenCaptureModule.dll','Mirage.dll','Unity.TextMeshPro.dll'
 foreach ($d in $unityDlls) {
     $src = Join-Path $gameManaged $d
     if (Test-Path $src) { Copy-Item $src $lib -Force }

@@ -64,6 +64,8 @@ namespace Nucleus
             // Dev test harness: optionally auto-load a mission + emit in-mission markers (trigger-gated, no-op off).
             // Driven by the MainMenu.Update + DynamicMap.Update patches (this game pumps no Update on our objects).
             Nucleus.Host.MissionAutoLoader.Maybe(Log);
+            // Dev VISUAL harness: optionally drive the UI + capture screenshots in-mission (trigger-gated, no-op off).
+            Nucleus.Host.VisualProbe.Maybe(Log);
         }
 
         private static void ApplyPatch(Harmony harmony, Type patchType)

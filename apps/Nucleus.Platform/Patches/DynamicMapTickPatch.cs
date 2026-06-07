@@ -36,6 +36,9 @@ namespace Nucleus.Patches
             // Dev harness: drive the in-mission phase of the auto-loader (no-op unless armed).
             try { Host.MissionAutoLoader.TickMission(); }
             catch (Exception e) { PlatformPlugin.Log?.LogError("Autoload mission-tick threw: " + e); }
+            // NOTE: VisualProbe is driven by its OWN DontDestroyOnLoad MonoBehaviour (ProbeDriver), not here —
+            // this patch only fires while the map is maximised, but the probe must keep ticking after it
+            // minimises the map to shoot the in-flight HUD.
         }
     }
 }
