@@ -16,6 +16,7 @@ namespace Nucleus.Ui
         private readonly IMapProjection _projection;
         private readonly List<Image> _markers = new List<Image>();
         private readonly List<TMPro.TextMeshProUGUI> _objLabels = new List<TMPro.TextMeshProUGUI>();
+        private readonly List<Image> _labelBgs = new List<Image>();   // contrast pill behind each map label
         private readonly List<TMPro.TextMeshProUGUI> _squadLabels = new List<TMPro.TextMeshProUGUI>();
         private TMPro.TextMeshProUGUI _selInfo;   // "why/what" header for the selected objective
         private readonly List<Image> _lines = new List<Image>();
@@ -74,12 +75,19 @@ namespace Nucleus.Ui
                     lbl.text = $"{KindTag(op.Kind)} P{op.Priority:0.#}";
                     lbl.color = sel ? NativeColors.Friendly : ObjectiveColor(op.Kind);
                     lbl.fontSize = sel ? 13f : 11f;
+                    // Contrast pill behind the label so it reads over any terrain; sized to the text, drawn behind.
+                    var bg = LabelBg(mi);
+                    var brt = (RectTransform)bg.transform;
+                    brt.localPosition = new Vector3(local.X + 10f - 3f, local.Y, 0f);
+                    brt.sizeDelta = new Vector2(lbl.preferredWidth + 6f, lbl.fontSize + 4f);
+                    brt.SetSiblingIndex(lbl.transform.GetSiblingIndex()); // sit just behind its label
                     mi++;
                     if (sel) { selLocal = local; haveSel = true; selOp = op; }
                 }
             }
             for (int i = mi; i < _markers.Count; i++) _markers[i].gameObject.SetActive(false);
             for (int i = mi; i < _objLabels.Count; i++) _objLabels[i].gameObject.SetActive(false);
+            for (int i = mi; i < _labelBgs.Count; i++) _labelBgs[i].gameObject.SetActive(false);
 
             // When an objective is selected, draw a line from it to every unit of its assigned squads — colored
             // by squad status — and a label at each squad's cluster ("Armor Alpha · engaged"), so the player
@@ -171,6 +179,21 @@ namespace Nucleus.Ui
             }
             _objLabels[i].gameObject.SetActive(true);
             return _objLabels[i];
+        }
+
+        // Pooled dark pill drawn behind a map label so the text reads over bright/varied terrain.
+        private Image LabelBg(int i)
+        {
+            while (_labelBgs.Count <= i)
+            {
+                var img = UiFactory.LineImage("ObjLabelBg" + _labelBgs.Count, _layer, new Color(0f, 0f, 0f, 0.5f));
+                var rt = (RectTransform)img.transform;
+                rt.pivot = new Vector2(0f, 0.5f);
+                img.raycastTarget = false;
+                _labelBgs.Add(img);
+            }
+            _labelBgs[i].gameObject.SetActive(true);
+            return _labelBgs[i];
         }
 
         // A distinct color per objective kind so the map reads at a glance.
@@ -363,6 +386,7 @@ namespace Nucleus.Ui
         {
             foreach (var m in _markers) m.gameObject.SetActive(false);
             foreach (var l in _objLabels) l.gameObject.SetActive(false);
+            foreach (var l in _labelBgs) l.gameObject.SetActive(false);
             foreach (var l in _squadLabels) l.gameObject.SetActive(false);
             foreach (var l in _lines) l.gameObject.SetActive(false);
             if (_selRing != null) _selRing.gameObject.SetActive(false);
