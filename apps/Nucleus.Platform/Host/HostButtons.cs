@@ -19,6 +19,11 @@ namespace Nucleus.Host
     {
         private readonly List<MapButtonSpec> _specs = new List<MapButtonSpec>();
         private readonly HashSet<string> _attached = new HashSet<string>();
+        // Each bezel button + its paired screen, so we can keep the button's "open" tint in sync with the
+        // screen's ACTUAL isActive every frame — the game closes a same-side screen when another opens, but
+        // never re-runs the first button's click handler, so a one-shot tint desyncs (the reported bug).
+        private struct Tint { public Image Img; public MFDScreen Screen; public Color Open, Closed; }
+        private readonly List<Tint> _tints = new List<Tint>();
         private bool _selfTested;
         private bool _hookSeen;
 
@@ -112,6 +117,8 @@ namespace Nucleus.Host
                     btn.enabled = true;
                     btn.interactable = true;
                     btnGo.SetActive(true);
+                    // Track for the per-frame tint sync (fixes the "first button still shows open" desync).
+                    if (capImg != null) _tints.Add(new Tint { Img = capImg, Screen = capScreen, Open = capGreen, Closed = capOrig });
 
                     // 4. Let the mod fill its screen once.
                     spec.BuildContent?.Invoke(content);
@@ -179,6 +186,20 @@ namespace Nucleus.Host
             if (screen.highlight != null) screen.highlight.enabled = false;
             screen.isActive = false;
             return screen;
+        }
+
+        /// <summary>Sync every bezel button's tint to its screen's ACTUAL open/closed state. Called each frame
+        /// (ModHost.Tick) so when the game closes one same-side screen to open another, the closed button stops
+        /// showing "open". Idempotent + cheap (a handful of buttons).</summary>
+        public void RefreshTints()
+        {
+            for (int i = 0; i < _tints.Count; i++)
+            {
+                var t = _tints[i];
+                if (t.Img == null || t.Screen == null) continue;
+                var want = t.Screen.isActive ? t.Open : t.Closed;
+                if (t.Img.color != want) t.Img.color = want;
+            }
         }
 
         private static Button FirstNonNull(List<Button> list)

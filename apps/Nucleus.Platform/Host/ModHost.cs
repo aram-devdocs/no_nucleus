@@ -55,6 +55,9 @@ namespace Nucleus.Host
                 dt: Time.unscaledDeltaTime,
                 pointerOverUi: EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()));
 
+            // Keep bezel button "open" tints in sync with their screens' actual state (fixes the stale-open desync).
+            _buttons.RefreshTints();
+
             if (!_selfTested) TrySelfTest();
         }
 
