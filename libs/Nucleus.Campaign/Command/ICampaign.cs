@@ -26,7 +26,7 @@ namespace Nucleus.Core.Command
 
         // ---- objectives (the single command primitive) ----
         /// <summary>Drop a player objective at a world point (the AI auto-fills squads if Auto-fill is on).</summary>
-        string CreateObjective(ObjectiveKind kind, Vec3 world, string targetId = null);
+        string CreateObjective(ObjectiveKind kind, Vec3 world, string? targetId = null);
         void EditObjective(string id, ObjectiveKind? kind = null, float? priority = null);
         void RemoveObjective(string id);
         void MoveObjective(string id, Vec3 world);

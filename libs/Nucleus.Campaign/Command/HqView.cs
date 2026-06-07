@@ -31,7 +31,7 @@ namespace Nucleus.Core.Command
         public int ThreatAirDefense { get; }
 
         public OperationView(string id, ObjectiveKind kind, CombatPhase phase, OperationStatus status,
-            int squadCount, AutonomyLevel autonomy, string objectiveId = null, Vec3 position = default,
+            int squadCount, AutonomyLevel autonomy, string? objectiveId = null, Vec3 position = default,
             float priority = 1f, bool playerOwned = false, int threatCount = 0, int threatAirDefense = 0)
         {
             Id = id;
@@ -60,7 +60,7 @@ namespace Nucleus.Core.Command
         /// <summary>Convenience flag so the UI layer can red-flag a hurt squad without referencing the
         /// SquadStatus enum (which lives in Nucleus.Squads, outside the Ui lib's allowed dependency set).</summary>
         public bool Depleted => Status == SquadStatus.Depleted;
-        public string AssignedOperationId { get; }
+        public string? AssignedOperationId { get; }
         public AutonomyLevel Autonomy { get; }
         /// <summary>What the squad is doing right now, e.g. "Destroy target — Strike" or "Reserve". For the UI.</summary>
         public string Activity { get; }
@@ -72,7 +72,7 @@ namespace Nucleus.Core.Command
         public int TargetStrength { get; }
 
         public SquadView(string id, string name, RoleFamily family, int strength, SquadStatus status,
-            string assignedOperationId, AutonomyLevel autonomy, string activity, IReadOnlyList<string> memberUnitIds = null,
+            string? assignedOperationId, AutonomyLevel autonomy, string activity, IReadOnlyList<string>? memberUnitIds = null,
             string composition = "", int targetStrength = 0)
         {
             Id = id;

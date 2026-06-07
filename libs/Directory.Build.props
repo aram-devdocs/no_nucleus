@@ -11,5 +11,9 @@
     <IsPackable>true</IsPackable>
     <!-- Single source of truth for the SDK package version (bump all shared libs in lockstep — no skew). -->
     <Version>0.1.0</Version>
+    <!-- Annotations-only: emit nullable-reference metadata for package consumers (so a `?` on the public API
+         carries through to their flow analysis) WITHOUT turning on nullable warnings here (the WAE build stays
+         clean; we annotate the public surface deliberately rather than chase intra-lib warnings). -->
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 </Project>

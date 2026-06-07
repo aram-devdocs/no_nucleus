@@ -27,9 +27,9 @@ namespace Nucleus.Core.Command
         public float Time { get; }
         public ReportKind Kind { get; }
         public string Text { get; }
-        public string OperationId { get; }
+        public string? OperationId { get; }
 
-        public ReportEvent(float time, ReportKind kind, string text, string operationId = null)
+        public ReportEvent(float time, ReportKind kind, string text, string? operationId = null)
         {
             Time = time;
             Kind = kind;

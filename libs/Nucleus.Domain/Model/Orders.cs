@@ -14,10 +14,10 @@ namespace Nucleus.Core.Model
         public string UnitId { get; }
         public TaskVerb Verb { get; }
         public Vec3 Position { get; }
-        public string TargetId { get; }
+        public string? TargetId { get; }
         public int Phase { get; }
 
-        public UnitTask(string unitId, TaskVerb verb, Vec3 position, string targetId = null, int phase = 0)
+        public UnitTask(string unitId, TaskVerb verb, Vec3 position, string? targetId = null, int phase = 0)
         {
             UnitId = unitId;
             Verb = verb;

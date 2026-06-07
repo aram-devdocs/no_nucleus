@@ -113,9 +113,9 @@ namespace Nucleus.Core.Command
             public readonly int BluforUnitsLost, OpforUnitsLost;
             public readonly bool BluforAi, OpforAi;
             public readonly bool Over;
-            public readonly string WinnerName; // null while undecided
+            public readonly string? WinnerName; // null while undecided
 
-            public Scoreboard(WarState w, bool over, string winner)
+            public Scoreboard(WarState w, bool over, string? winner)
             {
                 BluforName = w.Blufor.FactionName; OpforName = w.Opfor.FactionName;
                 BluforScore = w.Blufor.Score.Score; OpforScore = w.Opfor.Score.Score;

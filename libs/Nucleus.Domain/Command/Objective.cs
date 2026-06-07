@@ -20,12 +20,12 @@ namespace Nucleus.Core.Command
         /// this reference, so the change is seen without desyncing tasking/phase logic.</summary>
         public ObjectiveKind Kind { get; set; }
         public Vec3 Position { get; set; }
-        public string TargetId { get; }
+        public string? TargetId { get; }
         public float Priority { get; set; }
         public ObjectiveSource Source { get; }
 
         public Objective(string id, ObjectiveKind kind, Vec3 position, ObjectiveSource source,
-            string targetId = null, float priority = 1f)
+            string? targetId = null, float priority = 1f)
         {
             Id = id;
             Kind = kind;

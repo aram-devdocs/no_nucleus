@@ -21,8 +21,8 @@ namespace Nucleus.Core.Command
         public SquadOrigin Origin { get; }
         public RoleFamily Family { get; }
         public List<string> MemberUnitIds { get; }
-        public string AssignedOperationId { get; set; }
-        public Composition TargetComposition { get; set; }
+        public string? AssignedOperationId { get; set; }
+        public Composition? TargetComposition { get; set; }
         public SquadStatus Status { get; set; }
         public AutonomyLevel Autonomy { get; set; }
 
