@@ -25,8 +25,21 @@
 | WS2 | Personality genomes | DONE | audit PASS + 6 genome tests + determinism canary; enemy-AI-driving caveat | #8 |
 | WS9 | Theme tokens + APP-6 symbology | DONE | audit PASS + live: clearer markers + HUD contrast | #9 |
 | WS11 | Sim-as-lib + Evolve self-play | DONE | audit PASS (sim 41); determinism canary held; honest flat-fitness caveat | #10 |
-| WS12 | Squad assign-to-objective UX + map header edge-clamp | NEXT | — | — |
-| WS4 | Presentation VM layer | TODO (optional, low user value) | — | — |
+| WS12 | Squad assign-to-objective UX + map header edge-clamp | DONE | audit PASS + live: ASSIGN list + header clamp | #11 |
+| WS4 | Presentation VM layer | NOT DONE | deferred — low user value, higher risk; left for human | — |
+
+## RUN COMPLETE (Sun ~00:25 MDT)
+11 workstreams shipped to `auto/overnight` (PRs #1–#11), master untouched. Every explicit user
+complaint addressed + harness + evolution infra + usability polish. Director call: STOP new work
+before the deadline rather than gamble the clean green branch on the low-value/higher-risk WS4 refactor.
+Final consolidated PR `master ← auto/overnight` opened for human review (UNMERGED). Loop ended; no more wakeups.
+
+### Flagged follow-ups for the human
+- War may advance only while the map is open (host ticks off DynamicMap.Update) — see WS5 note. Possible "feels janky" cause.
+- Enemy-AI driver (DriveEnemyAi) didn't execute its body in the autoloaded+joined harness — confirm enemy actually runs our brain (WS2).
+- Evolve fitness is flat on the symmetric scenario — needs asymmetric scenarios / richer fitness before trusting evolved genomes (WS11).
+- Native-widget UI restyle (beyond safe theming) — bigger, human-reviewed (WS9).
+- WS4 Presentation VM layer — not done.
 
 ## Tooling proven this run
 - `scripts/visual-probe.ps1 [-NoBuild] [-Tag x]` → launches game, joins Boscali, drives map+panels,

@@ -62,7 +62,12 @@ Legend: [ ] to verify · screenshots are the loop's evidence, your eyes are the 
 - Headless-only. Run `pwsh scripts/evolve.ps1` → `artifacts/genomes/{genepool.tsv,report.txt}`; sample at `docs/dev/evolve-report-sample.txt`.
 - [ ] (Optional) Run it and skim the report. NOTE: fitness is currently flat (ties) on the symmetric scenario — the GA can't differentiate yet; this is infrastructure + an honest baseline, not a tuned result. Evolved genomes are NOT used in-game (hand-authored archetypes ship).
 
-<!-- The loop appends one block per workstream below as it completes them. -->
+## WS12 — Squad assign UX + header clamp
+- Evidence: `artifacts/screenshots/ws12-verify/03cmd-selected-panel.png` (ASSIGN list), `03cmd-selected-map.png` (header not clipped).
+- [ ] Select an objective in CMD; confirm an "ASSIGN FORCE" list of free suitable squads appears with ASSIGN buttons.
+- [ ] Click ASSIGN on a squad; confirm it gets tasked to that objective (appears as engaged / moving to it; an operation opens).
+- [ ] Select an objective near the map's bottom/right edge; confirm its info header stays fully on-screen (no clipping).
+
 
 
 
