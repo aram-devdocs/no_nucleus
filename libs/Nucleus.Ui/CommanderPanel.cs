@@ -380,6 +380,22 @@ namespace Nucleus.Ui
         /// <summary>The kind the player has armed to drop on the next map click (null = none).</summary>
         public Cmd.ObjectiveKind? ArmedObjective => _armedObjective;
         /// <summary>The objective currently selected for editing (null = none).</summary>
+        // A small kind-colored bullet (TMP rich-text) so objective/op rows read by kind at a glance. Colors
+        // mirror the map's ObjectiveColor. Domain enum only — keeps the Ui lib free of Nucleus.Squads.
+        private static string KindHex(Cmd.ObjectiveKind kind)
+        {
+            switch (kind)
+            {
+                case Cmd.ObjectiveKind.CapturePoint: return "66CCFF";
+                case Cmd.ObjectiveKind.DestroyTarget: return "FF7366";
+                case Cmd.ObjectiveKind.DefendArea: return "73E68C";
+                case Cmd.ObjectiveKind.ControlAirspace: return "B399FF";
+                case Cmd.ObjectiveKind.Resupply: return "FFD966";
+                default: return "DDDDDD"; // Recon
+            }
+        }
+        private static string Dot(Cmd.ObjectiveKind kind) => $"<color=#{KindHex(kind)}>●</color> ";
+
         public string SelectedObjectiveId => _selectedObjectiveId;
         /// <summary>Set the selected objective (e.g. when the player clicks its map marker).</summary>
         public void SetSelectedObjective(string id) => _selectedObjectiveId = id;
@@ -426,7 +442,7 @@ namespace Nucleus.Ui
                     r.Id = op.ObjectiveId;
                     bool sel = op.ObjectiveId == _selectedObjectiveId;
                     string owner = op.PlayerOwned ? "you" : "AI";
-                    r.Label.text = $"{(sel ? "▸ " : "")}{op.Kind} · {op.Phase} · P{op.Priority:0.#} · {op.SquadCount} sq [{owner}]";
+                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{op.Kind} · {op.Phase} · P{op.Priority:0.#} · {op.SquadCount} sq [{owner}]";
                     r.Label.color = sel ? OnColor : _theme.Text;
                     r.BtnLabel.text = "SELECT";
                     r.BtnImg.color = sel ? OnColor : _theme.ButtonIdle;   // selected = active green (consistent)
@@ -754,7 +770,7 @@ namespace Nucleus.Ui
                     var op = ops[i];
                     var r = _opRows[i];
                     r.OpId = op.Id;
-                    r.Label.text = $"{op.Kind} — {op.Phase} [{op.Status}]";
+                    r.Label.text = $"{Dot(op.Kind)}{op.Kind} — {op.Phase} [{op.Status}]";
                     bool manual = op.Autonomy == Nucleus.Core.Command.AutonomyLevel.Manual;
                     r.BtnLabel.text = manual ? "MANUAL" : "AUTO";
                     r.BtnImg.color = manual ? _theme.Accent : _theme.ButtonIdle;
