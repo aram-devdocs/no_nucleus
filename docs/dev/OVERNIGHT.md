@@ -20,8 +20,8 @@
 | WS3 | AI narration / barks in feed | DONE | audit PASS (sim 36) + live CMD FEED shows narrated ops | #3 |
 | WS6 | Map selection legibility | DONE | audit PASS + live: intent header + status-colored squad lines | #4 |
 | WS5 | In-flight HUD + world markers | DONE | audit PASS + live: bottom-right HUD shows ops+intent while flying | #5 |
-| WS7 | Squad legibility & usability | NEXT | — | — |
-| WS8 | Build clarity | TODO | — | — |
+| WS7 | Squad legibility & usability | DONE | audit PASS (sim 39) + live: SQD shows "4× MBT, 1× IFV"; assign deferred | #6 |
+| WS8 | Build clarity | NEXT | — | — |
 | WS2 | Personality genomes | TODO | — | — |
 | WS9 | Theme tokens + APP-6 symbology | TODO | — | — |
 | WS4 | Presentation VM layer | TODO | — | — |

@@ -35,7 +35,14 @@ Legend: [ ] to verify · screenshots are the loop's evidence, your eyes are the 
 - [ ] Confirm it disappears when you open the full map (no duplicate info) and reappears when you close it.
 - [ ] FOLLOW-UP to sanity-check: does the war/economy actually advance while you fly with the map closed? (The host tick is map-driven; flagged as a possible "tick the war in flight" fix.)
 
+## WS7 — Squad legibility
+- Evidence: `artifacts/screenshots/ws7-verify/05-sqd-panel.png` — rows show composition.
+- [ ] Open SQD: confirm each row reads as composition ("4× MBT, 1× IFV") + what it's doing (e.g. "CapturePoint — Strike" / "Ready").
+- [ ] Confirm a depleted squad shows in red and (if under target) a have/need count like "(2/4)".
+- [ ] Deferred: there's no "assign this squad to that objective" button yet (AUTO/MANUAL toggle is the current control). Tell me if you want explicit assignment next.
+
 <!-- The loop appends one block per workstream below as it completes them. -->
+
 
 
 
