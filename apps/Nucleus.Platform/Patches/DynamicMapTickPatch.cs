@@ -16,7 +16,10 @@ namespace Nucleus.Patches
         [HarmonyPrefix]
         private static bool Prefix()
         {
-            // Suppress map pan/zoom while the pointer is over any of our UI (host or mod canvases).
+            // Suppress map pan/zoom while the pointer is over any of our UI (host or mod canvases), OR while a
+            // Nucleus panel is being dragged — a fast drag can flick the cursor off the panel, making
+            // IsPointerOverGameObject() momentarily false and the map pan bleed through (the panel-drag bug).
+            if (Ui.DragHandle.Dragging) return false;
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             {
                 return false;
