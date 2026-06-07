@@ -6,12 +6,12 @@ namespace Nucleus.Abstractions
     /// <summary>Identity + presentation metadata for a mod (stable Id is the config/registry/Thunderstore key).</summary>
     public sealed class ModInfo
     {
-        public string Id;
-        public string DisplayName;
-        public string Version;
-        public string Author;
-        public string Description;
-        public Sprite Icon;
+        public string Id { get; init; }
+        public string DisplayName { get; init; }
+        public string Version { get; init; }
+        public string Author { get; init; }
+        public string Description { get; init; }
+        public Sprite Icon { get; init; }
     }
 
     /// <summary>
@@ -22,20 +22,20 @@ namespace Nucleus.Abstractions
     /// </summary>
     public sealed class MapButtonSpec
     {
-        public string ModId;
-        public string Label;
+        public string ModId { get; init; }
+        public string Label { get; init; }
         /// <summary>Populate the mod's native MFD screen. Called once with the screen's content RectTransform.</summary>
-        public Action<RectTransform> BuildContent;
+        public Action<RectTransform> BuildContent { get; init; }
         /// <summary>Optional: fired when the native bezel button is pressed (screen opened).</summary>
-        public Action OnClick;
-        public Func<Color> LabelColor;
+        public Action OnClick { get; init; }
+        public Func<Color> LabelColor { get; init; }
     }
 
     /// <summary>A row a mod contributes to the main-menu loader.</summary>
     public sealed class MenuItemSpec
     {
-        public string ModId;
-        public string Label;
-        public Action OnClick;
+        public string ModId { get; init; }
+        public string Label { get; init; }
+        public Action OnClick { get; init; }
     }
 }

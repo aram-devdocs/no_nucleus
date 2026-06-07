@@ -41,6 +41,9 @@ namespace Nucleus.Abstractions
         public void Add(IMod mod, bool enabled)
         {
             if (mod == null) throw new ArgumentNullException(nameof(mod));
+            // Fail fast with an actionable contract error rather than a bare NRE deep in Find/lifecycle.
+            if (mod.Info == null) throw new ArgumentException("mod.Info must be set", nameof(mod));
+            if (string.IsNullOrEmpty(mod.Info.Id)) throw new ArgumentException("mod.Info.Id must be set", nameof(mod));
             if (Find(mod.Info.Id) != null) return;
             _entries.Add(new Entry { Mod = mod, Enabled = enabled });
             if (enabled) EnsureInitialized(_entries[_entries.Count - 1]);

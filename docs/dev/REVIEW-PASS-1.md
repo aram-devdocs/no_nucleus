@@ -120,9 +120,19 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
 - Added a build-safe .editorconfig (formatting + C# house style as suggestions only — never escalated to
   warnings, so the WAE build stays clean). Full headless gate now 207 tests across 5 suites.
 
+- **G11/G12/G13/G27 DONE** — G11 ModData DTOs (ModInfo/MapButtonSpec/MenuItemSpec) fields → { get; init; }
+  (+ IsExternalInit polyfill so init compiles on netstandard2.1) + fail-fast guard in ModRegistry.Add
+  (ArgumentException on null Info / empty Id). G12 Vec3 + ColorRgba value equality (IEquatable/==/!=/Equals/
+  deterministic FNV-over-float-bits GetHashCode — NOT HashCode.Combine) + ColorRgba.ToString; +3 Core tests.
+  G13 corrected the false "assembly==namespace" comment in Nucleus.Domain.csproj (namespace rename deferred).
+  G27 WarScore ctor ArgumentOutOfRangeException guards (>=0 on the 5 floats) + a negative-input test.
+  Build 0/0 + Core 147 (+3) + Sim 42 + arch 9.
+- **G14 DEFERRED** — <Nullable>annotations</Nullable> is build-safe for us, but enabling it makes every
+  un-annotated reference type read as non-nullable in the emitted metadata, so a PARTIAL annotation ships
+  misleading nullability to consumers (worse than the current oblivious state). Doing the full public surface
+  of all 6 libs accurately is a large, separate, careful pass; no external consumers benefit yet. Deferred.
+
 ### Still remaining (next iterations)
-- Wave G — public API (G11 ModData init-props + ModRegistry guard, G12 Vec3/ColorRgba value equality, G13 fix
-  false namespace comment, G14 Nullable=annotations, G27 WarScore arg validation).
 - Wave E remainder — E21 BUY affordability nets queued spend, E22 ASSIGN RELEASE comment fix, E29 SquadStatus.Forming reachable.
 - Deferred: A4 (home-defense cap, needs redesign), D15 (HqView micro-allocs), D28 (GameRoster id-string).
 - Then: Pass 2 — re-run the competing-agent review on the improved codebase.

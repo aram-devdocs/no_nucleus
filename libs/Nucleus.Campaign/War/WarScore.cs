@@ -24,6 +24,13 @@ namespace Nucleus.Core.War
         public WarScore(float start = 1000f, float unitValue = 8f, float baseValue = 120f,
             float spendPenaltyBase = 0.02f, float falloffPerBaseLost = 0.6f)
         {
+            // Five same-typed float knobs — guard each so a transposed/negative tuning argument fails loudly
+            // (with the offending parameter name) instead of silently producing a broken score curve.
+            if (start < 0f) throw new ArgumentOutOfRangeException(nameof(start));
+            if (unitValue < 0f) throw new ArgumentOutOfRangeException(nameof(unitValue));
+            if (baseValue < 0f) throw new ArgumentOutOfRangeException(nameof(baseValue));
+            if (spendPenaltyBase < 0f) throw new ArgumentOutOfRangeException(nameof(spendPenaltyBase));
+            if (falloffPerBaseLost < 0f) throw new ArgumentOutOfRangeException(nameof(falloffPerBaseLost));
             Score = start;
             _unitValue = unitValue;
             _baseValue = baseValue;

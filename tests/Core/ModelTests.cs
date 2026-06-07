@@ -42,5 +42,35 @@ namespace Nucleus.Tests
             Assert.Equal(0f, RosterGeometry.Centroid(new List<UnitView>()).DistanceTo(new Vec3(0, 0, 0)), 3);
             Assert.Equal(0f, RosterGeometry.Centroid(null).DistanceTo(new Vec3(0, 0, 0)), 3);
         }
+
+        [Fact]
+        public void Vec3_value_equality_and_deterministic_hash()
+        {
+            var a = new Vec3(1, 2, 3);
+            var b = new Vec3(1, 2, 3);
+            var c = new Vec3(1, 2, 3.5f);
+            Assert.True(a.Equals(b));            // reflexive/symmetric value equality
+            Assert.True(a == b);
+            Assert.False(a != b);
+            Assert.True(a != c);
+            Assert.Equal(a.GetHashCode(), b.GetHashCode());   // equal values -> equal hash
+            Assert.True(a.Equals((object)b));
+            Assert.False(a.Equals("not a vec"));
+            // Works as a dictionary key (the practical reason value equality matters).
+            var d = new Dictionary<Vec3, int> { [a] = 7 };
+            Assert.Equal(7, d[b]);
+        }
+
+        [Fact]
+        public void ColorRgba_value_equality_hash_and_tostring()
+        {
+            var a = new ColorRgba(0.4f, 0.8f, 1f, 1f);
+            var b = new ColorRgba(0.4f, 0.8f, 1f, 1f);
+            var c = new ColorRgba(0.4f, 0.8f, 1f, 0.5f);
+            Assert.True(a == b);
+            Assert.True(a != c);
+            Assert.Equal(a.GetHashCode(), b.GetHashCode());
+            Assert.Contains("0.4", a.ToString());
+        }
     }
 }

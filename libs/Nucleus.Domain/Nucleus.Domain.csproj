@@ -4,6 +4,8 @@
     <AssemblyName>Nucleus.Domain</AssemblyName>
     <Description>Nucleus (Nuclear Option modding) — pure domain model: units/roles/objectives/doctrine, the commander read-models + battle log, and the role classifier. Engine-free leaf package the rest build on.</Description>
     <!-- PURE leaf library: no Unity, no Assembly-CSharp, no BepInEx. Enforced by Nucleus.Architecture.Tests.
-         Namespaces are Nucleus.Core.* (folder/assembly == namespace after the Phase 7 rename). -->
+         NOTE: the package/assembly is Nucleus.Domain but the public types live under Nucleus.Core.* namespaces
+         (Nucleus.Core.Model / .Command). A consumer does `using Nucleus.Core.Model;`, not `using Nucleus.Domain;`.
+         (A namespace rename to match the package id is deferred — it touches apps + tests broadly.) -->
   </PropertyGroup>
 </Project>

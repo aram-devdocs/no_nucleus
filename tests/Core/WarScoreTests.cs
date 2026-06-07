@@ -1,3 +1,4 @@
+using System;
 using Nucleus.Core.War;
 using Xunit;
 
@@ -10,6 +11,19 @@ namespace Nucleus.Core.Tests
     /// </summary>
     public class WarScoreTests
     {
+        [Fact]
+        public void Negative_ctor_tuning_throws_with_the_offending_parameter()
+        {
+            // Five same-typed floats — a transposed/negative arg must fail loudly (review G27).
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(start: -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(unitValue: -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(baseValue: -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(spendPenaltyBase: -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(falloffPerBaseLost: -1f));
+            var ok = Record.Exception(() => new WarScore()); // defaults are valid
+            Assert.Null(ok);
+        }
+
         [Fact]
         public void Unit_and_base_losses_reduce_score()
         {
