@@ -26,4 +26,7 @@ apps (thin wrappers): Platform · Commander · Build · Squad · Warfare   sdk: 
 ## Status
 - CB1: DONE (local) — ObjectiveVisuals SSOT; CommanderPanel/MapOverlay/FlightHud adopt it; 3 dup switches deleted;
   hex derived from color (no skew). Full-sln compile (deploy off) + arch 9 / core 137 / sim 41 PASS.
-- CB2: next.
+- CB2: DONE-clean — RoleLabels.Short (Domain) is already the SOLE role→label source (one call site, HqView); no dup to remove.
+- CB7: DONE (local) — Nucleus.Sim added to the arch allow-list ({Domain,Squads,Production,Campaign}, its real
+  Campaign closure) + PureLibs (Unity-free asserted). Arch 9/9 PASS. (Canary caught the transitive Squads ref → declared it.)
+- Next: CB3 (DRY row pooling), then CB4/CB5/CB6/CB8.
