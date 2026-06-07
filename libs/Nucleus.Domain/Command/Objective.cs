@@ -10,8 +10,8 @@ namespace Nucleus.Core.Command
 
     /// <summary>
     /// A strategic goal: a kind + a place (+ optional target) + a priority. The brain turns objectives into
-    /// phased <see cref="Operation"/>s. Pure data — no Unity, no game refs. Maps to the existing per-unit
-    /// tasking vocabulary (<see cref="OrderKind"/>/<see cref="DomainSet"/>) so execution reuses the planner.
+    /// phased <see cref="Operation"/>s and emits per-unit <see cref="Nucleus.Core.Model.UnitTask"/>s. Pure data
+    /// — no Unity, no game refs.
     /// </summary>
     public sealed class Objective
     {
@@ -33,31 +33,6 @@ namespace Nucleus.Core.Command
             Source = source;
             TargetId = targetId;
             Priority = priority;
-        }
-
-        public OrderKind ToOrderKind()
-        {
-            switch (Kind)
-            {
-                case ObjectiveKind.CapturePoint: return OrderKind.Capture;
-                case ObjectiveKind.DestroyTarget: return OrderKind.Attack;
-                case ObjectiveKind.DefendArea: return OrderKind.Defend;
-                case ObjectiveKind.ControlAirspace: return OrderKind.Defend; // CAP / air defense over a zone
-                case ObjectiveKind.Resupply: return OrderKind.Resupply;
-                case ObjectiveKind.Recon: return OrderKind.Move;
-                default: return OrderKind.Move;
-            }
-        }
-
-        public DomainSet ToDomains()
-        {
-            switch (Kind)
-            {
-                case ObjectiveKind.CapturePoint:
-                case ObjectiveKind.Resupply: return DomainSet.Land | DomainSet.Sea;   // surface forces
-                case ObjectiveKind.ControlAirspace: return DomainSet.Air;             // aircraft only
-                default: return DomainSet.All;
-            }
         }
     }
 }

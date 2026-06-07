@@ -1,44 +1,5 @@
-using System.Collections.Generic;
-
 namespace Nucleus.Core.Model
 {
-    /// <summary>Commander order families (P1 ships Attack + Defend; more added in later phases).</summary>
-    public enum OrderKind
-    {
-        Attack,   // move-attack a point, or attack a specific target (TargetId set)
-        Defend,   // hold/garrison + air-defense an area
-        Resupply, // (P2)
-        Capture,  // (P2)
-        Build,    // (P2) commission only
-        Move      // reposition: send a suitable subset to a point (no combat/threat semantics)
-    }
-
-    /// <summary>A player-issued order at a world point: kind + pull radius + allowed domains (+ optional target).
-    /// The planner turns this into a <see cref="TaskPlan"/> of per-unit <see cref="UnitTask"/>s.</summary>
-    public sealed class CommanderOrder
-    {
-        public string Id { get; }
-        public OrderKind Kind { get; }
-        public Vec3 Position { get; }
-        /// <summary>The pull radius around the point: units within it are eligible. 0 = use config default.</summary>
-        public float Radius { get; }
-        /// <summary>Which domains (air/land/sea) the player allows this order to commit.</summary>
-        public DomainSet Domains { get; }
-        /// <summary>For Attack on a specific enemy; null = area attack.</summary>
-        public string TargetId { get; }
-
-        public CommanderOrder(string id, OrderKind kind, Vec3 position, float radius,
-            DomainSet domains = DomainSet.All, string targetId = null)
-        {
-            Id = id;
-            Kind = kind;
-            Position = position;
-            Radius = radius;
-            Domains = domains;
-            TargetId = targetId;
-        }
-    }
-
     /// <summary>What a single unit is told to do in a <see cref="UnitTask"/>: move to a point, hold, or attack a target.</summary>
     public enum TaskVerb
     {
@@ -47,7 +8,7 @@ namespace Nucleus.Core.Model
         AttackTarget
     }
 
-    /// <summary>One concrete instruction for one unit, with a phase index for sequencing.</summary>
+    /// <summary>One concrete instruction for one unit — the brain's executable output — with a phase index for sequencing.</summary>
     public sealed class UnitTask
     {
         public string UnitId { get; }
@@ -66,65 +27,13 @@ namespace Nucleus.Core.Model
         }
     }
 
-    /// <summary>The planner's output for one order: the set of per-unit <see cref="UnitTask"/>s to execute.</summary>
-    public sealed class TaskPlan
-    {
-        public string OrderId { get; }
-        public IReadOnlyList<UnitTask> Tasks { get; }
-
-        public TaskPlan(string orderId, IReadOnlyList<UnitTask> tasks)
-        {
-            OrderId = orderId;
-            Tasks = tasks;
-        }
-
-        public bool IsEmpty => Tasks.Count == 0;
-    }
-
-    /// <summary>Lifecycle of a managed order: being planned, actively tasked, finished, or abandoned.</summary>
-    public enum OrderStatus { Planning, Active, Complete, Failed }
-
-    /// <summary>The current battle-plan phase of an order, for the panel's plan view.</summary>
+    /// <summary>An operation's battle-plan phase. Persisted in the campaign save (Operation.Phase).</summary>
     public enum OrderPhase { Forming, Advancing, Engaging, Suppressing, Holding, AirTasking, Queued, Complete, Failed }
 
-    /// <summary>Live state of an order managed over time.</summary>
-    public sealed class OrderState
-    {
-        public CommanderOrder Order { get; }
-        public OrderStatus Status { get; set; }
-        public List<string> AssignedUnitIds { get; }
-        /// <summary>Units that have already been told to hold (Defend), so we don't re-issue.</summary>
-        public HashSet<string> Held { get; }
-        public string Summary { get; set; }
-        /// <summary>Battle-plan phase (computed each management tick) for the plan view.</summary>
-        public OrderPhase Phase { get; set; }
-
-        public OrderState(CommanderOrder order)
-        {
-            Order = order;
-            Status = OrderStatus.Planning;
-            AssignedUnitIds = new List<string>();
-            Held = new HashSet<string>();
-            Summary = string.Empty;
-            Phase = OrderPhase.Forming;
-        }
-    }
-
-    /// <summary>Tactics tunables (F1 + in-panel). Pure data.</summary>
+    /// <summary>Commander tunables. Pure data.</summary>
     public sealed class CommanderConfig
     {
-        public int MaxUnitsPerOrder { get; set; } = 6;
-        /// <summary>Radius (m) around the order point within which units are considered for selection.</summary>
-        public float SelectionRadius { get; set; } = 6000f;
-        /// <summary>Distance (m) at which a unit counts as arrived.</summary>
-        public float ArriveRadius { get; set; } = 250f;
-        /// <summary>Radius (m) used to read enemies near the order point.</summary>
-        public float ThreatRadius { get; set; } = 3000f;
-        public bool AutoReassign { get; set; } = true;
+        /// <summary>Seconds between management ticks — the brain runs on this throttle, not per frame.</summary>
         public float ManagementIntervalSeconds { get; set; } = 3f;
-        /// <summary>Force-sizing: how many times the known threat count an Attack/Defend should outnumber.</summary>
-        public float ForceRatio { get; set; } = 1.5f;
-        /// <summary>Force-sizing floor: smallest force an offensive order commits even with no known threat.</summary>
-        public int MinForce { get; set; } = 1;
     }
 }

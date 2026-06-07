@@ -24,7 +24,6 @@ namespace Nucleus
         internal static CommanderRuntime Runtime;
 
         // Config (tunable from the F1 menu), read by the runtime/service.
-        internal static float ArriveRadius = 250f;
         internal static KeyCode ArmKey = KeyCode.G;
         internal static bool EnableAircraftTasking;
         internal static bool EnableAutoCommander;
@@ -36,8 +35,6 @@ namespace Nucleus
         {
             Log = Logger;
 
-            var arriveCfg = Config.Bind("Commander", "ArriveRadius", 250f,
-                "Distance (m) within which a unit counts as 'arrived' at the objective.");
             var keyCfg = Config.Bind("Commander", "ArmPlacementKey", KeyCode.G,
                 "Optional key (while the map is open) to arm objective placement; then click the map.");
             var airCfg = Config.Bind("Commander", "EnableAircraftTasking", false,
@@ -51,7 +48,6 @@ namespace Nucleus
             var hudKeyCfg = Config.Bind("Commander", "FlightHudToggleKey", KeyCode.H,
                 "Key to show/hide the in-flight objective HUD.");
 
-            ArriveRadius = arriveCfg.Value;
             ArmKey = keyCfg.Value;
             EnableAircraftTasking = airCfg.Value;
             EnableAutoCommander = autoCfg.Value;
@@ -63,7 +59,6 @@ namespace Nucleus
             Game.AircraftIntent.Enabled = airCfg.Value;
             autoCfg.SettingChanged += (_, __) => EnableAutoCommander = autoCfg.Value;
             dbgCfg.SettingChanged += (_, __) => CommanderDebug = dbgCfg.Value;
-            arriveCfg.SettingChanged += (_, __) => ArriveRadius = arriveCfg.Value;
             keyCfg.SettingChanged += (_, __) => ArmKey = keyCfg.Value;
             airCfg.SettingChanged += (_, __) => { EnableAircraftTasking = airCfg.Value; Game.AircraftIntent.Enabled = airCfg.Value; };
 

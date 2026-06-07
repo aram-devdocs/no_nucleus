@@ -12,11 +12,9 @@ namespace Nucleus.Game
     public sealed class CommanderService : Nucleus.Core.Command.ICampaign
     {
         private readonly CommanderConfig _cfg;
-        private readonly AssignmentManager _mgr;
         private readonly GameRoster _roster = new GameRoster();
         private readonly GameIntel _intel = new GameIntel();
         private readonly GameUnitCommands _cmds = new GameUnitCommands();
-        private readonly GameCapture _capture = new GameCapture();
         private readonly CommanderDebugProbe _debug = new CommanderDebugProbe();
         private CommanderState _auto = new CommanderState();
         private readonly GameProductionService _prodService = new GameProductionService();
@@ -27,7 +25,6 @@ namespace Nucleus.Game
         public CommanderService(CommanderConfig cfg)
         {
             _cfg = cfg ?? new CommanderConfig();
-            _mgr = new AssignmentManager(_cfg);
         }
 
         public CommanderConfig Config => _cfg;
@@ -47,26 +44,20 @@ namespace Nucleus.Game
 
         // Committed-units snapshot, refreshed on Place/Tick and reused by the per-frame hover preview so we
         // don't rebuild it every frame (review S1).
-        private System.Collections.Generic.HashSet<string> _committed = new System.Collections.Generic.HashSet<string>();
-
-        /// <summary>Management tick (throttled by the runtime): validate/reassign/complete, re-issue tasks.</summary>
+        /// <summary>Management tick (throttled by the runtime): refresh the roster + buy menu, then run the brain.</summary>
         public void Tick()
         {
             var roster = _roster.BuildRoster();
             SetRoster(roster);
             _catalog = _prodService.Catalog(); // refresh the buy menu once per (throttled) tick, not per frame
-            var reissue = _mgr.Tick(roster,
-                o => ThreatAssessor.Assess(_intel.KnownEnemiesNear(o.Position, _cfg.ThreatRadius)),
-                o => _capture.IsHeldByUs(o.Position));
-            foreach (var t in reissue) _cmds.Execute(t);
-            _committed = _mgr.CommittedUnitIds(roster);
 
             // The commander is ALWAYS on — without it, units idle (the game gives no objectives in this mode).
             // The brain forms squads, advances operations, and tasks them; the two toggles inside it gate
             // objective generation (AiCreatesObjectives) and squad assignment/recruit (AiAutoFill).
             var known = _intel.KnownEnemiesNear(new Vec3(0f, 0f, 0f), float.MaxValue); // all tracked enemies
             _auto.HomeBase = RosterGeometry.Centroid(roster);
-            var snapshot = new WorldSnapshot(roster, known, 0f, _committed, UnityEngine.Time.unscaledTime);
+            // No manual orders in this mode, so nothing is externally committed — the brain owns all tasking.
+            var snapshot = new WorldSnapshot(roster, known, 0f, null, UnityEngine.Time.unscaledTime);
             foreach (var t in CommanderBrain.Tick(snapshot, _auto)) _cmds.Execute(t);
 
             // Auto-recruit: turn force gaps into convoy buys (within funds) only when Auto-fill is on.

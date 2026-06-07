@@ -45,7 +45,7 @@ namespace Nucleus.Composition
         {
             _player = new GamePlayerContext();
             _projection = new DynamicMapProjection();
-            _service = new CommanderService(new CommanderConfig { ArriveRadius = CommanderPlugin.ArriveRadius });
+            _service = new CommanderService(new CommanderConfig());
             CommanderPlugin.Log?.LogInfo("CommanderRuntime constructed.");
         }
 

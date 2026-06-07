@@ -8,9 +8,8 @@ namespace Nucleus.Core.Command
 
     /// <summary>
     /// A commander operation: one <see cref="Objective"/>, the force assigned to it (squad ids), an autonomy
-    /// level, and a battle-plan phase. Execution is delegated to the existing per-unit pipeline via a linked
-    /// <see cref="CommanderOrder"/> id (the brain issues/updates that order). Pure state; the phase engine
-    /// (gating SEAD→strike→assault) is layered on in P2.
+    /// level, and a combat-phase cursor the brain advances each tick (gating recon→air→SEAD→strike→assault) to
+    /// emit per-unit <see cref="Nucleus.Core.Model.UnitTask"/>s. Pure state.
     /// </summary>
     public sealed class Operation
     {
@@ -24,7 +23,6 @@ namespace Nucleus.Core.Command
         public CombatPhase CombatPhase { get; set; } = CombatPhase.Recon;
         /// <summary>Threat at the objective when the operation opened — the baseline for the "softened" gate.</summary>
         public ThreatPicture InitialThreat { get; set; }
-        /// <summary>The CommanderOrder this operation drives through the AssignmentManager (null until issued).</summary>
         public string OrderId { get; set; }
 
         public Operation(string id, Objective objective, IEnumerable<string> squadIds = null)
