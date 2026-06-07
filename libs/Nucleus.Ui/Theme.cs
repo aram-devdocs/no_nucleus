@@ -17,6 +17,8 @@ namespace Nucleus.Ui
         public Color Text { get; }
         public Color Muted { get; }
         public Color Accent { get; }
+        /// <summary>Reserved for DESTRUCTIVE actions only (REMOVE) — so red never means "selected/active".</summary>
+        public Color Danger { get; }
         public Color EnRoute { get; }
         public Color Arrived { get; }
         public Color ObjectiveMarker { get; }
@@ -29,6 +31,7 @@ namespace Nucleus.Ui
             ButtonIdle = new Color(0.18f, 0.22f, 0.27f, 1f);
             Text = new Color(0.92f, 0.94f, 0.96f, 1f);
             Muted = new Color(0.62f, 0.66f, 0.70f, 1f);
+            Danger = new Color(0.85f, 0.34f, 0.34f, 1f);
             EnRoute = new Color(1f, 0.78f, 0.30f, 1f);
             Arrived = new Color(0.45f, 0.95f, 0.55f, 1f);
             ObjectiveMarker = new Color(1f, 0.85f, 0.20f, 1f);

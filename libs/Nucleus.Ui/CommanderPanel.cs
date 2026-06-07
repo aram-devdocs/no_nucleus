@@ -224,7 +224,8 @@ namespace Nucleus.Ui
                 UiFactory.Button("PrioDown", eRow.transform, "PRIO -", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, -1); });
                 UiFactory.Button("PrioUp", eRow.transform, "PRIO +", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, +1); });
                 UiFactory.Button("Retype", eRow.transform, "RETYPE", theme, () => { if (_selectedObjectiveId != null) _onCycleKind?.Invoke(_selectedObjectiveId); });
-                UiFactory.Button("ObjRemove", eRow.transform, "REMOVE", theme, () => { if (_selectedObjectiveId != null) { _onRemoveObjective?.Invoke(_selectedObjectiveId); _selectedObjectiveId = null; } });
+                var removeBtn = UiFactory.Button("ObjRemove", eRow.transform, "REMOVE", theme, () => { if (_selectedObjectiveId != null) { _onRemoveObjective?.Invoke(_selectedObjectiveId); _selectedObjectiveId = null; } });
+                if (removeBtn.image != null) removeBtn.image.color = theme.Danger; // destructive = the ONLY red
 
                 // ASSIGN FORCE — when an objective is selected, list free, suitable squads to hand it. So the
                 // player can actually command ("assign this squad to that objective"), not only toggle autonomy.
@@ -429,7 +430,7 @@ namespace Nucleus.Ui
                     r.Label.text = $"{(sel ? "▸ " : "")}{op.Kind} · {op.Phase} · P{op.Priority:0.#} · {op.SquadCount} sq [{owner}]";
                     r.Label.color = sel ? OnColor : _theme.Text;
                     r.BtnLabel.text = "SELECT";
-                    r.BtnImg.color = sel ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnImg.color = sel ? OnColor : _theme.ButtonIdle;   // selected = active green (consistent)
                     r.Go.SetActive(true);
                     _objRows[i] = r;
                 }
@@ -502,7 +503,7 @@ namespace Nucleus.Ui
                     string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
                     r.Label.text = $"{s.Name} · {comp}";
                     r.BtnLabel.text = "ASSIGN";
-                    r.BtnImg.color = _theme.Accent;
+                    r.BtnImg.color = OnColor;   // actionable = green (was faction-accent magenta — clashed)
                     r.Go.SetActive(true);
                     _assignRows[i] = r;
                 }
