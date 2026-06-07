@@ -69,6 +69,24 @@ namespace Nucleus.Core.Tests
         }
 
         [Fact]
+        public void Load_tolerates_truncated_known_records_without_throwing()
+        {
+            // Forward-compat contract: a truncated / older known record (missing trailing columns) must be
+            // skipped, not abort the whole load with IndexOutOfRange (review B5).
+            var path = TempPath("trunc-" + System.Guid.NewGuid().ToString("N") + ".ncs");
+            try
+            {
+                CampaignStore.Save(path, Sample("obj-z", true));
+                // Append deliberately short known records (each missing required trailing columns).
+                File.AppendAllText(path, "\nOBJ\nSQUAD\tonly-id\nLASTOBJ\tu1\nOPTHREAT\top\nSQUADCOMP\nOPSQUAD\top\nOP\n");
+                var loaded = CampaignStore.Load(path);   // before the fix this threw IndexOutOfRangeException
+                Assert.NotNull(loaded);
+                Assert.Equal("obj-z", loaded.Objectives[0].Id);   // the valid record still round-tripped
+            }
+            finally { File.Delete(path); }
+        }
+
+        [Fact]
         public void Overwriting_an_existing_save_keeps_the_latest()
         {
             var path = TempPath("ow-" + System.Guid.NewGuid().ToString("N") + ".ncs");

@@ -78,3 +78,9 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
   adopted in CommanderPanel (rows/editor/op-row), FlightHud, MapOverlay selected-info. (No headless unit test —
   PhaseLabel lives in the Unity-referencing Ui assembly; trivial pure switch, compile-verified.)
   Verified: full no-deploy build 0 warn + Sim 41 + Core 140 (bark is pure Campaign; no test asserted the string).
+- **B5 DONE** — CampaignSave.Deserialize: added bounds-checked PS(f,i) for direct string reads + min-column
+  guards on every known record's key fields, so a truncated/older known record is skipped (not IndexOutOfRange
+  that aborts the whole load). +CampaignStoreTests.Load_tolerates_truncated_known_records_without_throwing.
+- **B6 DONE** — crash-safe save: CampaignStore.Save + WarfareSave.Save now use File.Replace (atomic on NTFS) when
+  the destination exists, else File.Move — removing the no-file window of Delete-then-Move. Doc comment corrected.
+  Covered by the existing Overwriting_an_existing_save_keeps_the_latest test. Core 141 PASS, 0 warn.

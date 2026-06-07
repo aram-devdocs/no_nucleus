@@ -127,8 +127,9 @@ namespace Nucleus.Core.Persistence
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
             var tmp = path + ".tmp";
             File.WriteAllText(tmp, text);
-            if (File.Exists(path)) File.Delete(path);
-            File.Move(tmp, path);
+            // Atomic swap (see CampaignStore.Save): File.Replace avoids the no-file window of Delete-then-Move.
+            if (File.Exists(path)) File.Replace(tmp, path, null);
+            else File.Move(tmp, path);
         }
 
         /// <summary>Load a saved war, or null if the file does not exist.</summary>
