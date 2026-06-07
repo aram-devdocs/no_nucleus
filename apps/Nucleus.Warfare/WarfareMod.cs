@@ -139,6 +139,19 @@ namespace Nucleus.Warfare
                 && kind == Nucleus.Core.War.CommanderKind.Human) return;
 
             var state = enemy == _bluforFaction ? _campaign.Blufor : _campaign.Opfor;
+
+            // Give the enemy commander a deterministic PERSONALITY (archetype + genome) so it plays like a
+            // character — aggressive armor-rusher vs patient turtle — derived from its faction name (reproducible
+            // across runs + save/resume; only drives the persisted RiskTolerance/ForceRatio, so resume stays identical).
+            if (!_enemyGenomeApplied)
+            {
+                _enemyGenomeApplied = true;
+                var genome = Nucleus.Core.Command.GenomeFactory.ForCommander("nucleus-war", enemy);
+                state.Doctrine.ApplyGenome(genome);
+                _ctx.Log.Info($"[NUCLEUS:METRIC] enemy-commander faction='{enemy}' archetype='{genome.Archetype}' aggression={genome.Aggression:0.00} caution={genome.Caution:0.00} forceRatio={state.Doctrine.ForceRatio:0.00}");
+                _ctx.Log.Info("[NUCLEUS:SELFTEST] PASS enemy-personality-assigned");
+            }
+
             var roster = _ctx.Game.RosterFor(enemy);
             var intel = _ctx.Game.KnownEnemiesFor(enemy, new Nucleus.Core.Model.Vec3(0, 0, 0), 5_000_000f);
             // Give the enemy brain a home base (roster centroid) so it can mount a DefendArea when threatened —
@@ -155,6 +168,7 @@ namespace Nucleus.Warfare
             }
         }
         private bool _enemyLogged;
+        private bool _enemyGenomeApplied;
 
         // Average position of a roster — a cheap "home base" for the enemy commander's defensive reasoning.
         private static Nucleus.Core.Model.Vec3 RosterCentroid(System.Collections.Generic.IReadOnlyList<Nucleus.Core.Model.UnitView> roster)
