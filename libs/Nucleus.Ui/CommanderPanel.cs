@@ -423,7 +423,7 @@ namespace Nucleus.Ui
             if (_objHint != null)
             {
                 _objHint.text = _armedObjective.HasValue
-                    ? $"Drop {_armedObjective.Value}: click a spot on the map."
+                    ? $"Drop {ObjectiveVisuals.Name(_armedObjective.Value)}: click a spot on the map."
                     : "Pick a kind, then click the map. Click a marker to select & edit it.";
             }
 
@@ -440,7 +440,7 @@ namespace Nucleus.Ui
                     r.Id = op.ObjectiveId;
                     bool sel = op.ObjectiveId == _selectedObjectiveId;
                     string owner = op.PlayerOwned ? "you" : "AI";
-                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{op.Kind} · {op.Phase} · {op.SquadCount} sq [{owner}]";
+                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} · {ObjectiveVisuals.PhaseLabel(op.Phase)} · {op.SquadCount} sq [{owner}]";
                     r.Label.color = sel ? OnColor : _theme.Text;
                     r.BtnLabel.text = "SELECT";
                     r.BtnImg.color = sel ? OnColor : _theme.ButtonIdle;   // selected = active green (consistent)
@@ -463,7 +463,7 @@ namespace Nucleus.Ui
                                 // Show the objective + its live state so selecting it explains itself: who's on
                                 // it (squad count), what combat phase, and whose objective it is.
                                 string owner = o.PlayerOwned ? "yours" : "AI";
-                                text = $"{o.Kind} · {o.Phase} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner} · Priority {o.Priority:0.#} (PRIO -/+)";
+                                text = $"{ObjectiveVisuals.Name(o.Kind)} · {ObjectiveVisuals.PhaseLabel(o.Phase)} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner} · Priority {o.Priority:0.#} (PRIO -/+)";
                                 break;
                             }
                     _objEditor.text = text;
@@ -777,7 +777,7 @@ namespace Nucleus.Ui
                     var op = ops[i];
                     var r = _opRows[i];
                     r.OpId = op.Id;
-                    r.Label.text = $"{Dot(op.Kind)}{op.Kind} — {op.Phase} [{op.Status}]";
+                    r.Label.text = $"{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} — {ObjectiveVisuals.PhaseLabel(op.Phase)} [{op.Status}]";
                     bool manual = op.Autonomy == Nucleus.Core.Command.AutonomyLevel.Manual;
                     r.BtnLabel.text = manual ? "YOU" : "AI";   // who runs this operation (tap to switch)
                     r.BtnImg.color = manual ? _theme.Accent : OnColor;

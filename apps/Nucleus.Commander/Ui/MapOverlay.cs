@@ -134,7 +134,7 @@ namespace Nucleus.Ui
                 string threat = selOp.ThreatCount > 0
                     ? $"Threat {selOp.ThreatCount}" + (selOp.ThreatAirDefense > 0 ? $" ({selOp.ThreatAirDefense} SAM)" : "")
                     : "Threat —";
-                _selInfo.text = $"{ObjectiveVisuals.Name(selOp.Kind)}\n{selOp.Phase} · {selOp.Status}\n{threat}\n"
+                _selInfo.text = $"{ObjectiveVisuals.Name(selOp.Kind)}\n{ObjectiveVisuals.PhaseLabel(selOp.Phase)} · {selOp.Status}\n{threat}\n"
                     + $"{(selOp.PlayerOwned ? "yours" : "AI")} · {selOp.SquadCount} squad{(selOp.SquadCount == 1 ? "" : "s")}";
                 _selInfo.gameObject.SetActive(true);
             }

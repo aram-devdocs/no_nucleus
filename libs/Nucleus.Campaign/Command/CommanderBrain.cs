@@ -314,7 +314,7 @@ namespace Nucleus.Core.Command
                 case ObjectiveKind.CapturePoint: return "AI: capture " + Bearing(home, pos);
                 case ObjectiveKind.DestroyTarget: return "AI: strike " + Bearing(home, pos);
                 case ObjectiveKind.Recon: return "AI: scout " + Bearing(home, pos);
-                case ObjectiveKind.ControlAirspace: return "AI: CAP " + Bearing(home, pos);
+                case ObjectiveKind.ControlAirspace: return "AI: air patrol " + Bearing(home, pos);
                 case ObjectiveKind.Resupply: return "AI: resupply " + Bearing(home, pos);
                 default: return "AI: " + kind + " " + Bearing(home, pos);
             }

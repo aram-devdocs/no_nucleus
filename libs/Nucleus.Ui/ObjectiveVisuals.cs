@@ -42,6 +42,24 @@ namespace Nucleus.Ui
             }
         }
 
+        /// <summary>Readable label for a combat phase — so every surface (HUD/map/panel) says "SEAD" /
+        /// "Air superiority" / "Scouting" instead of the raw PascalCase enum ("Sead", "AirSuperiority").
+        /// SSOT for phase wording, mirroring how the brain narrates phases in the feed.</summary>
+        public static string PhaseLabel(Cmd.CombatPhase phase)
+        {
+            switch (phase)
+            {
+                case Cmd.CombatPhase.Recon:          return "Scouting";
+                case Cmd.CombatPhase.AirSuperiority: return "Air superiority";
+                case Cmd.CombatPhase.Sead:           return "SEAD";
+                case Cmd.CombatPhase.Strike:         return "Strike";
+                case Cmd.CombatPhase.Assault:        return "Assault";
+                case Cmd.CombatPhase.Capture:        return "Capturing";
+                case Cmd.CombatPhase.Hold:           return "Holding";
+                default:                             return phase.ToString();
+            }
+        }
+
         /// <summary>Full readable name for headers/labels: "Capture point", "Destroy target", …</summary>
         public static string Name(Cmd.ObjectiveKind kind)
         {

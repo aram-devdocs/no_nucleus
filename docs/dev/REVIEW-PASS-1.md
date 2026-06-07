@@ -70,3 +70,11 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
   against a moving home and dominates squad assignment. The determinism canary correctly caught a real emergent
   regression. A4 needs a different design (fixed home anchor, or reserve exactly one cap slot + better dedup) before
   it's safe — NOT shipping the naive "exempt" version. Revisit in a later pass.
+- **E18 DONE** — ControlAirspace feed bark "AI: CAP …" → "AI: air patrol …" (the "CAP" token also means
+  CapturePoint on the map/HUD; collision removed; matches the plain-verb sibling barks).
+- **E19 DONE** — CommanderPanel objective/op rows + drop-hint + editor now render ObjectiveVisuals.Name(kind)
+  (no more raw "DestroyTarget"/"ControlAirspace" PascalCase; panel agrees with map/HUD).
+- **E20 DONE** — added ObjectiveVisuals.PhaseLabel(CombatPhase) SSOT ("SEAD"/"Air superiority"/"Scouting"…);
+  adopted in CommanderPanel (rows/editor/op-row), FlightHud, MapOverlay selected-info. (No headless unit test —
+  PhaseLabel lives in the Unity-referencing Ui assembly; trivial pure switch, compile-verified.)
+  Verified: full no-deploy build 0 warn + Sim 41 + Core 140 (bark is pure Campaign; no test asserted the string).
