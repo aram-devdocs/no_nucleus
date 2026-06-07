@@ -25,5 +25,21 @@ namespace Nucleus.Core.Command
             float t = RiskTolerance < 0f ? 0f : RiskTolerance > 1f ? 1f : RiskTolerance;
             return cautious + (aggressive - cautious) * t;
         }
+
+        /// <summary>Drive this doctrine from a personality genome: Aggression → RiskTolerance (all the gate
+        /// thresholds), Caution → ForceRatio (1.0 reckless .. 2.0 cautious). The default genome reproduces the
+        /// stock 0.5 / 1.5 exactly, so unpersonalized commanders behave as before. Returns this for chaining.</summary>
+        public Doctrine ApplyGenome(CommanderGenome g)
+        {
+            if (g != null)
+            {
+                RiskTolerance = g.Aggression < 0f ? 0f : g.Aggression > 1f ? 1f : g.Aggression;
+                float caution = g.Caution < 0f ? 0f : g.Caution > 1f ? 1f : g.Caution;
+                ForceRatio = 1.0f + caution; // 1.0 (reckless) .. 2.0 (cautious); 1.5 at the neutral 0.5
+            }
+            return this;
+        }
+
+        public static Doctrine FromGenome(CommanderGenome g) => new Doctrine().ApplyGenome(g);
     }
 }
