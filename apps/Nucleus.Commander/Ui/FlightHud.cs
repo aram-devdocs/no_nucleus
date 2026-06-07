@@ -30,7 +30,8 @@ namespace Nucleus.Composition
 
         public FlightHud(Transform canvas)
         {
-            _root = UiFactory.Panel("NucleusFlightHud", canvas, new Color(0.05f, 0.07f, 0.09f, 0.72f));
+            // Higher opacity so the HUD stays legible over bright sky/terrain (was washing out at 0.72).
+            _root = UiFactory.Panel("NucleusFlightHud", canvas, new Color(0.04f, 0.06f, 0.08f, 0.88f));
             _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(1f, 0f); // bottom-right
             _root.sizeDelta = new Vector2(360f, 168f);
             _root.anchoredPosition = new Vector2(-18f, 18f);
