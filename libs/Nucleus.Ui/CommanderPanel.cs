@@ -432,7 +432,13 @@ namespace Nucleus.Ui
                     if (ops != null)
                         foreach (var o in ops)
                             if (o.ObjectiveId == _selectedObjectiveId)
-                                { text = $"Editing: {o.Kind} · P{o.Priority:0.#}"; break; }
+                            {
+                                // Show the objective + its live state so selecting it explains itself: who's on
+                                // it (squad count), what combat phase, and whose objective it is.
+                                string owner = o.PlayerOwned ? "yours" : "AI";
+                                text = $"{o.Kind} · P{o.Priority:0.#} · {o.Phase} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner}";
+                                break;
+                            }
                     _objEditor.text = text;
                 }
             }
