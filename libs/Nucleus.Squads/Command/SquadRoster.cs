@@ -61,6 +61,9 @@ namespace Nucleus.Core.Command
             if (s.IsEmpty) return SquadStatus.Reserve;
             int target = s.TargetComposition?.Total ?? 0;
             if (target > 0 && s.Strength < target * _cfg.DepletedFraction) return SquadStatus.Depleted;
+            // Below full strength but not yet committed → still forming up (recruiting toward its target). Once
+            // assigned it reads Engaged even if under strength (the op state matters more than the headcount then).
+            if (s.AssignedOperationId == null && target > 0 && s.Strength < target) return SquadStatus.Forming;
             return s.AssignedOperationId != null ? SquadStatus.Engaged : SquadStatus.Ready;
         }
     }

@@ -403,8 +403,9 @@ namespace Nucleus.Ui
             RenderAssignList(hq);
         }
 
-        // List free, suitable squads for the selected objective with an ASSIGN button (and any already-assigned
-        // squad with a RELEASE button), so the player can directly command who works an objective.
+        // List the FREE, suitable squads for the selected objective, each with an ASSIGN button, so the player
+        // can hand a squad to that objective. (Releasing a squad back to the AI is done from the squad card's
+        // AI/YOU autonomy toggle, not here — there is no release action in this list.)
         private void RenderAssignList(Cmd.HqSnapshot hq)
         {
             if (_assignContainer == null) return;
@@ -424,7 +425,7 @@ namespace Nucleus.Ui
             }
 
             var suitable = Cmd.Families.SuitableFor(selKind.Value);
-            // Free + suitable squads, plus squads already on THIS objective's operation (to release).
+            // Free (unassigned) + suitable squads — the ones that can be handed to this objective.
             var candidates = new List<Cmd.SquadView>();
             foreach (var s in squads)
                 if (string.IsNullOrEmpty(s.AssignedOperationId) && suitable.Contains(s.Family))
@@ -470,8 +471,9 @@ namespace Nucleus.Ui
                 if (_autoFillLabel != null) _autoFillLabel.text = _autoFillOn ? "AI AUTO-FILL: ON" : "AI AUTO-FILL: OFF";
             }
 
-            // BUILD menu (Build section) — available whenever a catalog exists.
-            if (_buildContainer != null) RenderBuildRows(catalog, funds);
+            // BUILD menu (Build section) — available whenever a catalog exists. Affordability is judged net of
+            // already-queued spend so the per-row BUY tint agrees with the "After" over-commit warning below.
+            if (_buildContainer != null) RenderBuildRows(catalog, funds, hq?.QueuedCost ?? 0f);
             if (_buildFunds != null)
             {
                 float after = funds - hq.QueuedCost;
@@ -542,7 +544,7 @@ namespace Nucleus.Ui
         }
 
         // Build rows: "name [contents] · cost" + a BUY button (greyed when unaffordable). Pooled.
-        private void RenderBuildRows(Cmd.ConvoyCatalog catalog, float funds)
+        private void RenderBuildRows(Cmd.ConvoyCatalog catalog, float funds, float queuedCost)
         {
             var opts = catalog?.Options;
             int count = opts?.Count ?? 0;
@@ -558,7 +560,7 @@ namespace Nucleus.Ui
                     r.Id = o.Name;
                     string contents = string.IsNullOrEmpty(o.Contents) ? "" : $" [{o.Contents}]";
                     r.Label.text = $"{o.Name}{contents} · {o.Cost:0}";
-                    bool afford = funds >= o.Cost;
+                    bool afford = (funds - queuedCost) >= o.Cost;
                     r.BtnLabel.text = "BUY";
                     r.BtnImg.color = afford ? _theme.Accent : _theme.ButtonIdle;
                     r.Go.SetActive(true);

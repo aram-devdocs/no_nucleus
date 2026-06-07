@@ -108,6 +108,24 @@ namespace Nucleus.Tests
         }
 
         [Fact]
+        public void Reconcile_reports_forming_for_an_unassigned_under_strength_squad()
+        {
+            // review E29: SquadStatus.Forming was unreachable in the derived view. An unassigned squad below
+            // its TargetComposition strength (but above the depleted floor) now reads Forming; at full strength
+            // it reads Ready. (DepletedFraction=0.5, target=4 → depleted below 2.)
+            var sr = new SquadRoster(Cfg());
+            var comp = new Composition();
+            comp.Set(RoleFamily.Armor, 4);
+            sr.Add(new Squad("p1", "Sq", RoleFamily.Armor, SquadOrigin.Player, new[] { "a1", "a2", "a3", "a4" }) { TargetComposition = comp });
+
+            sr.Reconcile(new List<UnitView> { U("a1", Role.Armor, P(0, 0)), U("a2", Role.Armor, P(0, 0)), U("a3", Role.Armor, P(0, 0)), U("a4", Role.Armor, P(0, 0)) });
+            Assert.Equal(SquadStatus.Ready, sr.Squads[0].Status);     // at target → ready
+
+            sr.Reconcile(new List<UnitView> { U("a1", Role.Armor, P(0, 0)), U("a2", Role.Armor, P(0, 0)), U("a3", Role.Armor, P(0, 0)) });
+            Assert.Equal(SquadStatus.Forming, sr.Squads[0].Status);   // dropped to 3 of 4, unassigned → forming up
+        }
+
+        [Fact]
         public void Reconcile_keeps_empty_player_squads_as_reserve()
         {
             var sr = new SquadRoster(Cfg());

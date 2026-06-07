@@ -132,6 +132,15 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
   misleading nullability to consumers (worse than the current oblivious state). Doing the full public surface
   of all 6 libs accurately is a large, separate, careful pass; no external consumers benefit yet. Deferred.
 
+- **E21/E22/E29 DONE** — E21 RenderBuildRows now judges BUY affordability net of hq.QueuedCost (afford =
+  (funds-queued) >= cost), so the per-row BUY tint agrees with the "After" over-commit warning. E22 corrected
+  the misleading ASSIGN/RELEASE comments (the list only offers ASSIGN of free squads; release is the squad
+  card's AI/YOU toggle). E29 SquadRoster.StatusFor now reaches SquadStatus.Forming for an UNASSIGNED
+  under-strength squad (assigned squads stay Engaged) + Core test. Build 0/0 + Core 148 (+1) + Sim 42.
+
+### PASS 1 COMPLETE — 26/29 findings shipped, 3 deferred (A4, D15, D28, G14 → 4 deferred).
+Run Pass 2 next (fresh competing-agent review of the improved codebase → docs/dev/REVIEW-PASS-2.md).
+
 ### Still remaining (next iterations)
 - Wave E remainder — E21 BUY affordability nets queued spend, E22 ASSIGN RELEASE comment fix, E29 SquadStatus.Forming reachable.
 - Deferred: A4 (home-defense cap, needs redesign), D15 (HqView micro-allocs), D28 (GameRoster id-string).
