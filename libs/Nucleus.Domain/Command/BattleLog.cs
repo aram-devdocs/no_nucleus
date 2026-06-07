@@ -78,6 +78,19 @@ namespace Nucleus.Core.Command
             }
         }
 
+        /// <summary>Adds an event UNLESS the newest entry is identical (same kind + text) — so a steady-state
+        /// condition (e.g. "defending HQ" every tick) appears once, not as feed spam. Use for recurring barks;
+        /// use <see cref="Append"/> for genuine one-shot events.</summary>
+        public void AppendDistinct(ReportEvent e)
+        {
+            if (_count > 0)
+            {
+                int last = (_start + _count - 1) % _buffer.Length;
+                if (_buffer[last].Kind == e.Kind && _buffer[last].Text == e.Text) return;
+            }
+            Append(e);
+        }
+
         /// <summary>
         /// Returns up to <paramref name="n"/> most-recent events, newest first. Capped at both
         /// <paramref name="n"/> and the current <see cref="Count"/>.

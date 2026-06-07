@@ -77,7 +77,8 @@ namespace Nucleus.Composition
                 onRemoveObjective: id => _service.RemoveObjective(id),
                 onNudgePriority: NudgePriority,
                 onCycleKind: CycleKind,
-                sections: CommanderPanel.PanelSections.Objectives | CommanderPanel.PanelSections.Mode);
+                sections: CommanderPanel.PanelSections.Objectives | CommanderPanel.PanelSections.Mode
+                    | CommanderPanel.PanelSections.Feed); // show the AI's narrated decisions on the command screen
             UiFactory.Stretch(_panel.Root);
             CommanderPlugin.Log?.LogInfo("Commander panel built into native MFD screen.");
         }

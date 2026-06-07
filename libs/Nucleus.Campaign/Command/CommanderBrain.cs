@@ -75,7 +75,8 @@ namespace Nucleus.Core.Command
                 op.CombatPhase = PhaseGates.ActivePhase(current, op.InitialThreat ?? current,
                     new ForceState(FighterStrength(op, state)), state.Doctrine);
                 if (op.CombatPhase != prevPhase)
-                    state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.PhaseChanged, $"-> {op.CombatPhase}", op.Id));
+                    state.Log.AppendDistinct(new ReportEvent(snapshot.Time, ReportKind.PhaseChanged,
+                        PhaseReason(op.Objective.Kind, op.CombatPhase), op.Id));
             }
 
             // 2. Free squads from terminal operations (B1), then drop the terminal ops and prune auto
@@ -115,8 +116,14 @@ namespace Nucleus.Core.Command
                     planned.AddRange(GenerateObjectives(snapshot.KnownEnemies, state.Objectives, state.BrainConfig,
                         state.HomeBase, state.Doctrine));
                     foreach (var obj in planned.Take(room))
-                        state.Objectives.Add(new Objective(state.NextObjectiveId(), obj.Kind, obj.Position,
-                            obj.Source, obj.TargetId, obj.Priority));
+                    {
+                        var created = new Objective(state.NextObjectiveId(), obj.Kind, obj.Position,
+                            obj.Source, obj.TargetId, obj.Priority);
+                        state.Objectives.Add(created);
+                        // Bark the decision so the player sees the AI thinking (one-shot per objective).
+                        state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.ObjectiveAdded,
+                            ObjectiveBark(created.Kind, state.HomeBase, created.Position)));
+                    }
                 }
             }
 
@@ -143,7 +150,7 @@ namespace Nucleus.Core.Command
                     op.CombatPhase = PhaseGates.ActivePhase(initial, initial, new ForceState(FighterStrength(op, state)), state.Doctrine);
                     state.Operations.Add(op);
                     state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.OperationStarted,
-                        $"{obj.Kind} ({squadIds.Count} squad{(squadIds.Count == 1 ? "" : "s")})", op.Id));
+                        $"{obj.Kind} {Bearing(state.HomeBase, obj.Position)} — {squadIds.Count} squad{(squadIds.Count == 1 ? "" : "s")} moving in", op.Id));
                 }
             }
             else
@@ -263,6 +270,55 @@ namespace Nucleus.Core.Command
             foreach (var e in snapshot.KnownEnemies)
                 if (e != null && e.Position.HorizontalDistanceTo(point) <= radius) return true;
             return false;
+        }
+
+        // --- Narration ("barks"): plain-language lines so the player can SEE what the AI is doing and why. ---
+
+        private static readonly string[] Compass = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+
+        /// <summary>An 8-point compass bearing + distance in km from <paramref name="from"/> to <paramref name="to"/>
+        /// (X = east, Z = north). Deterministic; no clock/RNG.</summary>
+        private static string Bearing(Vec3 from, Vec3 to)
+        {
+            float dx = to.X - from.X, dz = to.Z - from.Z;
+            float km = (float)System.Math.Sqrt(dx * dx + dz * dz) / 1000f;
+            double ang = System.Math.Atan2(dx, dz) * 180.0 / System.Math.PI; // 0 = north, clockwise
+            if (ang < 0) ang += 360;
+            int i = (int)System.Math.Round(ang / 45.0) % 8;
+            return $"{Compass[i]} {km:0}km";
+        }
+
+        /// <summary>One-line "why" for a newly created objective, relative to the home base.</summary>
+        private static string ObjectiveBark(ObjectiveKind kind, Vec3 home, Vec3 pos)
+        {
+            switch (kind)
+            {
+                case ObjectiveKind.DefendArea: return "AI: defending HQ";
+                case ObjectiveKind.CapturePoint: return "AI: capture " + Bearing(home, pos);
+                case ObjectiveKind.DestroyTarget: return "AI: strike " + Bearing(home, pos);
+                case ObjectiveKind.Recon: return "AI: scout " + Bearing(home, pos);
+                case ObjectiveKind.ControlAirspace: return "AI: CAP " + Bearing(home, pos);
+                case ObjectiveKind.Resupply: return "AI: resupply " + Bearing(home, pos);
+                default: return "AI: " + kind + " " + Bearing(home, pos);
+            }
+        }
+
+        /// <summary>Why a combat phase is what it is — so the player understands why ground holds back, etc.</summary>
+        private static string PhaseReason(ObjectiveKind kind, CombatPhase phase)
+        {
+            string reason;
+            switch (phase)
+            {
+                case CombatPhase.Recon: reason = "scouting"; break;
+                case CombatPhase.AirSuperiority: reason = "clearing the skies"; break;
+                case CombatPhase.Sead: reason = "suppressing air defenses"; break;
+                case CombatPhase.Strike: reason = "softening the target — ground holding"; break;
+                case CombatPhase.Assault: reason = "ground assault going in"; break;
+                case CombatPhase.Capture: reason = "taking the ground"; break;
+                case CombatPhase.Hold: reason = "holding the ground"; break;
+                default: reason = phase.ToString(); break;
+            }
+            return kind + ": " + reason;
         }
 
         /// <summary>
