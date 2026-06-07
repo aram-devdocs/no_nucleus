@@ -7,8 +7,9 @@ using UnityEngine.UI;
 namespace Nucleus.Ui
 {
     /// <summary>
-    /// Map overlay on the icon layer: a marker + lines per active order (color-coded), plus a live hover
-    /// range-ring while placing. Pooled, no per-frame allocations. Clear() hides everything (map closed).
+    /// Map overlay on the icon layer: a selectable, labelled marker per live objective (color-coded by kind),
+    /// status-colored lines to the assigned squads' units, and a "why/what" header for the selected objective.
+    /// Pooled, no per-frame allocations. Clear() hides everything (map closed).
     /// </summary>
     public sealed class MapOverlay
     {
@@ -20,17 +21,7 @@ namespace Nucleus.Ui
         private readonly List<TMPro.TextMeshProUGUI> _squadLabels = new List<TMPro.TextMeshProUGUI>();
         private TMPro.TextMeshProUGUI _selInfo;   // "why/what" header for the selected objective
         private readonly List<Image> _lines = new List<Image>();
-        private readonly List<Image> _hoverLines = new List<Image>();
-        private readonly List<Image> _hoverMarks = new List<Image>(); // highlight ring on each selected unit
-        private Image _hoverRing;     // outer = unit pull radius
-        private Image _hoverRingInner; // inner = area-of-operations (threat-assessment) radius
-        private Image _hoverDot;
         private Image _selRing;        // ring drawn around the selected objective marker
-
-        // Ring on-screen size is local-RectTransform units (mapDisplayFactor is a fractional scalar), clamped
-        // independently per ring so neither collapses (the playtest "tiny ring") nor explodes across zoom.
-        private const float RingMinLocal = 60f;
-        private const float RingMaxLocal = 6000f;
 
         public MapOverlay(Transform iconLayer, IMapProjection projection)
         {
@@ -242,104 +233,6 @@ namespace Nucleus.Ui
             _selInfo.alignment = TMPro.TextAlignmentOptions.TopLeft;
         }
 
-        public void Render(IReadOnlyList<OrderState> orders, IReadOnlyDictionary<string, Vec3> unitPositions)
-        {
-            int mi = 0, li = 0;
-            foreach (var o in orders)
-            {
-                if (o.Status == OrderStatus.Complete) continue;
-                Color col = OrderColors.For(o.Order.Kind);
-                Vec3 oLocal = _projection.WorldToMapLocal(o.Order.Position);
-
-                var marker = Marker(mi++);
-                ((RectTransform)marker.transform).localPosition = new Vector3(oLocal.X, oLocal.Y, 0f);
-                marker.color = col;
-
-                foreach (var id in o.AssignedUnitIds)
-                {
-                    if (!unitPositions.TryGetValue(id, out var up)) continue;
-                    DrawLine(Line(li++), oLocal, _projection.WorldToMapLocal(up), col);
-                }
-            }
-            for (int i = mi; i < _markers.Count; i++) _markers[i].gameObject.SetActive(false);
-            for (int i = li; i < _lines.Count; i++) _lines[i].gameObject.SetActive(false);
-        }
-
-        /// <summary>
-        /// Show the placement preview at a world point: an outer ring (unit pull radius), an inner ring
-        /// (area of operations / threat radius), a centre dot, and a faint line to every unit that would be
-        /// assigned (<paramref name="previewUnits"/>) so the player sees exactly who responds.
-        /// </summary>
-        public void SetHover(Vec3 world, float pullMeters, float aoMeters, OrderKind kind, bool canPlace,
-            IReadOnlyList<Vec3> previewUnits = null)
-        {
-            EnsureHover();
-            Vec3 local = _projection.WorldToMapLocal(world);
-            var center = new Vector3(local.X, local.Y, 0f);
-            Color c = canPlace ? OrderColors.For(kind) : NativeColors.Hostile;
-
-            // Inner ring gets a smaller floor than the outer so the two don't collapse into one when zoomed out.
-            SizeRing(_hoverRing, center, pullMeters, c, 0.85f, RingMinLocal);
-            SizeRing(_hoverRingInner, center, aoMeters, c, 0.5f, RingMinLocal * 0.55f);
-
-            var dt = (RectTransform)_hoverDot.transform;
-            dt.localPosition = center;
-            _hoverDot.color = canPlace ? NativeColors.Friendly : NativeColors.Hostile;
-            _hoverDot.gameObject.SetActive(true);
-
-            // Lines AND a bright highlight ring on every unit that would be assigned, so the player clearly
-            // sees exactly who responds before committing.
-            int hi = 0;
-            if (previewUnits != null)
-            {
-                foreach (var uw in previewUnits)
-                {
-                    var u = _projection.WorldToMapLocal(uw);
-                    DrawLine(HoverLine(hi), local, u, NativeColors.Friendly);
-                    var mk = HoverMark(hi);
-                    ((RectTransform)mk.transform).localPosition = new Vector3(u.X, u.Y, 0f);
-                    mk.color = NativeColors.Friendly;
-                    hi++;
-                }
-            }
-            for (int i = hi; i < _hoverLines.Count; i++) _hoverLines[i].gameObject.SetActive(false);
-            for (int i = hi; i < _hoverMarks.Count; i++) _hoverMarks[i].gameObject.SetActive(false);
-        }
-
-        // A bright ring drawn over a unit that the pending order will select.
-        private Image HoverMark(int i)
-        {
-            while (_hoverMarks.Count <= i)
-            {
-                var img = UiFactory.Ring("CmdHoverMark" + _hoverMarks.Count, _layer, Color.white, dashed: false);
-                var rt = (RectTransform)img.transform;
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.sizeDelta = new Vector2(26f, 26f);
-                _hoverMarks.Add(img);
-            }
-            _hoverMarks[i].gameObject.SetActive(true);
-            return _hoverMarks[i];
-        }
-
-        private void SizeRing(Image ring, Vector3 center, float meters, Color color, float alpha, float minLocal)
-        {
-            float diam = Mathf.Clamp(2f * meters * _projection.MapScale, minLocal, RingMaxLocal);
-            var rt = (RectTransform)ring.transform;
-            rt.localPosition = center;
-            rt.sizeDelta = new Vector2(diam, diam);
-            color.a = alpha; ring.color = color;
-            ring.gameObject.SetActive(true);
-        }
-
-        public void ClearHover()
-        {
-            if (_hoverRing != null) _hoverRing.gameObject.SetActive(false);
-            if (_hoverRingInner != null) _hoverRingInner.gameObject.SetActive(false);
-            if (_hoverDot != null) _hoverDot.gameObject.SetActive(false);
-            foreach (var l in _hoverLines) l.gameObject.SetActive(false);
-            foreach (var m in _hoverMarks) m.gameObject.SetActive(false);
-        }
-
         /// <summary>Hide all overlay graphics (e.g. when the map closes).</summary>
         public void Clear()
         {
@@ -350,27 +243,6 @@ namespace Nucleus.Ui
             foreach (var l in _lines) l.gameObject.SetActive(false);
             if (_selRing != null) _selRing.gameObject.SetActive(false);
             if (_selInfo != null) _selInfo.gameObject.SetActive(false);
-            ClearHover();
-        }
-
-        private void EnsureHover()
-        {
-            if (_hoverRing == null) _hoverRing = UiFactory.Ring("CmdHoverRing", _layer, Color.white, dashed: true);
-            if (_hoverRingInner == null) _hoverRingInner = UiFactory.Ring("CmdHoverRingInner", _layer, Color.white, dashed: true);
-            if (_hoverDot == null)
-            {
-                _hoverDot = UiFactory.LineImage("CmdHoverDot", _layer, Color.white);
-                var rt = (RectTransform)_hoverDot.transform;
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.sizeDelta = new Vector2(10f, 10f);
-            }
-        }
-
-        private Image HoverLine(int i)
-        {
-            while (_hoverLines.Count <= i) _hoverLines.Add(UiFactory.LineImage("CmdHoverLine" + _hoverLines.Count, _layer, Color.white));
-            _hoverLines[i].gameObject.SetActive(true);
-            return _hoverLines[i];
         }
 
         private Image Marker(int i)

@@ -97,7 +97,11 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
   threshold (F24); defence wins the single slot at a tight cap (F25). Core 144 (+3) + Sim 42 (+1) PASS.
 
 ## Remaining (next iterations)
-- Wave C — dead-code removal (C7 CommanderPanel Orders block + Render overload, C8 MapOverlay Render/SetHover,
+- **C8 DONE** — MapOverlay: deleted the dead Render(orders,…) overload + the entire SetHover hover-ring
+  machinery (HoverMark/SizeRing/EnsureHover/HoverLine/ClearHover + _hover* fields + RingMin/MaxLocal consts +
+  the ClearHover() call in Clear()); updated the class doc. No callers (grep-confirmed). Build 0 warn + Core 144
+  + arch 9. (Last OrderColors refs now live only in CommanderPanel's dead C7 code → C10 lands with C7.)
+- Wave C remainder — dead-code removal (C7 CommanderPanel Orders block + Render overload,
   C9 CommanderService PlaceOrder/PreviewAt + _mgr + ICampaign.Orders, C10 OrderColors.cs, C26 BattlePlan.Label).
   Large, must be done together; behavior-preserving subtraction. HIGH value.
 - Wave G — public API (G11 ModData init-props + ModRegistry guard, G12 Vec3/ColorRgba value equality, G13 fix
