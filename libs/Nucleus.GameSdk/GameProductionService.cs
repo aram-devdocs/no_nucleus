@@ -42,25 +42,28 @@ namespace Nucleus.Game
         /// </summary>
         private float _lastPurchase = -1000f; // timeSinceLevelLoad of our last buy (game enforces a 60s cooldown)
 
-        public void Drain(ProductionQueue queue)
+        /// <summary>Drain one affordable queued purchase (game caps convoy buys to 1/60s). Returns the dispatched
+        /// request so the caller can announce it on the battle feed, or null when nothing was bought this tick.</summary>
+        public PurchaseRequest Drain(ProductionQueue queue)
         {
-            if (queue == null || queue.Pending.Count == 0) return;
-            if (!GameManager.GetLocalPlayer<Player>(out var player) || player == null) return;
-            if (!GameManager.GetLocalFaction(out var faction) || faction == null) return;
-            if (!GameManager.GetLocalHQ(out var hq) || hq == null) return;
+            if (queue == null || queue.Pending.Count == 0) return null;
+            if (!GameManager.GetLocalPlayer<Player>(out var player) || player == null) return null;
+            if (!GameManager.GetLocalFaction(out var faction) || faction == null) return null;
+            if (!GameManager.GetLocalHQ(out var hq) || hq == null) return null;
 
             // The game allows at most ONE convoy purchase per 60s (Player.CmdPurchaseConvoy); buying more in a
             // burst silently no-ops. So drain a SINGLE affordable request per cooldown — never loop-dequeue.
-            if (UnityEngine.Time.timeSinceLevelLoad < _lastPurchase + 60f) return;
+            if (UnityEngine.Time.timeSinceLevelLoad < _lastPurchase + 60f) return null;
 
             var req = queue.Pending[0];
-            if (req == null) { queue.Dequeue(); return; }
-            if (req.Cost > hq.factionFunds) return; // can't afford the head yet — leave it queued
+            if (req == null) { queue.Dequeue(); return null; }
+            if (req.Cost > hq.factionFunds) return null; // can't afford the head yet — leave it queued
 
             queue.Dequeue();
             player.CmdPurchaseConvoy(req.ConvoyName);
             _lastPurchase = UnityEngine.Time.timeSinceLevelLoad;
             Nucleus.Core.NucleusLog.Info($"Production purchase: {req.ConvoyName} (cost {req.Cost:0}, funds {hq.factionFunds:0})");
+            return req;
         }
 
         /// <summary>Cost of a convoy computed defensively from its constituents (the game's GetCost throws on a

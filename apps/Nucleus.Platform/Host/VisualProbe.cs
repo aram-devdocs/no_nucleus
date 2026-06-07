@@ -94,12 +94,14 @@ namespace Nucleus.Host
             // 2) Command view: map maximised (overlay + whatever panel is open).
             _shots.Add(new Shot { Name = "02-map-open", SettleSec = 3.0f, Action = () => Map()?.Maximize() });
             // 3-6) Each mod panel, opened by invoking its native bezel button's click.
-            _shots.Add(new Shot { Name = "03-cmd", SettleSec = 2.0f, Action = () => PressBezel("commander") });
+            _shots.Add(new Shot { Name = "03-cmd", SettleSec = 2.0f, Action = () => OpenPanel("commander") });
             // Select the first objective so the map shows the WS6 selection detail (header + squad lines/labels).
             _shots.Add(new Shot { Name = "03cmd-selected", SettleSec = 2.0f, Action = ClickFirstSelect });
-            _shots.Add(new Shot { Name = "04-bld", SettleSec = 2.0f, Action = () => PressBezel("build") });
-            _shots.Add(new Shot { Name = "05-sqd", SettleSec = 2.0f, Action = () => PressBezel("squad") });
-            _shots.Add(new Shot { Name = "06-war", SettleSec = 2.0f, Action = () => PressBezel("warfare") });
+            // OpenPanel closes the previously-open panel first so each panel shot is clean (bezels are on
+            // different sides and otherwise overlap — CMD would sit on top of BLD).
+            _shots.Add(new Shot { Name = "04-bld", SettleSec = 2.0f, Action = () => OpenPanel("build") });
+            _shots.Add(new Shot { Name = "05-sqd", SettleSec = 2.0f, Action = () => OpenPanel("squad") });
+            _shots.Add(new Shot { Name = "06-war", SettleSec = 2.0f, Action = () => OpenPanel("warfare") });
         }
 
         /// <summary>Driven every in-mission frame by the DynamicMap.Update patch (no-op unless armed).</summary>
@@ -175,6 +177,16 @@ namespace Nucleus.Host
         }
 
         private static DynamicMap Map() => SceneSingleton<DynamicMap>.i;
+
+        private static string _openBezel;
+
+        // Open one panel exclusively: toggle the previously-opened one off first so panels don't overlap.
+        private static void OpenPanel(string modId)
+        {
+            if (_openBezel != null && _openBezel != modId) PressBezel(_openBezel);
+            PressBezel(modId);
+            _openBezel = modId;
+        }
 
         // Open a mod panel by invoking its native bezel button (HostButtons names them "NucleusBezel_<modId>").
         private static void PressBezel(string modId)

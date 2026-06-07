@@ -268,6 +268,8 @@ namespace Nucleus.Ui
             {
                 // BUILD — buy reinforcement convoys: a row per convoy (name + contents + cost) with a BUY button.
                 UiFactory.PreferredHeight(UiFactory.Label("BuildHdr", layout.transform, "BUILD — reinforce", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.PreferredHeight(UiFactory.Label("BuildAircraft", layout.transform,
+                    "AIRCRAFT — spawn from your airbases (not bought here).", 11f, theme.Muted).gameObject, 16f);
                 UiFactory.PreferredHeight(UiFactory.Label("BuildHint", layout.transform,
                     "Spend faction funds on reinforcement convoys (they arrive off-map and drive to the front). Aircraft are flown from your airbases via the game's spawn menu. Every purchase also costs attrition — more so once your bases are lost.",
                     11f, theme.Muted).gameObject, 56f);
@@ -462,7 +464,12 @@ namespace Nucleus.Ui
 
             // BUILD menu (Build section) — available whenever a catalog exists.
             if (_buildContainer != null) RenderBuildRows(catalog, funds);
-            if (_buildFunds != null) _buildFunds.text = $"Funds: {funds:0}";
+            if (_buildFunds != null)
+            {
+                float after = funds - hq.QueuedCost;
+                _buildFunds.text = $"Funds: {funds:0}  ·  Queued: {hq.QueuedCost:0}  ·  After: {after:0}";
+                _buildFunds.color = after < 0f ? new Color(1f, 0.5f, 0.5f) : _theme.Accent;
+            }
             if (_buildStatus != null)
             {
                 // Echo the production queue + the most recent order so a purchase is visible HERE, not only the feed.

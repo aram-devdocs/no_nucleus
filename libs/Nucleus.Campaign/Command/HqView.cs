@@ -103,10 +103,13 @@ namespace Nucleus.Core.Command
         /// <summary>The two command toggles (mod is always on).</summary>
         public bool AiCreatesObjectives { get; }
         public bool AiAutoFill { get; }
+        /// <summary>Total cost of everything still queued for production — so the build panel can show
+        /// "Funds · Queued · After" and warn before the player over-commits.</summary>
+        public float QueuedCost { get; }
 
         public HqSnapshot(IReadOnlyList<OperationView> operations, IReadOnlyList<SquadView> squads,
             IReadOnlyList<string> production, IReadOnlyList<ReportEvent> recent,
-            bool aiCreatesObjectives, bool aiAutoFill)
+            bool aiCreatesObjectives, bool aiAutoFill, float queuedCost = 0f)
         {
             Operations = operations;
             Squads = squads;
@@ -114,6 +117,7 @@ namespace Nucleus.Core.Command
             Recent = recent;
             AiCreatesObjectives = aiCreatesObjectives;
             AiAutoFill = aiAutoFill;
+            QueuedCost = queuedCost;
         }
     }
 
@@ -164,7 +168,7 @@ namespace Nucleus.Core.Command
                 : (IReadOnlyList<ReportEvent>)new List<ReportEvent>();
 
             return new HqSnapshot(operations, squads, productionLines, recent,
-                state.AiCreatesObjectives, state.AiAutoFill);
+                state.AiCreatesObjectives, state.AiAutoFill, production?.QueuedCost ?? 0f);
         }
 
         /// <summary>Composition string from a unit-id→role map: "2× MBT, 1× IFV" (top 3 by count). Empty when

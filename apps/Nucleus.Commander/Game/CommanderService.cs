@@ -114,7 +114,11 @@ namespace Nucleus.Game
             }
 
             // Drain the production queue every tick (manual buys go through even when the commander is OFF).
-            _prodService.Drain(_prodQueue);
+            // Announce a dispatched convoy on the feed so the player sees their purchase take effect.
+            var dispatched = _prodService.Drain(_prodQueue);
+            if (dispatched != null)
+                _auto.Log.Append(new Core.Command.ReportEvent(0f, Core.Command.ReportKind.ProductionArrived,
+                    $"Convoy dispatched: {dispatched.ConvoyName} — arriving at the front"));
 
             // Publish aircraft ingress zones AFTER the brain runs so they reflect fresh operation phases.
             RefreshAirIntent();
