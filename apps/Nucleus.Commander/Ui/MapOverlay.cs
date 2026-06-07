@@ -72,7 +72,7 @@ namespace Nucleus.Ui
                     // A compact label so the player can read what each marker is without selecting it.
                     var lbl = Label(mi);
                     ((RectTransform)lbl.transform).localPosition = new Vector3(local.X + 10f, local.Y, 0f);
-                    lbl.text = $"{KindTag(op.Kind)} P{op.Priority:0.#}";
+                    lbl.text = KindName(op.Kind);   // a plain word ("Capture point"), not "CAP P0.8"
                     lbl.color = sel ? NativeColors.Friendly : ObjectiveColor(op.Kind);
                     lbl.fontSize = sel ? 13f : 11f;
                     // Contrast pill behind the label so it reads over any terrain; sized to the text, drawn behind.
@@ -135,7 +135,7 @@ namespace Nucleus.Ui
                     ? $"Threat {selOp.ThreatCount}" + (selOp.ThreatAirDefense > 0 ? $" ({selOp.ThreatAirDefense} SAM)" : "")
                     : "Threat —";
                 _selInfo.text = $"{KindName(selOp.Kind)}\n{selOp.Phase} · {selOp.Status}\n{threat}\n"
-                    + $"P{selOp.Priority:0.#} · {(selOp.PlayerOwned ? "you" : "AI")} · {selOp.SquadCount} sq";
+                    + $"{(selOp.PlayerOwned ? "yours" : "AI")} · {selOp.SquadCount} squad{(selOp.SquadCount == 1 ? "" : "s")}";
                 _selInfo.gameObject.SetActive(true);
             }
             else _selInfo.gameObject.SetActive(false);

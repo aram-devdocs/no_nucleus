@@ -442,7 +442,7 @@ namespace Nucleus.Ui
                     r.Id = op.ObjectiveId;
                     bool sel = op.ObjectiveId == _selectedObjectiveId;
                     string owner = op.PlayerOwned ? "you" : "AI";
-                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{op.Kind} · {op.Phase} · P{op.Priority:0.#} · {op.SquadCount} sq [{owner}]";
+                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{op.Kind} · {op.Phase} · {op.SquadCount} sq [{owner}]";
                     r.Label.color = sel ? OnColor : _theme.Text;
                     r.BtnLabel.text = "SELECT";
                     r.BtnImg.color = sel ? OnColor : _theme.ButtonIdle;   // selected = active green (consistent)
@@ -465,7 +465,7 @@ namespace Nucleus.Ui
                                 // Show the objective + its live state so selecting it explains itself: who's on
                                 // it (squad count), what combat phase, and whose objective it is.
                                 string owner = o.PlayerOwned ? "yours" : "AI";
-                                text = $"{o.Kind} · P{o.Priority:0.#} · {o.Phase} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner}";
+                                text = $"{o.Kind} · {o.Phase} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner} · Priority {o.Priority:0.#} (PRIO -/+)";
                                 break;
                             }
                     _objEditor.text = text;

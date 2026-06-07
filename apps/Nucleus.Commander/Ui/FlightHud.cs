@@ -83,7 +83,7 @@ namespace Nucleus.Composition
                 var row = Row(i);
                 bool top = i == 0;
                 row.text = (top ? "▶ " : "  ") +
-                    $"{KindTag(op.Kind)}  {op.Phase}  {op.SquadCount}sq  P{op.Priority:0.#}";
+                    $"{KindTag(op.Kind)}  {op.Phase}  {op.SquadCount} sq";
                 var c = ObjectiveColor(op.Kind);
                 row.color = top ? Color.Lerp(c, Color.white, 0.35f) : c;
                 row.fontSize = top ? 13f : 12f;
