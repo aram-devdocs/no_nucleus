@@ -41,7 +41,14 @@ Legend: [ ] to verify · screenshots are the loop's evidence, your eyes are the 
 - [ ] Confirm a depleted squad shows in red and (if under target) a have/need count like "(2/4)".
 - [ ] Deferred: there's no "assign this squad to that objective" button yet (AUTO/MANUAL toggle is the current control). Tell me if you want explicit assignment next.
 
+## WS8 — Build clarity
+- Evidence: `artifacts/screenshots/ws8-bld2/04-bld-panel.png`.
+- [ ] Open BLD: confirm the "AIRCRAFT — spawn from your airbases" note and the "Funds · Queued · After" line.
+- [ ] Queue a couple of convoys; confirm Queued rises and After drops (red if it would go negative).
+- [ ] After a convoy actually dispatches, confirm a "Convoy dispatched: … arriving at the front" line appears in the feed (CMD/WAR).
+
 <!-- The loop appends one block per workstream below as it completes them. -->
+
 
 
 
