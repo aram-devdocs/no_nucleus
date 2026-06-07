@@ -261,6 +261,9 @@ namespace Nucleus.Ui
             {
                 // OPERATIONS — one interactive row per op with an AUTO/MANUAL toggle (take a slice).
                 UiFactory.SectionHeader(layout.transform, "OPERATIONS", theme);
+                UiFactory.PreferredHeight(UiFactory.Label("OpsHint", layout.transform,
+                    "Each operation is run by AI (the commander sequences its phases) or YOU (manual). Tap the AI/YOU button to switch.",
+                    11f, theme.Muted).gameObject, 30f);
                 _opsContainer = UiFactory.VerticalLayout("HqOps", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
                 _opsEmpty = UiFactory.Label("OpsEmpty", layout.transform, "No operations running. Drop an objective on the map (or enable AI COMMANDER) and the squads will form up and fight.", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_opsEmpty.gameObject, 48f);
@@ -270,6 +273,9 @@ namespace Nucleus.Ui
             {
                 // SQUADS — name + what it's doing + an AUTO/MANUAL toggle (manage each squad).
                 UiFactory.SectionHeader(layout.transform, "SQUADS", theme);
+                UiFactory.PreferredHeight(UiFactory.Label("SquadsHint", layout.transform,
+                    "Each squad is AI-run (the commander tasks it) or YOURS (you hold it for manual orders). Tap the AI/YOU button to switch.",
+                    11f, theme.Muted).gameObject, 30f);
                 _squadsContainer = UiFactory.VerticalLayout("HqSquads", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
                 _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, "No squads yet. Squads form automatically from your forces as the war starts.", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_squadsEmpty.gameObject, 48f);
@@ -604,8 +610,8 @@ namespace Nucleus.Ui
                     r.Label.text = $"{s.Name} · {comp}{need} — {s.Activity}";
                     r.Label.color = s.Depleted ? new Color(1f, 0.5f, 0.5f) : _theme.Text;
                     bool manual = s.Autonomy == Cmd.AutonomyLevel.Manual;
-                    r.BtnLabel.text = manual ? "MANUAL" : "AUTO";
-                    r.BtnImg.color = manual ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnLabel.text = manual ? "YOU" : "AI";   // who controls this squad (tap to switch)
+                    r.BtnImg.color = manual ? _theme.Accent : OnColor;
                     r.Go.SetActive(true);
                     _squadRows[i] = r;
                 }
@@ -772,8 +778,8 @@ namespace Nucleus.Ui
                     r.OpId = op.Id;
                     r.Label.text = $"{Dot(op.Kind)}{op.Kind} — {op.Phase} [{op.Status}]";
                     bool manual = op.Autonomy == Nucleus.Core.Command.AutonomyLevel.Manual;
-                    r.BtnLabel.text = manual ? "MANUAL" : "AUTO";
-                    r.BtnImg.color = manual ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnLabel.text = manual ? "YOU" : "AI";   // who runs this operation (tap to switch)
+                    r.BtnImg.color = manual ? _theme.Accent : OnColor;
                     r.Go.SetActive(true);
                     _opRows[i] = r;
                 }
