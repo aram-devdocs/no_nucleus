@@ -44,7 +44,6 @@ namespace Nucleus.Core.Command
         public static IReadOnlyList<UnitTask> Tick(WorldSnapshot snapshot, CommanderState state)
         {
             var tasks = new List<UnitTask>();
-            float coverage = state.BrainConfig.CoverageRadius;
             // Manual-owned units are excluded so the brain and manual orders never task the same unit (S2).
             state.Squads.Reconcile(snapshot.Roster, snapshot.CommittedUnitIds);
 
@@ -54,7 +53,7 @@ namespace Nucleus.Core.Command
             {
                 if (op.IsTerminal) continue;
                 op.SquadIds.RemoveAll(sid => state.Squads.ById(sid) == null);
-                var current = ThreatNear(snapshot, op.Objective.Position, coverage);
+                var current = ThreatNear(snapshot, op.Objective.Position, ResolveRadius(op.Objective.Kind, state.BrainConfig));
                 if (IsObjectiveResolved(op.Objective.Kind, current))
                 {
                     op.Status = OperationStatus.Complete;
@@ -94,7 +93,7 @@ namespace Nucleus.Core.Command
             state.Operations.RemoveAll(op => op.IsTerminal);
             state.Objectives.RemoveAll(o => o.Source == ObjectiveSource.Auto
                 && state.OperationFor(o.Id) == null
-                && !AnyThreatNear(snapshot, o.Position, coverage));
+                && !AnyThreatNear(snapshot, o.Position, ResolveRadius(o.Kind, state.BrainConfig)));
 
             // 3. New objectives from known enemy clusters — only when the AI is the objective-creator. Each
             //    gets a unique MONOTONIC id (GenerateObjectives' tick-local ids would collide across ticks and
@@ -127,7 +126,7 @@ namespace Nucleus.Core.Command
                     var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
                     if (squadIds.Count == 0) continue; // no force available — recruit via ProductionNeeds below
                     fieldable.Add(obj.Id);
-                    var initial = ThreatNear(snapshot, obj.Position, coverage); // baseline for the soften gate
+                    var initial = ThreatNear(snapshot, obj.Position, ResolveRadius(obj.Kind, state.BrainConfig)); // baseline for the soften gate
                     var op = new Operation(state.NextOperationId(), obj, squadIds)
                     {
                         Status = OperationStatus.Active,
@@ -253,6 +252,13 @@ namespace Nucleus.Core.Command
                 + (obj.TargetId ?? "");
             return Fnv1a.Hash(raw).ToString();
         }
+
+        // A DefendArea owns the whole band it was raised over (DefendRadius), not the tighter CoverageRadius:
+        // GenerateDefense triggers at DefendRadius, so judging its advance/prune at CoverageRadius would see no
+        // threat through the smaller lens and complete/prune-and-re-create the objective every tick (flapping).
+        // Offensive/recon objectives keep CoverageRadius.
+        private static float ResolveRadius(ObjectiveKind kind, BrainConfig cfg)
+            => kind == ObjectiveKind.DefendArea ? cfg.DefendRadius : cfg.CoverageRadius;
 
         private static ThreatPicture ThreatNear(WorldSnapshot snapshot, Vec3 point, float radius)
         {

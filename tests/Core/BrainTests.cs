@@ -183,6 +183,25 @@ namespace Nucleus.Tests
         }
 
         [Fact]
+        public void DefendArea_op_is_stable_against_a_mid_range_threat()
+        {
+            // review P2-#2: a DefendArea is raised at DefendRadius (8000m) but was advanced/pruned at the tighter
+            // CoverageRadius (4000m), so a threat in the 4000–8000 band made the op Complete on its first advance
+            // tick and the objective flap. With the kind-aware radius it must stay Active across ticks.
+            var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
+            var roster = new List<UnitView> { U("defu0", Role.Armor, P(0, 0)) };
+            state.Squads.Add(Sq("def", RoleFamily.Armor, 1));   // member defu0
+            state.Objectives.Add(new Objective("def-1", ObjectiveKind.DefendArea, P(0, 0), ObjectiveSource.Auto, priority: 50f));
+            var enemy = new List<EnemyView> { E("e1", P(6000, 0)) };  // inside DefendRadius (8000), outside CoverageRadius (4000)
+
+            for (int t = 0; t < 3; t++) CommanderBrain.Tick(new WorldSnapshot(roster, enemy, 0f, null, t), state);
+
+            Assert.Single(state.Objectives, o => o.Kind == ObjectiveKind.DefendArea); // not pruned/flapped
+            Assert.Single(state.Operations);
+            Assert.Equal(OperationStatus.Active, state.Operations[0].Status);                // not prematurely Complete
+        }
+
+        [Fact]
         public void Tick_fails_operation_and_reports_when_force_is_wiped_but_threat_remains()
         {
             // Core repertoire behavior (review F23): an active op that loses its whole force while the threat
