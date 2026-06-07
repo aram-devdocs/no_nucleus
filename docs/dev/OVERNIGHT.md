@@ -22,8 +22,8 @@
 | WS5 | In-flight HUD + world markers | DONE | audit PASS + live: bottom-right HUD shows ops+intent while flying | #5 |
 | WS7 | Squad legibility & usability | DONE | audit PASS (sim 39) + live: SQD shows "4× MBT, 1× IFV"; assign deferred | #6 |
 | WS8 | Build clarity | DONE | audit PASS (core 131) + live: aircraft note + Funds/Queued/After | #7 |
-| WS2 | Personality genomes | NEXT | — | — |
-| WS9 | Theme tokens + APP-6 symbology | TODO | — | — |
+| WS2 | Personality genomes | DONE | audit PASS + 6 genome tests + determinism canary; enemy-AI-driving caveat | #8 |
+| WS9 | Theme tokens + APP-6 symbology | NEXT | — | — |
 | WS4 | Presentation VM layer | TODO | — | — |
 | WS11 | Sim-as-lib + Evolve self-play | TODO | — | — |
 

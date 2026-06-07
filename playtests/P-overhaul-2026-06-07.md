@@ -47,7 +47,13 @@ Legend: [ ] to verify · screenshots are the loop's evidence, your eyes are the 
 - [ ] Queue a couple of convoys; confirm Queued rises and After drops (red if it would go negative).
 - [ ] After a convoy actually dispatches, confirm a "Convoy dispatched: … arriving at the front" line appears in the feed (CMD/WAR).
 
+## WS2 — Commander personalities (genomes)
+- Headless-proven (6 genome tests + determinism canary). Foundation for evolving AI (WS11).
+- [ ] In a live war where the enemy is AI-driven, check the BepInEx log for `[NUCLEUS:METRIC] enemy-commander archetype=…` — confirm distinct archetypes per faction across runs.
+- [ ] FOLLOW-UP: the enemy-AI driver (DriveEnemyAi) didn't execute in the autoloaded+joined harness scenario — confirm whether the enemy commander actually runs our brain in real play, or if WarSetup/native-AI gating prevents it (this also affects whether the enemy "feels" personalized). Possibly the same "war advances only with map open" tick issue from WS5.
+
 <!-- The loop appends one block per workstream below as it completes them. -->
+
 
 
 
