@@ -175,7 +175,9 @@ namespace Nucleus.Host
                         foreach (var u in roster)
                             if (op.Position.HorizontalDistanceTo(u.Position) < 2000f) { phantom++; break; }
                 }
-                _log.LogInfo($"[NUCLEUS:METRIC] postjoin roster={roster.Count} enemies={enemies} ourObjectives={ours} phantomObjectives={phantom}");
+                int convoys = -1;
+                try { if (GameManager.GetLocalHQ(out var lhq) && lhq?.faction != null) convoys = lhq.faction.GetConvoyGroups().Count; } catch { }
+                _log.LogInfo($"[NUCLEUS:METRIC] postjoin roster={roster.Count} enemies={enemies} ourObjectives={ours} phantomObjectives={phantom} convoyGroups={convoys}");
                 _log.LogInfo(phantom == 0
                     ? "[NUCLEUS:SELFTEST] PASS no-phantom-objectives"
                     : "[NUCLEUS:SELFTEST] FAIL phantom-objectives-on-friendlies");

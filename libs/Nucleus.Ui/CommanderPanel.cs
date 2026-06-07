@@ -264,10 +264,13 @@ namespace Nucleus.Ui
 
             if (Has(PanelSections.Build))
             {
-                // BUILD — buy troops: a row per convoy (name + contents + cost) with a BUY button.
-                UiFactory.PreferredHeight(UiFactory.Label("BuildHdr", layout.transform, "BUILD — buy troops", 12f, theme.Accent).gameObject, 18f);
+                // BUILD — buy reinforcement convoys: a row per convoy (name + contents + cost) with a BUY button.
+                UiFactory.PreferredHeight(UiFactory.Label("BuildHdr", layout.transform, "BUILD — reinforce", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.PreferredHeight(UiFactory.Label("BuildHint", layout.transform,
+                    "Spend faction funds on reinforcement convoys (they arrive off-map and drive to the front). Aircraft are flown from your airbases via the game's spawn menu. Every purchase also costs attrition — more so once your bases are lost.",
+                    11f, theme.Muted).gameObject, 56f);
                 _buildContainer = UiFactory.VerticalLayout("HqBuild", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
-                _buildEmpty = UiFactory.Label("BuildEmpty", layout.transform, "No convoys available for this faction/map yet.", 12f, theme.Muted);
+                _buildEmpty = UiFactory.Label("BuildEmpty", layout.transform, "No convoys offered for this faction/map. Aircraft still spawn from your airbases.", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_buildEmpty.gameObject, 36f);
             }
 
@@ -275,8 +278,10 @@ namespace Nucleus.Ui
             {
                 // SCOREBOARD — the attrition win condition: both factions' score (with a bar), funds, losses.
                 UiFactory.PreferredHeight(UiFactory.Label("ScoreHdr", layout.transform, "ATTRITION", 12f, theme.Accent).gameObject, 18f);
-                _scoreTitle = UiFactory.Label("ScoreTitle", layout.transform, "Dynamic War", 13f, theme.Muted);
-                UiFactory.PreferredHeight(_scoreTitle.gameObject, 18f);
+                _scoreTitle = UiFactory.Label("ScoreTitle", layout.transform,
+                    "Drive the enemy's score to zero. It falls as a side loses units and bases — and as it spends on reinforcement (faster once bases are lost).",
+                    11f, theme.Muted);
+                UiFactory.PreferredHeight(_scoreTitle.gameObject, 40f);
 
                 _scoreBlu = UiFactory.Label("ScoreBlu", layout.transform, "BLUFOR", 13f, BluColor);
                 UiFactory.PreferredHeight(_scoreBlu.gameObject, 20f);
