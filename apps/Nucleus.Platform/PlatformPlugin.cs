@@ -22,6 +22,7 @@ namespace Nucleus
 
         internal static ManualLogSource Log;
         internal static Host.ModHost Host;
+        internal static Host.WarSetupController Setup;
 
         // Per-mod enabled state, bound lazily to config (Mods.<id>.Enabled) so the loader toggle persists.
         private readonly Dictionary<string, ConfigEntry<bool>> _modEnabled = new Dictionary<string, ConfigEntry<bool>>();
@@ -47,6 +48,7 @@ namespace Nucleus
             Application.runInBackground = true;
 
             Host = new Host.ModHost(Logger, ModEnabled, SetModEnabled);
+            Setup = new Host.WarSetupController(Host.Game, Logger);
 
             var harmony = new Harmony(Guid);
             ApplyPatch(harmony, typeof(Patches.MainMenuBadgePatch));

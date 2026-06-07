@@ -78,10 +78,29 @@ namespace Nucleus.Warfare
                 + $"{_campaign.Opfor.Operations.Count} ops");
         }
 
+        private bool _setupApplied;
+
+        // Apply the pre-mission setup choices once the player has started: per-side commander kinds on the war
+        // scoreboard, and the local side's two command toggles (AI COMMANDER / AI AUTO-FILL).
+        private void ApplySetup()
+        {
+            if (_setupApplied || !Nucleus.Core.War.WarSetup.Configured || _campaign == null) return;
+            foreach (var kv in Nucleus.Core.War.WarSetup.Commanders)
+            {
+                if (kv.Key == _campaign.War.Blufor.FactionName) _campaign.War.Blufor.Commander = kv.Value;
+                else if (kv.Key == _campaign.War.Opfor.FactionName) _campaign.War.Opfor.Commander = kv.Value;
+            }
+            // Seed the local commander's toggles (the player's side).
+            _ctx?.Campaign?.SetAiCreatesObjectives(Nucleus.Core.War.WarSetup.PlayerSideAiCommander);
+            _ctx?.Campaign?.SetAiAutoFill(Nucleus.Core.War.WarSetup.AiAutoFill);
+            _setupApplied = true;
+            _ctx?.Log.Info($"[NUCLEUS:SELFTEST] PASS war-setup-applied player='{Nucleus.Core.War.WarSetup.PlayerFaction}'");
+        }
+
         public void Tick(IModTickContext t)
         {
             _attritionClock += t.UnscaledDeltaTime;
-            if (_attritionClock >= 1f) { _attritionClock = 0f; FeedAttrition(); }
+            if (_attritionClock >= 1f) { _attritionClock = 0f; FeedAttrition(); ApplySetup(); }
             var c = _ctx?.Campaign;
             if (_panel != null && c != null) _panel.RenderHq(c.Hq(), c.Catalog(), c.Funds());
             // The attrition board reads from the Warfare campaign (both factions' score/funds/losses + win state).

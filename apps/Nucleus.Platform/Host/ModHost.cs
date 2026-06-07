@@ -23,6 +23,9 @@ namespace Nucleus.Host
         /// <summary>The shared live campaign (null until the Commander mod publishes it). For the dev harness.</summary>
         public Nucleus.Core.Command.ICampaign Campaign => _campaign;
 
+        /// <summary>The shared game-services surface (roster/intel/join/census). For the setup controller + harness.</summary>
+        public Nucleus.Abstractions.IGameServices Game => _game;
+
         public ModHost(ManualLogSource log,
             System.Func<string, bool> readEnabled = null,
             System.Action<string, bool> writeEnabled = null)

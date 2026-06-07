@@ -57,6 +57,9 @@ namespace Nucleus.Patches
         {
             try { Host.MissionAutoLoader.TickMission(); }
             catch (Exception e) { PlatformPlugin.Log?.LogError("MissionManager tick threw: " + e); }
+            // Drive the pre-mission setup screen (side select + human/AI per side + START). No-op off our mode.
+            try { PlatformPlugin.Setup?.Tick(); }
+            catch (Exception e) { PlatformPlugin.Log?.LogError("War setup tick threw: " + e); }
         }
     }
 }

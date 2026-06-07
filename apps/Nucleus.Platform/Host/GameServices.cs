@@ -3,6 +3,7 @@ using Nucleus.Abstractions;
 using Nucleus.Core.Model;
 using Nucleus.Core.Ports;
 using Nucleus.Game;
+using NuclearOption.Networking;
 
 namespace Nucleus.Host
 {
@@ -28,5 +29,39 @@ namespace Nucleus.Host
         public bool TryGetLocalFaction(out FactionInfo faction) => _player.TryGetLocalFaction(out faction);
         public IMapProjection MapProjection => _projection;
         public IReadOnlyList<Nucleus.Core.War.FactionCensus> WarCensus() => _war.Census();
+
+        public IReadOnlyList<string> FactionNames()
+        {
+            var list = new List<string>();
+            try
+            {
+                foreach (var f in FactionRegistry.factions)
+                    if (f != null && !string.IsNullOrEmpty(f.factionName)) list.Add(f.factionName);
+            }
+            catch { /* registry not ready */ }
+            return list;
+        }
+
+        public bool HasLocalFaction => GameManager.GetLocalHQ(out var hq) && hq != null;
+
+        public bool JoinFaction(string factionName)
+        {
+            try
+            {
+                if (!GameManager.GetLocalPlayer<Player>(out var player) || player == null) return false;
+                var hq = FactionRegistry.HqFromName(factionName);
+                if (hq == null) return false;
+                player.SetFaction(hq);
+                var map = SceneSingleton<DynamicMap>.i;
+                if (map != null) { map.SetFaction(hq); map.Maximize(); }
+                return true;
+            }
+            catch { return false; }
+        }
+
+        public string CurrentMissionName
+        {
+            get { try { return MissionManager.CurrentMission?.Name; } catch { return null; } }
+        }
     }
 }
