@@ -73,7 +73,7 @@ namespace Nucleus.Ui
                     ((RectTransform)lbl.transform).localPosition = new Vector3(local.X + 10f, local.Y, 0f);
                     lbl.text = $"{KindTag(op.Kind)} P{op.Priority:0.#}";
                     lbl.color = sel ? NativeColors.Friendly : ObjectiveColor(op.Kind);
-                    lbl.fontSize = sel ? 12f : 10f;
+                    lbl.fontSize = sel ? 13f : 11f;
                     mi++;
                     if (sel) { selLocal = local; haveSel = true; selOp = op; }
                 }
@@ -132,7 +132,7 @@ namespace Nucleus.Ui
             {
                 var rt = (RectTransform)_selRing.transform;
                 rt.localPosition = new Vector3(selLocal.X, selLocal.Y, 0f);
-                rt.sizeDelta = new Vector2(34f, 34f);
+                rt.sizeDelta = new Vector2(42f, 42f);
                 _selRing.gameObject.SetActive(true);
             }
             else _selRing.gameObject.SetActive(false);
@@ -398,9 +398,9 @@ namespace Nucleus.Ui
                 {
                     img.sprite = NativeIcons.Warhead;
                     img.preserveAspect = true;
-                    rt.sizeDelta = new Vector2(12f, 12f);
+                    rt.sizeDelta = new Vector2(16f, 16f);   // a touch larger so objectives read at map zoom
                 }
-                else rt.sizeDelta = new Vector2(9f, 9f);
+                else rt.sizeDelta = new Vector2(11f, 11f);
                 _markers.Add(img);
             }
             _markers[i].gameObject.SetActive(true);
