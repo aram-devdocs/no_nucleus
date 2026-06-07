@@ -4,11 +4,8 @@ using Nucleus.Core.Model;
 
 namespace Nucleus.Core.Command
 {
-    /// <summary>
-    /// A <see cref="ThreatGroup"/> paired with its computed priority <see cref="Score"/> and the
-    /// <see cref="ObjectiveKind"/> the commander should pursue against it. The output unit of
-    /// <see cref="TargetPrioritizer"/>. Pure data — no Unity, no game refs.
-    /// </summary>
+    /// <summary>A <see cref="ThreatGroup"/> with its computed <see cref="Score"/> and the
+    /// <see cref="ObjectiveKind"/> to pursue against it — the output unit of <see cref="TargetPrioritizer"/>.</summary>
     public sealed class ScoredTarget
     {
         public ThreatGroup Group { get; }
@@ -23,13 +20,9 @@ namespace Nucleus.Core.Command
         }
     }
 
-    /// <summary>
-    /// Ranks the commander's <see cref="ThreatBoard"/> into an ordered target list. Each
-    /// <see cref="ThreatGroup"/> is scored from its strategic priority, its proximity to the home base
-    /// (closer = higher), and a small bump for air-defense/radar pockets (suppressing them unlocks air ops).
-    /// <see cref="Doctrine.RiskTolerance"/> shifts the balance: aggressive weights high-value, distant targets
-    /// more; cautious weights nearby, lower-risk ones. Deterministic and Unity-free.
-    /// </summary>
+    /// <summary>Ranks the threat board into an ordered target list, scoring each pocket on strategic priority,
+    /// proximity to home, and an air-defense/radar bump. <see cref="Doctrine.RiskTolerance"/> shifts the balance:
+    /// aggressive favors high-value/distant, cautious favors near/low-risk.</summary>
     public static class TargetPrioritizer
     {
         // Proximity falls off over ~10km; ProximityWeight is its full-strength contribution at zero range.
@@ -76,12 +69,8 @@ namespace Nucleus.Core.Command
                 .ToList();
         }
 
-        /// <summary>
-        /// Pick the objective kind for a pocket: a pocket dominated by a holdable ground presence (armor/infantry)
-        /// is something to CAPTURE and hold; everything else is DESTROYED. (Recon-on-low-confidence is deferred to
-        /// the personality/roster-aware pass — it needs scout assets to be actionable, so a pure-accuracy rule can
-        /// starve a force with no recon units; <see cref="ThreatGroup.InaccurateCount"/> already carries the signal.)
-        /// </summary>
+        // Holdable ground (armor/infantry) -> Capture; everything else -> Destroy. Recon-on-low-confidence is
+        // left to the roster-aware pass (a pure-accuracy rule starves a force with no scout units).
         private static ObjectiveKind SuggestKind(ThreatGroup group)
         {
             switch (group.Dominant)

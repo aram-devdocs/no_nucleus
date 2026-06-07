@@ -2,12 +2,8 @@ using System.Collections.Generic;
 
 namespace Nucleus.Core.Command
 {
-    /// <summary>
-    /// A commander's personality as a vector of [0,1] genes — what makes one AI commander feel like a distinct
-    /// character (an aggressive armor-rusher vs a patient, scouting turtle). Pure data; deterministic. Today the
-    /// brain consumes Aggression (→ Doctrine.RiskTolerance) and Caution (→ Doctrine.ForceRatio); the remaining
-    /// genes are carried for the upcoming utility/evolution passes (and are already exercised by tests).
-    /// </summary>
+    /// <summary>A commander's personality as a vector of [0,1] genes. The brain consumes Aggression
+    /// (→ Doctrine.RiskTolerance) and Caution (→ Doctrine.ForceRatio); the rest feed the utility/evolution passes.</summary>
     public sealed class CommanderGenome
     {
         public float Aggression { get; set; } = 0.5f;     // willingness to attack / risk
@@ -35,11 +31,8 @@ namespace Nucleus.Core.Command
         };
     }
 
-    /// <summary>
-    /// Builds deterministic personality genomes from a stable seed (campaign + faction name) — same inputs always
-    /// produce the same commander, different factions diverge. Picks a named archetype and jitters its genes a
-    /// little so two commanders of the same archetype still differ. Pure; reproducible across runs + save/resume.
-    /// </summary>
+    /// <summary>Builds deterministic personality genomes from a stable seed (campaign + faction): same inputs →
+    /// same commander, different factions diverge. Reproducible across runs and save/resume.</summary>
     public static class GenomeFactory
     {
         // Hand-authored archetype base vectors. Order is stable (archetype pick = hash % count).
