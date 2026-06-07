@@ -111,9 +111,16 @@ NO push, NO smoke/visual probe. Verify each wave: full no-deploy build (0 warn) 
   still calls _mgr.Tick/CommittedUnitIds — a no-op now, but CommanderService has no headless test so a deeper
   removal is unverifiable; left as a future cleanup). C10 deleted OrderColors.cs (ObjectiveVisuals is the SSOT).
   C26 deleted BattlePlan.Label (kept PhaseOf). Behavior-preserving subtraction. Build 0/0 + Core 144 + Sim 42 +
-  arch 9. (was: C7 CommanderPanel Orders block + Render overload,
-  C9 CommanderService PlaceOrder/PreviewAt + _mgr + ICampaign.Orders, C10 OrderColors.cs, C26 BattlePlan.Label).
-  Large, must be done together; behavior-preserving subtraction. HIGH value.
+  arch 9.
+
+### Tooling sweep (user directive: validators/linting/hooks/CI/test suites) — DONE [commit d7188b7]
+- pre-commit now also runs the Sim determinism+activity canary + Installer (the Sim canary was MISSING — it's
+  exactly what would have caught A4 at commit time). Installer suite was in no gate at all before.
+- ci.yml + check.sh + check.ps1: Installer added; check.ps1 aligned with check.sh (Sim+LogAudit+Installer).
+- Added a build-safe .editorconfig (formatting + C# house style as suggestions only — never escalated to
+  warnings, so the WAE build stays clean). Full headless gate now 207 tests across 5 suites.
+
+### Still remaining (next iterations)
 - Wave G — public API (G11 ModData init-props + ModRegistry guard, G12 Vec3/ColorRgba value equality, G13 fix
   false namespace comment, G14 Nullable=annotations, G27 WarScore arg validation).
 - Wave E remainder — E21 BUY affordability nets queued spend, E22 ASSIGN RELEASE comment fix, E29 SquadStatus.Forming reachable.
