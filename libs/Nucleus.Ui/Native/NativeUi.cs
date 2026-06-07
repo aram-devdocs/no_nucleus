@@ -62,19 +62,29 @@ namespace Nucleus.Ui.Native
             return clone;
         }
 
-        /// <summary>A native game button (cloned from a live sliced-sprite Button), label + onClick rewired.
-        /// Returns null if no live template exists yet (caller should fall back to UiFactory.Button).</summary>
-        public static Button Button(Transform parent, string label, Action onClick)
+        // A "real" button: a Button whose image is a sliced sprite (the game's chrome), live in a scene.
+        // Harvested once and cached (shared by Button() and SlicedButtonSprite()).
+        private static Button ButtonTemplate()
         {
             if (!_btnSearched)
             {
-                // A "real" button: a Button whose image is a sliced sprite (the game's chrome), live in a scene.
                 _btnTpl = Resources.FindObjectsOfTypeAll<Button>().FirstOrDefault(b =>
                     b != null && b.gameObject.scene.IsValid() && b.image != null
                     && b.image.sprite != null && b.image.type == Image.Type.Sliced);
                 _btnSearched = true;
             }
-            if (_btnTpl == null) return null;
+            return _btnTpl;
+        }
+
+        /// <summary>The game's sliced button chrome sprite (from the live button template), so built atoms can
+        /// match the native look. Null when no live template exists yet (headless / pre-scene).</summary>
+        public static Sprite SlicedButtonSprite() => ButtonTemplate()?.image?.sprite;
+
+        /// <summary>A native game button (cloned from a live sliced-sprite Button), label + onClick rewired.
+        /// Returns null if no live template exists yet (caller should fall back to UiFactory.Button).</summary>
+        public static Button Button(Transform parent, string label, Action onClick)
+        {
+            if (ButtonTemplate() == null) return null;
 
             var clone = UnityEngine.Object.Instantiate(_btnTpl.gameObject, parent).GetComponent<Button>();
             clone.name = "NativeButton";

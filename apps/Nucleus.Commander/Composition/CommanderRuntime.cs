@@ -3,6 +3,7 @@ using Nucleus.Core.Model;
 using Nucleus.Core.Ports;
 using Nucleus.Game;
 using Nucleus.Ui;
+using Nucleus.Ui.Native;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -303,17 +304,11 @@ namespace Nucleus.Composition
         }
 
         // Borrow a sliced sprite from a real game UI button so our panel buttons match the game's look.
+        // The harvest idiom lives in the UI lib (NativeUi) — the app just consumes it.
         private static void CaptureNativeButtonSprite()
         {
             if (UiFactory.ButtonSprite != null) return;
-            foreach (var img in Resources.FindObjectsOfTypeAll<Image>())
-            {
-                if (img == null || img.sprite == null || img.type != Image.Type.Sliced) continue;
-                if (!img.gameObject.scene.IsValid()) continue;      // skip prefabs/assets
-                if (img.GetComponent<Button>() == null) continue;   // a real button's sprite
-                UiFactory.ButtonSprite = img.sprite;
-                return;
-            }
+            UiFactory.ButtonSprite = NativeUi.SlicedButtonSprite();
         }
     }
 }

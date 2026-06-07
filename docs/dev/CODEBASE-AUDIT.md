@@ -37,4 +37,15 @@ apps (thin wrappers): Platform · Commander · Build · Squad · Warfare   sdk: 
   IsPackable=false). Added the missing per-package <Description> to all 8 libs (Domain/Squads/Production/Campaign/
   Sim/Abstractions/GameSdk/Ui) so each NuGet package self-describes. No-deploy compile PASS. (Optional later:
   packed PackageReadmeFile per lib.)
-- Next: CB6 (SDK routing audit), CB4 (thin apps), CB8 (public surface/docs).
+- CB6: DONE (local) — audited apps/libs for game access bypassing the codegen seam
+  (GetType("…")/FindObjectsOfTypeAll/AccessTools/Traverse/GameAssets.i). Findings:
+  the Generated NativeAssets/GameSdk ARE the seam (fine); NativeUi.cs is the documented
+  intentional live-template harvest (leave); UiFactory.ResolveFont + MainMenuBadge are
+  lib-level UI-kit asset harvests (allowed — the UI lib owns native-asset access); the two
+  probes (VisualProbe, CommanderDebugProbe) are diagnostic harness code (leave). The ONE
+  stray: `CommanderRuntime.CaptureNativeButtonSprite` (an APP) re-implemented the harvest
+  idiom (Resources.FindObjectsOfTypeAll<Image>) to grab a sliced button sprite. Fixed:
+  added `NativeUi.SlicedButtonSprite()` (reuses NativeUi's cached button template via new
+  private `ButtonTemplate()` — DRY with Button()); the app now just consumes it. No stray
+  harvest left in apps. Full no-deploy compile (0 warn) + arch 9/9 PASS.
+- Next: CB4 (thin apps), CB8 (public surface/docs).
