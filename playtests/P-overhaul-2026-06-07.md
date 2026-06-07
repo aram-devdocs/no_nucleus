@@ -58,7 +58,12 @@ Legend: [ ] to verify · screenshots are the loop's evidence, your eyes are the 
 - [ ] Confirm the in-flight HUD is legible over bright sky (higher opacity).
 - [ ] Bigger picture: the panels are still plain MFD chrome — tell me if you want a fuller native-UI restyle (deferred as higher-risk).
 
+## WS11 — Genome self-play / evolution (infrastructure)
+- Headless-only. Run `pwsh scripts/evolve.ps1` → `artifacts/genomes/{genepool.tsv,report.txt}`; sample at `docs/dev/evolve-report-sample.txt`.
+- [ ] (Optional) Run it and skim the report. NOTE: fitness is currently flat (ties) on the symmetric scenario — the GA can't differentiate yet; this is infrastructure + an honest baseline, not a tuned result. Evolved genomes are NOT used in-game (hand-authored archetypes ship).
+
 <!-- The loop appends one block per workstream below as it completes them. -->
+
 
 
 

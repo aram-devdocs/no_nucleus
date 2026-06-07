@@ -24,8 +24,9 @@
 | WS8 | Build clarity | DONE | audit PASS (core 131) + live: aircraft note + Funds/Queued/After | #7 |
 | WS2 | Personality genomes | DONE | audit PASS + 6 genome tests + determinism canary; enemy-AI-driving caveat | #8 |
 | WS9 | Theme tokens + APP-6 symbology | DONE | audit PASS + live: clearer markers + HUD contrast | #9 |
-| WS11 | Sim-as-lib + Evolve self-play | NEXT | — | — |
-| WS4 | Presentation VM layer | TODO (optional) | — | — |
+| WS11 | Sim-as-lib + Evolve self-play | DONE | audit PASS (sim 41); determinism canary held; honest flat-fitness caveat | #10 |
+| WS12 | Squad assign-to-objective UX + map header edge-clamp | NEXT | — | — |
+| WS4 | Presentation VM layer | TODO (optional, low user value) | — | — |
 
 ## Tooling proven this run
 - `scripts/visual-probe.ps1 [-NoBuild] [-Tag x]` → launches game, joins Boscali, drives map+panels,
