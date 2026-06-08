@@ -5,8 +5,8 @@ namespace Nucleus.Sim.Tests
 {
     /// <summary>
     /// Headless end-to-end campaign invariants: step the real CommanderBrain over a seeded battlefield for
-    /// many ticks and assert emergent properties. This is the north-star regression net — it proves the brain
-    /// runs stably and deterministically and actually engages, without the game.
+    /// many ticks and assert emergent properties — proving the brain runs stably and deterministically and
+    /// actually engages, without the game.
     /// </summary>
     public class SimTests
     {

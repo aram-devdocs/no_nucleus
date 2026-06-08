@@ -136,7 +136,7 @@ namespace Nucleus.Tests
             var first = CommanderBrain.Tick(new WorldSnapshot(roster, new List<EnemyView> { E("e1", P(5000, 0)) }), state);
             Assert.Single(first);                                   // a1 tasked once
             var second = CommanderBrain.Tick(new WorldSnapshot(roster, new List<EnemyView> { E("e1", P(5000, 0)) }), state);
-            Assert.Empty(second);                                   // same objective -> no re-spam (S1)
+            Assert.Empty(second);                                   // same objective -> no re-spam
         }
 
         [Fact]
@@ -144,7 +144,7 @@ namespace Nucleus.Tests
         {
             // Drag-to-move (and re-type) mutate Objective.Position/Kind in place. The brain must re-route the
             // already-committed units to the new point — not de-dup them away on the unchanged objective id and
-            // leave them driving to the old spot (stale-position desync regression, review A1).
+            // leave them driving to the old spot (stale-position desync regression).
             var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
             var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
             var enemy = new List<EnemyView> { E("e1", P(5000, 0)) };
@@ -165,7 +165,7 @@ namespace Nucleus.Tests
         [Fact]
         public void DefendArea_op_tasks_its_defensive_squads()
         {
-            // review P2-#1: a DefendArea holds ground — it must task its {AirDefense, Armor} squads. Previously
+            // A DefendArea holds ground — it must task its {AirDefense, Armor} squads. Previously
             // the phase-gated active set ({AirCombat,Artillery} in Strike) excluded them, so the AI's home
             // defence issued ZERO unit tasks in-game (a silent no-op the sim masked via proximity attrition).
             var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
@@ -185,7 +185,7 @@ namespace Nucleus.Tests
         [Fact]
         public void Home_defense_does_not_proliferate_as_home_drifts()
         {
-            // review A4: home is a MOVING centroid. A defence must NOT spawn a fresh DefendArea every time home
+            // Home is a MOVING centroid. A defence must NOT spawn a fresh DefendArea every time home
             // drifts past CoverageRadius while the previous one still lingers (the proliferation that starved the
             // offence). The covered-check spans DefendRadius, so a home drifting within that band stays covered.
             var state = new CommanderState(SquadCfg(), null, Cfg()) { HomeBase = P(1000, 1000) };
@@ -204,7 +204,7 @@ namespace Nucleus.Tests
         [Fact]
         public void AutoFill_gives_a_contested_squad_to_the_higher_priority_objective()
         {
-            // review P2-#4: with one Armor squad and both an older low-priority DestroyTarget (5) and a newer
+            // With one Armor squad and both an older low-priority DestroyTarget (5) and a newer
             // high-priority DefendArea (50) lacking ops, auto-fill must hand the squad to the DefendArea
             // (priority order), not to whichever objective was created first.
             var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
@@ -222,7 +222,7 @@ namespace Nucleus.Tests
         [Fact]
         public void DefendArea_op_is_stable_against_a_mid_range_threat()
         {
-            // review P2-#2: a DefendArea is raised at DefendRadius (8000m) but was advanced/pruned at the tighter
+            // A DefendArea is raised at DefendRadius (8000m) but was advanced/pruned at the tighter
             // CoverageRadius (4000m), so a threat in the 4000–8000 band made the op Complete on its first advance
             // tick and the objective flap. With the kind-aware radius it must stay Active across ticks.
             var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
@@ -241,7 +241,7 @@ namespace Nucleus.Tests
         [Fact]
         public void Tick_fails_operation_and_reports_when_force_is_wiped_but_threat_remains()
         {
-            // Core repertoire behavior (review F23): an active op that loses its whole force while the threat
+            // An active op that loses its whole force while the threat
             // remains is set Failed and reported "lost the force"; its terminal op is then pruned + squad freed.
             var state = new CommanderState(SquadCfg(), null, Cfg());
             var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
@@ -258,7 +258,7 @@ namespace Nucleus.Tests
         [Fact]
         public void Recon_op_completes_only_after_all_contacts_become_accurate()
         {
-            // review F3: a Recon op resolves only once no low-confidence (inaccurate) contact remains near it.
+            // A Recon op resolves only once no low-confidence (inaccurate) contact remains near it.
             var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
             var roster = new List<UnitView> { U("recu0", Role.GroundRadar, P(0, 0)) };
             state.Squads.Add(Sq("rec", RoleFamily.Recon, 1));   // member "recu0" → matches the Recon objective
@@ -280,7 +280,7 @@ namespace Nucleus.Tests
         [Fact]
         public void Recon_production_need_uses_only_recon_suitable_families()
         {
-            // review P2-#8: an unfillable Recon objective must request families MatchSquads can field for it
+            // An unfillable Recon objective must request families MatchSquads can field for it
             // (Recon/AirCombat) — the old Armor default could never satisfy it, looping wasted buys.
             var state = new CommanderState(SquadCfg(), null, Cfg()) { AiCreatesObjectives = false };
             state.Objectives.Add(new Objective("r", ObjectiveKind.Recon, P(5000, 0), ObjectiveSource.Player, priority: 5f));
@@ -301,7 +301,7 @@ namespace Nucleus.Tests
             var roster = new List<UnitView> { U("a1", Role.Armor, P(0, 0)) };
             var snap = new WorldSnapshot(roster, new List<EnemyView> { E("e1", P(5000, 0)) }, 0f, new HashSet<string> { "a1" });
             var tasks = CommanderBrain.Tick(snap, state);
-            Assert.Empty(tasks);                                    // manually-owned -> not auto-squadded (S2)
+            Assert.Empty(tasks);                                    // manually-owned -> not auto-squadded
             Assert.Empty(state.Squads.Squads);
         }
 

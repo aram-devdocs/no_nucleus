@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Nucleus.Sim.Tests
 {
-    /// <summary>WS3 — the AI narrates its decisions to the battle feed so the player can SEE what it's doing.</summary>
+    /// <summary>The AI narrates its decisions to the battle feed so the player can SEE what it's doing.</summary>
     public class NarrationTests
     {
         private static EnemyView Enemy(string id, float x, float z, Role role, bool ad)

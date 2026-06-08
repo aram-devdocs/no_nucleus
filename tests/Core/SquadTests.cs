@@ -90,7 +90,7 @@ namespace Nucleus.Tests
         [Fact]
         public void Reconcile_marks_a_squad_depleted_below_its_strength_threshold()
         {
-            // review F24: a squad with a TargetComposition is Depleted once Strength < Total * DepletedFraction
+            // A squad with a TargetComposition is Depleted once Strength < Total * DepletedFraction
             // (0.5). Pins the strict '<' boundary at Strength == threshold.
             var sr = new SquadRoster(Cfg());
             var comp = new Composition();
@@ -110,7 +110,7 @@ namespace Nucleus.Tests
         [Fact]
         public void Reconcile_reports_forming_for_an_unassigned_under_strength_squad()
         {
-            // review E29: SquadStatus.Forming was unreachable in the derived view. An unassigned squad below
+            // SquadStatus.Forming was previously unreachable in the derived view. An unassigned squad below
             // its TargetComposition strength (but above the depleted floor) now reads Forming; at full strength
             // it reads Ready. (DepletedFraction=0.5, target=4 → depleted below 2.)
             var sr = new SquadRoster(Cfg());

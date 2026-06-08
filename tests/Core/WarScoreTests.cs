@@ -14,7 +14,7 @@ namespace Nucleus.Core.Tests
         [Fact]
         public void Negative_ctor_tuning_throws_with_the_offending_parameter()
         {
-            // Five same-typed floats — a transposed/negative arg must fail loudly (review G27).
+            // Five same-typed floats — a transposed/negative arg must fail loudly.
             Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(start: -1f));
             Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(unitValue: -1f));
             Assert.Throws<ArgumentOutOfRangeException>(() => new WarScore(baseValue: -1f));

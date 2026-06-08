@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Nucleus.Tests
 {
-    /// <summary>WS8 — the build panel must surface the queued-cost total so the player can see "Funds · Queued ·
+    /// <summary>The build panel must surface the queued-cost total so the player can see "Funds · Queued ·
     /// After" before over-committing. (The actual Drain/dispatch is Unity-coupled and verified in-game.)</summary>
     public class BuildClarityTests
     {

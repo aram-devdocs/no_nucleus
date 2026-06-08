@@ -11,7 +11,7 @@ namespace Nucleus.Architecture.Tests
     /// Enforces the stateless-UI contract (.agents/rules): a Nucleus.Ui type renders from immutable snapshots and
     /// holds widget handles + theme + UI-local selection only — never a reference to the live, MUTABLE campaign
     /// model. Cecil-scans Nucleus.Ui fields for the banned live-state types so the contract can't silently
-    /// regress (and so the WS4 view-model migration stays honest).
+    /// regress.
     /// </summary>
     public class UiStatelessnessValidator
     {

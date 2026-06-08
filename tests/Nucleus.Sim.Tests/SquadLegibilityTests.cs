@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Nucleus.Sim.Tests
 {
-    /// <summary>WS7 — squad rows must read as composition ("2× MBT, 1× IFV"), not just a family count.</summary>
+    /// <summary>Squad rows must read as composition ("2× MBT, 1× IFV"), not just a family count.</summary>
     public class SquadLegibilityTests
     {
         private static UnitView U(string id, Role role) => new UnitView(

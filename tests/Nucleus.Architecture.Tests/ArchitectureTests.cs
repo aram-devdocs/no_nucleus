@@ -9,10 +9,9 @@ namespace Nucleus.Architecture.Tests
 {
     /// <summary>
     /// Enforces the Nucleus dependency graph by reading the BUILT Nucleus.*.dll assemblies with Mono.Cecil
-    /// (metadata only — never loads them). Keys on ASSEMBLY names (Nucleus.*), which exist from Phase 1 even
-    /// while namespaces remain Nucleus.* until the Phase 7 rename. Until the libs exist the rule facts
-    /// pass vacuously; the synthetic tests below prove the rules actually bite, so a vacuous pass can never be
-    /// a false green. Run after building the solution (the audit script builds Nucleus.sln first).
+    /// (metadata only — never loads them). Keys on ASSEMBLY names (Nucleus.*). Until the libs exist the rule
+    /// facts pass vacuously; the synthetic tests below prove the rules actually bite, so a vacuous pass can never
+    /// be a false green. Run after building the solution (the audit script builds Nucleus.sln first).
     ///
     /// Rules: (1) pure libs reference no Unity/game/BepInEx; (2) no app references another app; (3) per-lib
     /// allowed Nucleus references encode the DAG + ownership; (4) the Nucleus.* reference graph is acyclic.

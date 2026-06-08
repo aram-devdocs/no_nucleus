@@ -4,8 +4,8 @@ using Xunit;
 
 namespace Nucleus.Sim.Tests
 {
-    /// <summary>WS11 — the self-play evolution loop must be fully deterministic (same seed ⇒ identical genepool),
-    /// so the overnight report is reproducible and the feature never introduces nondeterminism.</summary>
+    /// <summary>The self-play evolution loop must be fully deterministic (same seed ⇒ identical genepool),
+    /// so its report is reproducible and the feature never introduces nondeterminism.</summary>
     public class EvolveTests
     {
         [Fact]

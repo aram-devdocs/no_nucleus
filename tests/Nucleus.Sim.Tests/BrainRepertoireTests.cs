@@ -6,11 +6,8 @@ using Xunit;
 
 namespace Nucleus.Sim.Tests
 {
-    /// <summary>
-    /// WS1 — the AI commander must field a believable MIX of objective kinds, not only DestroyTarget (the old
-    /// "feels dumb" bug where GenerateObjectives discarded the ranker's SuggestedKind). These assert the new
-    /// repertoire directly on the pure brain.
-    /// </summary>
+    /// <summary>The AI commander must field a believable MIX of objective kinds, not only DestroyTarget.
+    /// Asserts the repertoire directly on the pure brain.</summary>
     public class BrainRepertoireTests
     {
         private static EnemyView Enemy(string id, float x, float z, Role role, bool isAirDefense, UnitClass cls, float prio)
@@ -76,7 +73,7 @@ namespace Nucleus.Sim.Tests
         [Fact]
         public void Defense_wins_the_last_objective_slot_when_the_cap_is_tight()
         {
-            // review F25: with a single auto slot, a threatened home wins it over a higher-count offensive
+            // With a single auto slot, a threatened home wins it over a higher-count offensive
             // pocket (defence is funded before attacks WITHIN the cap — defence is prepended before Take(room)).
             var cfg = new BrainConfig { MaxAutoObjectives = 1 };
             var state = new CommanderState(null, null, cfg) { HomeBase = new Vec3(2000f, 0f, 2000f) };

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Nucleus.Tests
 {
-    /// <summary>WS2 — commander personalities are deterministic (reproducible across runs + save/resume) and the
+    /// <summary>Commander personalities are deterministic (reproducible across runs + save/resume) and the
     /// default genome reproduces the stock doctrine exactly (so existing behavior is unchanged).</summary>
     public class GenomeTests
     {

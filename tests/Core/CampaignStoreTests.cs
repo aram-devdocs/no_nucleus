@@ -72,7 +72,7 @@ namespace Nucleus.Core.Tests
         [Fact]
         public void Save_writes_hashset_and_dict_collections_in_ordinal_order()
         {
-            // review P2-#13: ConfirmedObjectives (HashSet) + LastObjectiveByUnit (Dictionary) enumerate in
+            // ConfirmedObjectives (HashSet) + LastObjectiveByUnit (Dictionary) enumerate in
             // process-randomized order — they must be sorted on write so the save is byte-identical across runs.
             var path = TempPath("sort-" + System.Guid.NewGuid().ToString("N") + ".ncs");
             try
@@ -116,7 +116,7 @@ namespace Nucleus.Core.Tests
         public void Load_tolerates_truncated_known_records_without_throwing()
         {
             // Forward-compat contract: a truncated / older known record (missing trailing columns) must be
-            // skipped, not abort the whole load with IndexOutOfRange (review B5).
+            // skipped, not abort the whole load with IndexOutOfRange.
             var path = TempPath("trunc-" + System.Guid.NewGuid().ToString("N") + ".ncs");
             try
             {

@@ -64,7 +64,7 @@ namespace Nucleus.Tests
         [Fact]
         public void ThreatPicture_null_enemies_is_empty_not_a_throw()
         {
-            // review P2-#18: the ctor coalesces null to empty (matches WorldSnapshot) instead of a bare NRE.
+            // The ctor coalesces null to empty (matches WorldSnapshot) instead of a bare NRE.
             Assert.Equal(0, new ThreatPicture(null).Count);
         }
 
