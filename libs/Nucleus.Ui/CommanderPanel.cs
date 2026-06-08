@@ -94,7 +94,7 @@ namespace Nucleus.Ui
             _onCycleKind = onCycleKind;
             _root = UiFactory.Panel("CommanderPanel", parent, theme.PanelBackground);
             // Clipped viewport + content column sized to its children, so sections extend and scroll, never compress.
-            var viewport = UiFactory.Panel("Viewport", _root, new Color(0f, 0f, 0f, 0f));
+            var viewport = UiFactory.Panel("Viewport", _root, theme.Transparent);
             UiFactory.Stretch(viewport);
             viewport.gameObject.AddComponent<RectMask2D>();
             var layout = UiFactory.VerticalLayout("Layout", viewport, 6f, new RectOffset(10, 10, 10, 10));

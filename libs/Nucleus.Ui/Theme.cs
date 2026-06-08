@@ -45,6 +45,8 @@ namespace Nucleus.Ui
         public Color BadgeBackground { get; }
         public Color MenuBackground { get; }
         public Color MenuText { get; }
+        /// <summary>Fully transparent — for invisible layout containers (viewport, content host).</summary>
+        public Color Transparent { get; }
 
         public Theme(Color accent)
         {
@@ -76,6 +78,7 @@ namespace Nucleus.Ui
             BadgeBackground = new Color(0.06f, 0.08f, 0.10f, 0.80f);
             MenuBackground = new Color(0.05f, 0.07f, 0.09f, 0.97f);
             MenuText = new Color(0.7f, 0.78f, 0.85f, 1f);
+            Transparent = new Color(0f, 0f, 0f, 0f);
         }
 
         public static Theme FromFaction(FactionInfo faction)

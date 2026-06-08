@@ -35,8 +35,8 @@ The game's assemblies are its IP: `lib/`, `.sandbox/`, `decompiled/` are gitigno
 
 1. This file.
 2. `.agents/rules/` — the enforceable project rules (determinism, layer-discipline, no-legacy-code, testing,
-   documentation). The architecture-test validators encode these; read them before changing a lib boundary,
-   the brain, or persistence.
+   documentation, design-system, gameplay-invariants). The architecture-test validators encode these; read them
+   before changing a lib boundary, the brain, the UI palette, or persistence.
 3. The directory `AGENTS.md` for the area you're editing.
 
 ## Hard rules (non-negotiable; enforced by tests + the WAE build)
@@ -51,10 +51,18 @@ The game's assemblies are its IP: `lib/`, `.sandbox/`, `decompiled/` are gitigno
 - **Game access only through the seam.** Reach the game via the codegen'd `GameSdk`/`NativeAssets`/`NativeUi`,
   not ad-hoc reflection or magic strings in apps. New game members go in the `tools/Nucleus.CodeGen` manifest
   (contract-guarded), not as hand-written reflection.
-- **Apps stay thin.** Logic lives in libs; apps compose and wire.
+- **Apps stay thin.** Logic lives in libs; apps compose and wire. Enforced by `AppThinnessValidator`.
+- **Design system.** UI colors come from `Theme`/`NativeColors`/`ObjectiveVisuals`, sizes from `UiTokens`,
+  strings from `UiStrings`/`ObjectiveText` — never hardcoded. `Nucleus.Ui` holds no live mutable campaign model.
+  Enforced by `DesignSystemValidator` + `UiStatelessnessValidator` + `SsotValidator`. See
+  `.agents/rules/design-system.md` for the color semantics (green = on/selected, red = destructive only).
+- **Gameplay invariants.** The default genome reproduces stock behavior; personalities come from the genome,
+  not code forks; the war must keep progressing; no phantom objective kinds. See
+  `.agents/rules/gameplay-invariants.md`.
 - **No legacy/dead code.** No commented-out code, orphan shims, or unreferenced members — unused fails the
-  `TreatWarningsAsErrors` build. Delete, don't disable.
-- **Comments are self-documenting code.** Explain non-obvious *why*, not narration or history.
+  `TreatWarningsAsErrors` build (public/internal surfaced by `scripts/deadcode.ps1`). Delete, don't disable.
+- **Comments are self-documenting code.** Explain non-obvious *why*, not narration, history, or planning. No
+  phase/review/dev-log tags in comments or docs.
 
 ## Build · verify (headless)
 

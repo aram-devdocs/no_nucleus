@@ -29,7 +29,7 @@ namespace Nucleus.Ui
             UiFactory.Stretch(label.rectTransform);
             bar.gameObject.AddComponent<DragHandle>().Target = Root;
 
-            Content = UiFactory.Panel("Content", Root, new Color(0f, 0f, 0f, 0f));
+            Content = UiFactory.Panel("Content", Root, theme.Transparent);
             Content.anchorMin = Vector2.zero; Content.anchorMax = Vector2.one;
             Content.offsetMin = Vector2.zero; Content.offsetMax = new Vector2(0f, -UiTokens.ButtonHeight); // leave room for the drag bar
 
