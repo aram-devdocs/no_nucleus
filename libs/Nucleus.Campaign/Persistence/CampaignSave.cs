@@ -27,20 +27,34 @@ namespace Nucleus.Core.Persistence
 
             Line(sb, Header, I(s.Version));
             Line(sb, "META", B(s.AiCreatesObjectives), B(s.AiAutoFill), F(s.HomeBase.X), F(s.HomeBase.Y), F(s.HomeBase.Z),
-                I(s.OperationIdSeed), I(s.SquadBatchSeed), I(s.ObjectiveIdSeed));
+                I(s.OperationIdSeed), I(s.SquadBatchSeed), I(s.ObjectiveIdSeed), I(s.OrderIdSeed));
             Line(sb, "TUNE", F(s.RiskTolerance), F(s.ForceRatio), F(s.ClusterRadius), F(s.CoverageRadius),
                 I(s.MaxSquadsPerOperation), F(s.FormRadius), I(s.MaxSquadSize), F(s.DepletedFraction));
 
             foreach (var o in s.Objectives)
+            {
                 Line(sb, "OBJ", Enc(o.Id), E(o.Kind), F(o.Position.X), F(o.Position.Y), F(o.Position.Z),
-                    Enc(o.TargetId), F(o.Priority), E(o.Source));
+                    Enc(o.TargetId), F(o.Priority), E(o.Source), Enc(o.OrderId));
+                if (o.DependsOn != null)
+                    foreach (var dep in o.DependsOn) Line(sb, "OBJDEP", Enc(o.Id), Enc(dep));
+            }
+
+            foreach (var ord in s.Orders)
+            {
+                Line(sb, "ORDER", Enc(ord.Id), E(ord.GoalKind), F(ord.Position.X), F(ord.Position.Y), F(ord.Position.Z),
+                    F(ord.Priority), E(ord.Source), E(ord.Autonomy), E(ord.Status), Enc(ord.GoalObjectiveId),
+                    F(ord.TerminalTime), F(ord.CreatedTime));
+                foreach (var cid in ord.ChildObjectiveIds)
+                    Line(sb, "ORDERCHILD", Enc(ord.Id), Enc(cid));
+            }
 
             foreach (var sq in s.Squads)
             {
                 Line(sb, "SQUAD", Enc(sq.Id), Enc(sq.Name), E(sq.Family), E(sq.Origin), E(sq.Status),
                     E(sq.Autonomy), Enc(sq.AssignedOperationId));
                 if (sq.TargetComposition != null)
-                    foreach (var kv in sq.TargetComposition.Items)
+                    // Sort by family — Items is a dictionary, whose order is process-randomized; sort so the save is byte-stable.
+                    foreach (var kv in sq.TargetComposition.Items.OrderBy(kv => kv.Key))
                         Line(sb, "SQUADCOMP", Enc(sq.Id), E(kv.Key), I(kv.Value));
                 foreach (var m in sq.MemberUnitIds)
                     Line(sb, "SQUADMEM", Enc(sq.Id), Enc(m));
@@ -88,6 +102,11 @@ namespace Nucleus.Core.Persistence
             var opSquads = new Dictionary<string, List<string>>();
             var opThreat = new Dictionary<string, List<EnemyView>>();
 
+            var depsByObj = new Dictionary<string, List<string>>();
+            var orderOrder = new List<string>();
+            var orderFields = new Dictionary<string, string[]>();
+            var orderChildren = new Dictionary<string, List<string>>();
+
             foreach (var rawLine in text.Split(LineSplit))
             {
                 var line = rawLine.TrimEnd('\r');
@@ -105,6 +124,7 @@ namespace Nucleus.Core.Persistence
                         snap.OperationIdSeed = PI(f, 6);
                         snap.SquadBatchSeed = PI(f, 7);
                         snap.ObjectiveIdSeed = PI(f, 8);
+                        snap.OrderIdSeed = PI(f, 9);
                         break;
                     case "TUNE":
                         snap.RiskTolerance = PF(f, 1);
@@ -120,8 +140,29 @@ namespace Nucleus.Core.Persistence
                         if (f.Length < 2) break;   // need at least the id
                         objList.Add(new Objective(Dec(f[1]), PE(f, 2, ObjectiveKind.DestroyTarget),
                             new Vec3(PF(f, 3), PF(f, 4), PF(f, 5)), PE(f, 8, ObjectiveSource.Auto),
-                            PS(f, 6), PF(f, 7)));
+                            PS(f, 6), PF(f, 7), PS(f, 9)));   // col 9 = OrderId (null on a v2 save)
                         break;
+                    case "OBJDEP":
+                    {
+                        if (f.Length < 3) break;   // need objective id (dict key) + dependency id
+                        var id = Dec(f[1]);
+                        if (!depsByObj.TryGetValue(id, out var list)) { list = new List<string>(); depsByObj[id] = list; }
+                        list.Add(Dec(f[2]));
+                        break;
+                    }
+                    case "ORDER":
+                        if (f.Length < 2) break;   // need the order id (dict key)
+                        orderOrder.Add(Dec(f[1]));
+                        orderFields[Dec(f[1])] = f;
+                        break;
+                    case "ORDERCHILD":
+                    {
+                        if (f.Length < 3) break;   // need order id (dict key) + child objective id
+                        var id = Dec(f[1]);
+                        if (!orderChildren.TryGetValue(id, out var list)) { list = new List<string>(); orderChildren[id] = list; }
+                        list.Add(Dec(f[2]));
+                        break;
+                    }
                     case "SQUAD":
                     {
                         if (f.Length < 3) break;   // need id + name
@@ -196,7 +237,28 @@ namespace Nucleus.Core.Persistence
                 snap.Squads.Add(sq);
             }
 
-            foreach (var o in objList) snap.Objectives.Add(o);
+            foreach (var o in objList)
+            {
+                if (depsByObj.TryGetValue(o.Id, out var dl)) o.DependsOn = dl;
+                snap.Objectives.Add(o);
+            }
+
+            // Orders reference objective ids only (no object graph) — rebuild straight from the records.
+            foreach (var oid in orderOrder)
+            {
+                var of = orderFields[oid];
+                var order = new Order(oid, PE(of, 2, ObjectiveKind.DestroyTarget),
+                    new Vec3(PF(of, 3), PF(of, 4), PF(of, 5)), PF(of, 6), PE(of, 7, ObjectiveSource.Auto))
+                {
+                    Autonomy = PE(of, 8, AutonomyLevel.Auto),
+                    Status = PE(of, 9, OrderStatus.Active),
+                    GoalObjectiveId = PS(of, 10),
+                    TerminalTime = PF(of, 11),
+                    CreatedTime = PF(of, 12),
+                };
+                if (orderChildren.TryGetValue(oid, out var ch)) order.ChildObjectiveIds.AddRange(ch);
+                snap.Orders.Add(order);
+            }
 
             // Build a temporary objective index so operations reattach by id.
             var objIndex = new Dictionary<string, Objective>();

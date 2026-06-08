@@ -30,6 +30,7 @@ namespace Nucleus
         internal static bool CommanderDebug;
         internal static bool ShowFlightHud = true;
         internal static KeyCode HudToggleKey = KeyCode.H;
+        internal static KeyCode MasterAiKey = KeyCode.K;
 
         private void Awake()
         {
@@ -47,6 +48,8 @@ namespace Nucleus
                 "Show a compact objective HUD in the bottom-right while flying (map closed).");
             var hudKeyCfg = Config.Bind("Commander", "FlightHudToggleKey", KeyCode.H,
                 "Key to show/hide the in-flight objective HUD.");
+            var masterKeyCfg = Config.Bind("Commander", "MasterAiKey", KeyCode.K,
+                "In-game key to flip the master AI-commander dial for your side (on = AI creates objectives + auto-fills; off = you command, running orders finish).");
 
             ArmKey = keyCfg.Value;
             EnableAircraftTasking = airCfg.Value;
@@ -54,8 +57,10 @@ namespace Nucleus
             CommanderDebug = dbgCfg.Value;
             ShowFlightHud = hudCfg.Value;
             HudToggleKey = hudKeyCfg.Value;
+            MasterAiKey = masterKeyCfg.Value;
             hudCfg.SettingChanged += (_, __) => ShowFlightHud = hudCfg.Value;
             hudKeyCfg.SettingChanged += (_, __) => HudToggleKey = hudKeyCfg.Value;
+            masterKeyCfg.SettingChanged += (_, __) => MasterAiKey = masterKeyCfg.Value;
             Game.AircraftIntent.Enabled = airCfg.Value;
             autoCfg.SettingChanged += (_, __) => EnableAutoCommander = autoCfg.Value;
             dbgCfg.SettingChanged += (_, __) => CommanderDebug = dbgCfg.Value;

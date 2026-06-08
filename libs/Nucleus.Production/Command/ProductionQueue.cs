@@ -28,6 +28,26 @@ namespace Nucleus.Core.Command
         }
     }
 
+    /// <summary>A queued buy with its live delivery timing: where it is in line, how far along (0..1), and the
+    /// seconds until it arrives — so the UI can show a progress bar + countdown + map arrival marker.</summary>
+    public readonly struct QueueItemView
+    {
+        public readonly string Name;
+        public readonly string Contents;
+        public readonly float Cost;
+        public readonly string ForSquadId;
+        public readonly bool Manual;
+        public readonly float Progress01;     // 0..1 build progress of THIS item
+        public readonly float EtaSeconds;      // seconds until it delivers
+
+        public QueueItemView(string name, string contents, float cost, string forSquadId, bool manual,
+            float progress01, float etaSeconds)
+        {
+            Name = name; Contents = contents; Cost = cost; ForSquadId = forSquadId; Manual = manual;
+            Progress01 = progress01; EtaSeconds = etaSeconds;
+        }
+    }
+
     /// <summary>FIFO queue of pending convoy purchases. Tracks total queued cost for the funds/UI logic.</summary>
     public sealed class ProductionQueue
     {
@@ -48,6 +68,32 @@ namespace Nucleus.Core.Command
             var head = _pending[0];
             _pending.RemoveAt(0);
             return head;
+        }
+
+        /// <summary>Live delivery view of the queue under a one-at-a-time cooldown drain: the head builds from the
+        /// last purchase and delivers a cooldown later; each subsequent item starts when the one ahead delivers.
+        /// Pure function of (now, lastPurchase, cooldown) so the UI's progress bar + countdown + arrival markers
+        /// are deterministic. <paramref name="cooldownSeconds"/> &lt;= 0 means instant (full progress, zero ETA).</summary>
+        public IReadOnlyList<QueueItemView> Snapshot(float nowSeconds, float lastPurchaseSeconds, float cooldownSeconds)
+        {
+            var views = new List<QueueItemView>(_pending.Count);
+            for (int i = 0; i < _pending.Count; i++)
+            {
+                var r = _pending[i];
+                float progress, eta;
+                if (cooldownSeconds <= 0f) { progress = 1f; eta = 0f; }
+                else
+                {
+                    float start = lastPurchaseSeconds + cooldownSeconds * i;   // this item starts when the one ahead delivers
+                    float deliver = start + cooldownSeconds;
+                    progress = (nowSeconds - start) / cooldownSeconds;
+                    progress = progress < 0f ? 0f : progress > 1f ? 1f : progress;
+                    eta = deliver - nowSeconds;
+                    if (eta < 0f) eta = 0f;
+                }
+                views.Add(new QueueItemView(r.ConvoyName, r.Contents, r.Cost, r.ForSquadId, r.Manual, progress, eta));
+            }
+            return views;
         }
 
         /// <summary>One status line per pending buy: source (you/AI), name, real contents, cost, and target

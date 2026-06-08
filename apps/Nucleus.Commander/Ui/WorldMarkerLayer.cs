@@ -6,14 +6,15 @@ using UnityEngine.UI;
 
 namespace Nucleus.Composition
 {
-    /// <summary>World-anchored objective markers drawn over the cockpit while the map is CLOSED, so the player
-    /// sees where the AI's objectives are without opening the map. Each is a hollow, kind-colored ring (distinct
-    /// from the game's filled icons, so it reads as a mod cue) with a terse tag + distance, dimmed so it draws
-    /// the eye without distracting. Projected every frame from the cached HQ snapshot; edge-clamped (with a
-    /// direction caret) when the objective is off-screen or behind the aircraft.</summary>
+    /// <summary>World-anchored ORDER markers drawn over the cockpit while the map is CLOSED, so the player sees
+    /// where the commander's orders are without opening the map. One marker per order (the goal) — drilling into
+    /// an order's prerequisite child nodes is a map-only affordance. Each is a hollow, goal-kind-colored ring
+    /// (distinct from the game's filled icons, so it reads as a mod cue) with a terse tag + distance, dimmed so
+    /// it draws the eye without distracting. Reads the SAME <see cref="Cmd.OrderView"/> data (and cap) as the map
+    /// overlay, so the two never disagree. Projected every frame from the cached HQ snapshot; edge-clamped (with
+    /// a direction caret) when the order is off-screen or behind the aircraft.</summary>
     public sealed class WorldMarkerLayer
     {
-        private const int MaxMarkers = 6;
         private const float EdgeMargin = 48f;
 
         private readonly RectTransform _root;
@@ -41,18 +42,19 @@ namespace Nucleus.Composition
         {
             SetVisible(true);
             var cam = Camera.main;
-            var ops = hq?.Operations;
+            var orders = hq?.Orders;
             int n = 0;
-            if (cam != null && ops != null)
+            if (cam != null && orders != null)
             {
                 Vector3 camPos = cam.transform.position;
                 float halfW = Screen.width * 0.5f, halfH = Screen.height * 0.5f;
-                foreach (var op in ops)
+                foreach (var ord in orders)
                 {
-                    if (n >= MaxMarkers) break;
-                    if (op.Status == Cmd.OperationStatus.Complete || op.Status == Cmd.OperationStatus.Failed) continue;
+                    if (n >= MapOverlay.MaxOrderMarkers) break;
+                    if (ord.Status != Cmd.OrderStatus.Active) continue;
 
-                    var world = new Vector3(op.Position.X, op.Position.Y, op.Position.Z);
+                    var gp = MapOverlay.GoalPosition(ord);   // == OrderView.Position until the goal is moved
+                    var world = new Vector3(gp.X, gp.Y, gp.Z);
                     Vector3 sp = cam.WorldToScreenPoint(world);
                     bool behind = sp.z <= 0f;
                     // Behind the aircraft: WorldToScreenPoint mirrors — flip and push to the bottom so the marker
@@ -68,11 +70,11 @@ namespace Nucleus.Composition
                     if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, screen, null, out var local))
                         m.Group.anchoredPosition = local;
 
-                    var c = ObjectiveVisuals.Color(op.Kind);
+                    var c = ObjectiveVisuals.Color(ord.GoalKind);
                     c.a = off ? 0.65f : 0.9f;                       // off-screen cues are dimmer
                     m.Ring.color = c;
                     string caret = off ? EdgeCaret(screen, halfW, halfH) : "";
-                    m.Label.text = $"{ObjectiveVisuals.Tag(op.Kind)} {km:0}km{caret}";
+                    m.Label.text = $"{ObjectiveVisuals.Tag(ord.GoalKind)} {km:0}km{caret}";
                     m.Label.color = c;
                 }
             }

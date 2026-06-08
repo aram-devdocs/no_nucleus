@@ -18,6 +18,7 @@ namespace Nucleus.Ui
         // Hints
         public const string ObjectivesHint = "Pick a kind, then click the map to drop an objective.";
         public const string ObjectivesHintArmedPrompt = "Pick a kind, then click the map. Click a marker to select & edit it.";
+        public const string OrdersTreeHint = "Parent = the goal; indented = its prerequisites. Tap a row to select; take it over to drive it yourself.";
         public const string ModeHint = "AI COMMANDER: AI creates objectives. AI AUTO-FILL: AI forms & assigns squads.";
         public const string OperationsHint = "Each operation runs on AI or YOU (manual). Tap AI/YOU to switch.";
         public const string SquadsHint = "Each squad runs on AI or is YOURS (manual). Tap AI/YOU to switch.";
@@ -33,10 +34,16 @@ namespace Nucleus.Ui
         public const string NoOrders = "No orders yet. Pick a convoy above to reinforce.";
         public const string NoOrdersInProgress = "No orders in progress. Pick a convoy above to reinforce (it arrives off-map and drives in).";
         public const string NoObjectiveSelected = "Select an objective to edit.";
+        public const string OrdersEmpty = "No orders yet. Drop an objective on the map (or enable AI COMMANDER) and orders will form.";
+        public const string NoNodeSelected = "Select an order row to see its status and take it over.";
         public const string SetupHeader = "Pick your faction. Other sides are AI-controlled.";
 
         // War status
         public const string WarInProgress = "War in progress — drive a faction to zero to win.";
         public const string WarOverDraw = "WAR OVER — DRAW";
+
+        // In-flight banner shown once while the AI commands your side (dismissible).
+        public const string AiCommandingBanner = "AI is commanding your side — fly freely, or Take Over any node";
+        public const string AiCommandingBannerDismiss = "   (click to dismiss)";
     }
 }

@@ -25,8 +25,8 @@ namespace Nucleus.Ui
 
         private readonly List<(string faction, Image img, TextMeshProUGUI label)> _sideRows
             = new List<(string, Image, TextMeshProUGUI)>();
-        private Image _aiCmdImg, _autoFillImg;
-        private TextMeshProUGUI _aiCmdLabel, _autoFillLabel;
+        private Image _masterImg, _aiCmdImg, _autoFillImg;
+        private TextMeshProUGUI _masterLabel, _aiCmdLabel, _autoFillLabel;
 
         public RectTransform Root => _panel.Root;
 
@@ -63,6 +63,14 @@ namespace Nucleus.Ui
             }
 
             UiFactory.PreferredHeight(UiFactory.Label("CmdHdr", col.transform, "COMMAND", 13f, theme.Accent).gameObject, 20f);
+
+            // Master dial: one click hands your whole side to the AI (or takes it all back). It drives BOTH the
+            // granular toggles below; off freezes new orders + auto-fill (running orders still finish).
+            var master = UiFactory.Button("AiMaster", col.transform, "AI COMMANDER", theme,
+                () => { bool next = !(_aiCommander || _aiAutoFill); _aiCommander = next; _aiAutoFill = next; Refresh(); });
+            UiFactory.PreferredHeight(master.gameObject, 34f);
+            _masterImg = master.GetComponent<Image>(); _masterLabel = master.GetComponentInChildren<TextMeshProUGUI>();
+
             var aiCmd = UiFactory.Button("AiCmd", col.transform, "AI COMMANDER", theme, () => { _aiCommander = !_aiCommander; Refresh(); });
             UiFactory.PreferredHeight(aiCmd.gameObject, 30f);
             _aiCmdImg = aiCmd.GetComponent<Image>(); _aiCmdLabel = aiCmd.GetComponentInChildren<TextMeshProUGUI>();
@@ -72,8 +80,8 @@ namespace Nucleus.Ui
             _autoFillImg = autoFill.GetComponent<Image>(); _autoFillLabel = autoFill.GetComponentInChildren<TextMeshProUGUI>();
 
             UiFactory.PreferredHeight(UiFactory.Label("CmdHint", col.transform,
-                "AI COMMANDER on = the AI creates your objectives (off = you drop them). AI AUTO-FILL on = the AI forms squads and assigns them.",
-                11f, theme.Muted).gameObject, 44f);
+                "AI COMMANDER (master) hands your whole side to the AI. Below: AI: CREATE ORDERS on = the AI creates your objectives (off = you drop them); AI AUTO-FILL on = the AI forms squads and assigns them.",
+                11f, theme.Muted).gameObject, 56f);
 
             var start = UiFactory.Button("Start", col.transform, "START WAR", theme,
                 () => _onStart?.Invoke(_playerFaction, _aiCommander, _aiAutoFill));
@@ -91,9 +99,12 @@ namespace Nucleus.Ui
                 img.color = sel ? _theme.Active : _theme.ButtonIdle;
                 if (label != null) label.text = sel ? $"{faction}  [YOU]" : $"{faction}  (AI)";
             }
+            bool master = _aiCommander || _aiAutoFill;
+            if (_masterImg != null) _masterImg.color = master ? _theme.Active : _theme.ButtonIdle;
+            if (_masterLabel != null) _masterLabel.text = master ? "AI COMMANDER: ON" : "AI COMMANDER: OFF";
             if (_aiCmdImg != null) _aiCmdImg.color = _aiCommander ? _theme.Active : _theme.ButtonIdle;
             if (_autoFillImg != null) _autoFillImg.color = _aiAutoFill ? _theme.Active : _theme.ButtonIdle;
-            if (_aiCmdLabel != null) _aiCmdLabel.text = _aiCommander ? "AI COMMANDER: ON" : "AI COMMANDER: OFF";
+            if (_aiCmdLabel != null) _aiCmdLabel.text = _aiCommander ? "AI: CREATE ORDERS: ON" : "AI: CREATE ORDERS: OFF";
             if (_autoFillLabel != null) _autoFillLabel.text = _aiAutoFill ? "AI AUTO-FILL: ON" : "AI AUTO-FILL: OFF";
         }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Nucleus.Core.Model;
 
 namespace Nucleus.Core.Command
 {
@@ -20,12 +21,18 @@ namespace Nucleus.Core.Command
         /// constituents). Empty when unknown.</summary>
         public string Contents { get; }
 
-        public ConvoyOption(string name, float cost, Composition delivers, string contents = "")
+        /// <summary>Where this package actually enters the world when bought — the real game spawn point: an
+        /// off-map edge/depot for ground convoys, the airbase for aircraft, a port/ship for naval. Zero (origin)
+        /// when the game can't tell us (no base/depot yet); the map layer can skip drawing an arrival marker then.</summary>
+        public Vec3 SpawnPoint { get; }
+
+        public ConvoyOption(string name, float cost, Composition delivers, string contents = "", Vec3 spawnPoint = default)
         {
             Name = name;
             Cost = cost;
             Delivers = delivers ?? new Composition();
             Contents = contents ?? "";
+            SpawnPoint = spawnPoint;
         }
 
         public override string ToString() => $"{Name} ({Cost:0}) -> {Delivers}";

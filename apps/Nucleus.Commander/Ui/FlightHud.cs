@@ -7,11 +7,13 @@ using UnityEngine.UI;
 namespace Nucleus.Composition
 {
     /// <summary>
-    /// A compact, always-on objective HUD shown in the bottom-right WHILE FLYING (map closed) — the fix for
-    /// "no HUD when in game flying". Lists the active operations (kind · phase · squads · priority), highlights
-    /// the top-priority one, and shows the AI's latest intent line. Lives on a screen-space overlay canvas of
-    /// its own (the map overlay is hidden when the map closes). Pooled labels, no per-frame allocations,
-    /// raycastTarget off so it never eats cockpit input. Fed from the already-throttled Hq snapshot.
+    /// The fly-and-command HUD shown WHILE FLYING (map closed) — the fix for "no HUD when in game flying". Two
+    /// pieces: a TOP-CENTER war strip (both factions' attrition bars + numbers, plus the single "what to do now"
+    /// line) so the war state and the next action read at a glance, and a RIGHT-SIDE operations list (kind ·
+    /// phase · squads, top one highlighted) anchored clear of the native aircraft-health HUD. Lives on a
+    /// screen-space overlay canvas of its own (the map overlay is hidden when the map closes). Pooled labels, no
+    /// per-frame allocations, raycastTarget off so it never eats cockpit input. Fed from the throttled Hq
+    /// snapshot; the war strip's bars come from the optional scoreboard (hidden until one is supplied).
     /// </summary>
     public sealed class FlightHud
     {
@@ -24,6 +26,15 @@ namespace Nucleus.Composition
         private readonly RectTransform _rowsParent;
         private readonly Theme _theme;
 
+        // Top-center war strip: the one "what to do" line + both factions' attrition bars/numbers.
+        private readonly RectTransform _strip;
+        private readonly TMPro.TextMeshProUGUI _stripOrder;
+        private readonly RectTransform _scoreGroup;     // bars sub-section — hidden until a scoreboard is supplied
+        private readonly TMPro.TextMeshProUGUI _bluLine;
+        private readonly TMPro.TextMeshProUGUI _opLine;
+        private readonly Image _bluBar;
+        private readonly Image _opBar;
+
         // Reused across renders so sorting allocates nothing on the hot path.
         private readonly List<Cmd.OperationView> _buf = new List<Cmd.OperationView>();
         private static readonly System.Comparison<Cmd.OperationView> ByPriorityDesc =
@@ -33,9 +44,10 @@ namespace Nucleus.Composition
         {
             _theme = theme ?? Theme.Default;
             _root = UiFactory.Panel("NucleusFlightHud", canvas, _theme.HudBackground);
-            _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(1f, 0f); // bottom-right
+            // Right edge, vertically centered — clear of the native aircraft-health HUD (bottom) and the war strip (top).
+            _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(1f, 0.5f);
             _root.sizeDelta = new Vector2(UiTokens.HudWidth, UiTokens.HudHeight);
-            _root.anchoredPosition = new Vector2(-18f, 18f);
+            _root.anchoredPosition = new Vector2(-18f, 0f);
             _root.gameObject.GetComponent<Image>().raycastTarget = false;
             _root.SetAsLastSibling();
 
@@ -50,16 +62,86 @@ namespace Nucleus.Composition
 
             var rows = UiFactory.VerticalLayout("Rows", col.transform, 1f, new RectOffset(0, 0, 2, 0));
             _rowsParent = (RectTransform)rows.transform;
+
+            // --- Top-center war strip ---
+            _strip = UiFactory.Panel("NucleusWarStrip", canvas, _theme.HudBackground);
+            _strip.anchorMin = _strip.anchorMax = _strip.pivot = new Vector2(0.5f, 1f); // top-center
+            _strip.sizeDelta = new Vector2(UiTokens.WarStripWidth, UiTokens.WarStripHeight);
+            _strip.anchoredPosition = new Vector2(0f, -8f);
+            _strip.gameObject.GetComponent<Image>().raycastTarget = false;
+            _strip.SetAsLastSibling();
+
+            var scol = UiFactory.VerticalLayout("WarCol", _strip, 2f, new RectOffset(12, 12, 6, 6));
+            UiFactory.Stretch((RectTransform)scol.transform);
+
+            _stripOrder = UiFactory.Label("WarOrder", scol.transform, "", 13f, _theme.HudText,
+                TMPro.TextAlignmentOptions.Center);
+            _stripOrder.enableWordWrapping = false;
+            UiFactory.PreferredHeight(_stripOrder.gameObject, 18f);
+            UiFactory.Divider(scol.transform, NativeColors.Friendly); // mod accent rule — reads as intentional
+
+            var scores = UiFactory.VerticalLayout("WarScores", scol.transform, 1f, new RectOffset(0, 0, 0, 0));
+            _scoreGroup = (RectTransform)scores.transform;
+            _bluLine = UiFactory.Label("WarBlu", scores.transform, "", 11f, _theme.ScoreBlufor);
+            _bluLine.enableWordWrapping = false;
+            UiFactory.PreferredHeight(_bluLine.gameObject, 14f);
+            _bluBar = Bar("WarBluBar", scores.transform, _theme.ScoreBlufor);
+            _opLine = UiFactory.Label("WarOp", scores.transform, "", 11f, _theme.ScoreOpfor);
+            _opLine.enableWordWrapping = false;
+            UiFactory.PreferredHeight(_opLine.gameObject, 14f);
+            _opBar = Bar("WarOpBar", scores.transform, _theme.ScoreOpfor);
+            _scoreGroup.gameObject.SetActive(false); // shown only once a scoreboard is supplied
         }
 
         public void SetVisible(bool on)
         {
             if (_root != null && _root.gameObject.activeSelf != on) _root.gameObject.SetActive(on);
+            if (_strip != null && _strip.gameObject.activeSelf != on) _strip.gameObject.SetActive(on);
         }
 
-        public void Render(Cmd.HqSnapshot hq)
+        // A thin attrition bar: a dark track with a colored fill child whose right anchor encodes the fraction
+        // (same idiom as CommanderPanel's scoreboard bars, so the two never drift).
+        private Image Bar(string name, Transform parent, Color fill)
+        {
+            var track = UiFactory.Panel(name + "Track", parent, _theme.BarTrack);
+            track.gameObject.GetComponent<Image>().raycastTarget = false;
+            UiFactory.PreferredHeight(track.gameObject, UiTokens.WarBarHeight);
+            var bar = UiFactory.Panel(name + "Fill", track, fill);
+            bar.gameObject.GetComponent<Image>().raycastTarget = false;
+            bar.anchorMin = new Vector2(0f, 0f);
+            bar.anchorMax = new Vector2(1f, 1f);
+            bar.offsetMin = Vector2.zero; bar.offsetMax = Vector2.zero;
+            return bar.GetComponent<Image>();
+        }
+
+        private static void SetBar(Image bar, float fraction)
+        {
+            if (bar == null) return;
+            float f = Mathf.Clamp01(fraction);
+            var rt = bar.rectTransform;
+            rt.anchorMax = new Vector2(f, 1f);
+            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        }
+
+        public void Render(Cmd.HqSnapshot hq, Cmd.WarfareCampaign.Scoreboard? board = null)
         {
             SetVisible(true);
+
+            // Top-center strip: the single "what to do now" line (always), plus both factions' attrition bars +
+            // numbers when a scoreboard is available (Commander-only flight has none — the strip then shows just
+            // the guidance line).
+            _stripOrder.text = Nucleus.Presentation.PresentationBuilder.Guidance(hq);
+            if (board.HasValue)
+            {
+                var sb = Nucleus.Presentation.PresentationBuilder.BuildScoreboard(board.Value);
+                _bluLine.text = sb.BluforLine;
+                _opLine.text = sb.OpforLine;
+                SetBar(_bluBar, sb.BluforFraction);
+                SetBar(_opBar, sb.OpforFraction);
+                if (!_scoreGroup.gameObject.activeSelf) _scoreGroup.gameObject.SetActive(true);
+            }
+            else if (_scoreGroup.gameObject.activeSelf) _scoreGroup.gameObject.SetActive(false);
+
             _buf.Clear();
             if (hq?.Operations != null)
                 foreach (var op in hq.Operations)

@@ -37,6 +37,7 @@ namespace Nucleus.Architecture.Tests
         private static readonly HashSet<string> Wording = new()
         {
             "Capture point", "Destroy target", "Defend area", "Control airspace",
+            "Suppress air defense", "Naval strike",
         };
 
         public static bool IsObjectiveWording(string s) => Wording.Contains(s);

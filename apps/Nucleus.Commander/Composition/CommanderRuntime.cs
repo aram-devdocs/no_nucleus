@@ -29,6 +29,8 @@ namespace Nucleus.Composition
         private Nucleus.Core.Command.HqSnapshot _lastHq;
         private FlightHud _hud;                      // bottom-right objective HUD shown while flying (map closed)
         private WorldMarkerLayer _worldMarkers;      // world-anchored objective rings out the canopy (map closed)
+        private CommandBanner _banner;               // one-time "AI is commanding your side" notice (map closed)
+        private bool _bannerDismissed;               // UI-local sticky flag: dismissed for the session
         private bool _hudVisible = true;
         private bool _firstTick = true;
         private bool _loggedPanel;
@@ -49,6 +51,15 @@ namespace Nucleus.Composition
         /// <summary>The shared live campaign — the Commander mod publishes this to the host so Build/Squad/
         /// Warfare render their slices of the same state.</summary>
         public Nucleus.Core.Command.ICampaign Campaign => _service;
+
+        /// <summary>The one UI-local objective selection shared by the panel's order tree and the map overlay
+        /// (bidirectional): the map reads it to highlight + draw the selection ring, and both panel rows and map
+        /// clicks write it. Backed by the panel's selection so there is a single source of truth.</summary>
+        public string SelectedObjectiveId
+        {
+            get => _panel?.SelectedObjectiveId;
+            set => _panel?.SetSelectedObjective(value);
+        }
 
         /// <summary>Build the Commander panel into the host-provided native MFD-screen content. Called once when
         /// the map's bezel screens are created; the native MFDScreen shows/hides it.</summary>
@@ -71,6 +82,7 @@ namespace Nucleus.Composition
                 onNudgePriority: NudgePriority,
                 onCycleKind: CycleKind,
                 onAssignSquad: (objId, squadId) => _service.AssignSquad(objId, squadId),
+                onToggleOrderManual: ToggleOrderManual,        // take over / release the order owning the selected node
                 sections: CommanderPanel.PanelSections.Objectives | CommanderPanel.PanelSections.Mode
                     | CommanderPanel.PanelSections.Feed); // show the AI's narrated decisions on the command screen
             UiFactory.Stretch(_panel.Root);
@@ -108,8 +120,7 @@ namespace Nucleus.Composition
                 _nextRender = Time.unscaledTime + RenderIntervalSeconds;
                 _lastHq = _service.AutoHq();
                 if (open && _panel != null)
-                    _overlay?.RenderObjectives(_lastHq?.Operations, _panel.SelectedObjectiveId,
-                        _lastHq?.Squads, PositionsById());
+                    _overlay?.RenderObjectives(_lastHq?.Orders, _panel.SelectedObjectiveId, PositionsById());
 
                 if (_panel != null)
                 {
@@ -127,6 +138,11 @@ namespace Nucleus.Composition
         /// Lazy-builds on a screen-space canvas, hides while the map is open.</summary>
         public void TickHud()
         {
+            // The master AI dial + its notice run every frame (this is the reliable per-frame hook), independent
+            // of the flight-HUD toggle — the key must work and the banner must show even with the HUD hidden.
+            HandleMasterAiKey();
+            TickBanner();
+
             if (!CommanderPlugin.ShowFlightHud) { _hud?.SetVisible(false); return; }
 
             if (_hud == null)
@@ -151,6 +167,36 @@ namespace Nucleus.Composition
             }
             // World markers re-project EVERY frame (cached snapshot) so they track the aircraft smoothly.
             _worldMarkers.Render(_lastHq);
+        }
+
+        // The master AI dial: one key flips BOTH command toggles for the player's side. Off freezes new orders +
+        // auto-fill (running operations finish on their own); on hands the whole side back to the AI commander.
+        private void HandleMasterAiKey()
+        {
+            if (!Input.GetKeyDown(CommanderPlugin.MasterAiKey)) return;
+            bool next = !(_service.AiCreatesObjectives || _service.AiAutoFill);
+            _service.SetAiCreatesObjectives(next);
+            _service.SetAiAutoFill(next);
+            CommanderPlugin.Log?.LogInfo($"[NUCLEUS:SELFTEST] PASS master-ai-toggle on={next}");
+        }
+
+        // The one-time "AI is commanding your side" notice, shown while flying (map closed) when the AI holds the
+        // side, until the player dismisses it (UI-local sticky flag). Lazy-built on the overlay canvas.
+        private void TickBanner()
+        {
+            bool aiCommanding = _service.AiCreatesObjectives || _service.AiAutoFill;
+            if (!aiCommanding || _bannerDismissed) { _banner?.SetVisible(false); return; }
+
+            if (_banner == null)
+            {
+                var canvas = FindOverlayCanvas();
+                if (canvas == null) return;
+                _banner = new CommandBanner(canvas.transform, _theme ?? Theme.Default, () => _bannerDismissed = true);
+            }
+
+            var map = SceneSingleton<DynamicMap>.i;
+            bool open = map != null && DynamicMap.mapMaximized;
+            _banner.SetVisible(!open); // hide over the map — the command panel already shows the AI state there
         }
 
         // The active top-most screen-space overlay canvas (same pick as the host's menu/setup widgets).
@@ -207,24 +253,60 @@ namespace Nucleus.Composition
         // Cursor must travel this far (world meters) from the press point before a select becomes a move.
         private const float DragDeadZoneMeters = 250f;
 
-        // Nearest live objective to a world point, in screen-constant map-local units (null if none within max).
+        // Nearest selectable marker to a world point, in screen-constant map-local units (null if none within
+        // max). Mirrors EXACTLY what MapOverlay draws — order parents (the goal), plus the child nodes of the
+        // currently-selected order — so a click only ever picks a marker the player can actually see.
         private string NearestObjective(Vec3 cursorWorld, float maxLocal)
         {
-            var ops = _lastHq?.Operations;
-            if (ops == null) return null;
+            var orders = _lastHq?.Orders;
+            if (orders == null) return null;
             var cl = _projection.WorldToMapLocal(cursorWorld);
+            string sel = _panel?.SelectedObjectiveId;
             string best = null; float bestD = maxLocal;
-            foreach (var op in ops)
+            int shown = 0;
+            foreach (var ord in orders)
             {
-                // Only select markers the overlay actually draws (it skips Complete/Failed).
-                if (op.Status == Nucleus.Core.Command.OperationStatus.Complete
-                    || op.Status == Nucleus.Core.Command.OperationStatus.Failed) continue;
-                var l = _projection.WorldToMapLocal(op.Position);
-                float dx = l.X - cl.X, dy = l.Y - cl.Y;
-                float d = Mathf.Sqrt(dx * dx + dy * dy);
-                if (d < bestD) { bestD = d; best = op.ObjectiveId; }
+                if (ord.Status != Nucleus.Core.Command.OrderStatus.Active) continue;
+                if (shown >= MapOverlay.MaxOrderMarkers) break;
+                shown++;
+                ConsiderMarker(ord.GoalObjectiveId, MapOverlay.GoalPosition(ord), cl, ref best, ref bestD);
+
+                bool expanded = ord.GoalObjectiveId == sel || NodeSelected(ord, sel);
+                if (!expanded || ord.Nodes == null) continue;
+                foreach (var n in ord.Nodes)
+                    if (!n.IsGoal) ConsiderMarker(n.ObjectiveId, n.Position, cl, ref best, ref bestD);
             }
             return best;
+        }
+
+        private void ConsiderMarker(string id, Vec3 worldPos, Vec3 cursorLocal, ref string best, ref float bestD)
+        {
+            var l = _projection.WorldToMapLocal(worldPos);
+            float dx = l.X - cursorLocal.X, dy = l.Y - cursorLocal.Y;
+            float d = Mathf.Sqrt(dx * dx + dy * dy);
+            if (d < bestD) { bestD = d; best = id; }
+        }
+
+        private static bool NodeSelected(Nucleus.Core.Command.OrderView ord, string selectedId)
+        {
+            if (selectedId == null || ord.Nodes == null) return false;
+            foreach (var n in ord.Nodes) if (!n.IsGoal && n.ObjectiveId == selectedId) return true;
+            return false;
+        }
+
+        // The detail pane addresses a node by its objective id; resolve it to the owning order and take that whole
+        // order over (or release it) — the AI yields/reclaims its tree. Goal rows match by GoalObjectiveId.
+        private void ToggleOrderManual(string objectiveId)
+        {
+            var orders = _lastHq?.Orders;
+            if (orders == null || objectiveId == null) return;
+            foreach (var o in orders)
+            {
+                if (o.GoalObjectiveId == objectiveId) { _service.ToggleOrderManual(o.Id); return; }
+                if (o.Nodes == null) continue;
+                foreach (var n in o.Nodes)
+                    if (n.ObjectiveId == objectiveId) { _service.ToggleOrderManual(o.Id); return; }
+            }
         }
 
         private void NudgePriority(string id, int delta)

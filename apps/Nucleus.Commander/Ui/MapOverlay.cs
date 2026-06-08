@@ -1,25 +1,37 @@
 using System.Collections.Generic;
 using Nucleus.Core.Model;
 using Nucleus.Core.Ports;
+using Cmd = Nucleus.Core.Command;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Nucleus.Ui
 {
-    /// <summary>Map overlay on the icon layer: a selectable labelled marker per objective (colored by kind),
-    /// status-colored lines to assigned squads, and a "why/what" header for the selection. Pooled.</summary>
+    /// <summary>Map overlay on the icon layer: one selectable parent marker per ORDER (colored by goal kind).
+    /// Selecting an order (its <see cref="Cmd.OrderView.GoalObjectiveId"/> == the shared
+    /// <see cref="Nucleus.Composition.CommanderRuntime.SelectedObjectiveId"/>, or one of its child nodes)
+    /// expands its prerequisite child-node markers with connector lines and dim/unreachable styling, so the map
+    /// "drills into" the order tree. In-flight production shows as dashed arrival markers at the home front.
+    /// Reads the SAME <see cref="Cmd.OrderView"/> data as the canopy <c>WorldMarkerLayer</c>, so the two agree.
+    /// Pooled. Click routing + selection writes live in the runtime (so drag-to-move still works).</summary>
     public sealed class MapOverlay
     {
+        /// <summary>Max parent orders drawn — shared with the canopy layer so map and HUD never disagree on the
+        /// objective set. Children are drawn in addition for the expanded order only.</summary>
+        public const int MaxOrderMarkers = 6;
+        private const int MaxArrivalMarkers = 4;
+
         private readonly Transform _layer;
         private readonly IMapProjection _projection;
         private readonly Theme _theme;
         private readonly List<Image> _markers = new List<Image>();
         private readonly List<TMPro.TextMeshProUGUI> _objLabels = new List<TMPro.TextMeshProUGUI>();
         private readonly List<Image> _labelBgs = new List<Image>();   // contrast pill behind each map label
-        private readonly List<TMPro.TextMeshProUGUI> _squadLabels = new List<TMPro.TextMeshProUGUI>();
-        private TMPro.TextMeshProUGUI _selInfo;   // "why/what" header for the selected objective
-        private readonly List<Image> _lines = new List<Image>();
-        private Image _selRing;        // ring drawn around the selected objective marker
+        private readonly List<Image> _lines = new List<Image>();      // parent -> child connectors
+        private readonly List<Image> _arrivalRings = new List<Image>();
+        private readonly List<TMPro.TextMeshProUGUI> _arrivalLabels = new List<TMPro.TextMeshProUGUI>();
+        private TMPro.TextMeshProUGUI _selInfo;   // "why/what" header for the selected order/node
+        private Image _selRing;                   // ring drawn around the selected marker
 
         public MapOverlay(Transform iconLayer, IMapProjection projection, Theme theme)
         {
@@ -37,76 +49,68 @@ namespace Nucleus.Ui
             _layer = rt;
         }
 
-        /// <summary>Draw a selectable marker per objective (colored by kind), ring on the selected one. Reads the
-        /// same operations read-model the panel renders, so map and panel always agree.</summary>
-        public void RenderObjectives(IReadOnlyList<Nucleus.Core.Command.OperationView> ops, string selectedId,
-            IReadOnlyList<Nucleus.Core.Command.SquadView> squads = null,
-            IReadOnlyDictionary<string, Vec3> unitPositions = null)
+        /// <summary>Draw a selectable marker per order (parent = the goal), and for the selected order its child
+        /// prerequisite markers + connector lines. <paramref name="selectedId"/> is the shared
+        /// <see cref="Nucleus.Composition.CommanderRuntime.SelectedObjectiveId"/> (bidirectional with the panel) —
+        /// an order is expanded when it is its goal OR one of its child nodes. <paramref name="unitPositions"/> +
+        /// <paramref name="queue"/> are optional: when a production queue view is supplied, in-flight buys show as
+        /// dashed arrival markers at the friendly centroid (home front).</summary>
+        public void RenderObjectives(IReadOnlyList<Cmd.OrderView> orders, string selectedId,
+            IReadOnlyDictionary<string, Vec3> unitPositions = null,
+            IReadOnlyList<Cmd.QueueItemView> queue = null)
         {
-            int mi = 0;
-            Vec3 selLocal = default; bool haveSel = false;
-            Nucleus.Core.Command.OperationView selOp = default;
-            if (ops != null)
+            int mi = 0, li = 0, shown = 0;
+            Vec3 selLocal = default; bool haveSel = false, selIsNode = false;
+            Cmd.OrderView selOrder = default; Cmd.OrderNodeView selNode = default;
+
+            if (orders != null)
             {
-                foreach (var op in ops)
+                foreach (var ord in orders)
                 {
-                    if (op.Status == Nucleus.Core.Command.OperationStatus.Complete
-                        || op.Status == Nucleus.Core.Command.OperationStatus.Failed) continue;
-                    var local = _projection.WorldToMapLocal(op.Position);
-                    var marker = Marker(mi);
-                    bool sel = op.ObjectiveId == selectedId;
-                    ((RectTransform)marker.transform).localPosition = new Vector3(local.X, local.Y, 0f);
-                    marker.color = ObjectiveVisuals.Color(op.Kind);
-                    var lbl = Label(mi);
-                    ((RectTransform)lbl.transform).localPosition = new Vector3(local.X + 10f, local.Y, 0f);
-                    lbl.text = ObjectiveVisuals.Name(op.Kind);
-                    lbl.color = sel ? _theme.Active : ObjectiveVisuals.Color(op.Kind);   // selection cue
-                    lbl.fontSize = sel ? 13f : 11f;
-                    // Contrast pill so the label reads over any terrain; sized to the text, drawn behind it.
-                    var bg = LabelBg(mi);
-                    var brt = (RectTransform)bg.transform;
-                    brt.localPosition = new Vector3(local.X + 10f - 3f, local.Y, 0f);
-                    brt.sizeDelta = new Vector2(lbl.preferredWidth + 6f, lbl.fontSize + 4f);
-                    brt.SetSiblingIndex(lbl.transform.GetSiblingIndex()); // sit just behind its label
+                    if (ord.Status != Cmd.OrderStatus.Active) continue;
+                    if (shown >= MaxOrderMarkers) break;
+                    shown++;
+
+                    // Anchor the parent at the GOAL NODE's live position (== OrderView.Position until the player
+                    // drags it; Order.Position is fixed, but MoveObjective updates the goal objective), so the
+                    // marker tracks a drag-to-move.
+                    var pLocal = _projection.WorldToMapLocal(GoalPosition(ord));
+                    bool pSel = ord.GoalObjectiveId == selectedId;
+                    bool expanded = pSel || HasSelectedNode(ord, selectedId);
+
+                    var pColor = ObjectiveVisuals.Color(ord.GoalKind);
+                    DrawMarker(mi, pLocal, pColor, UiTokens.MarkerSize);
+                    DrawLabel(mi, pLocal, ObjectiveVisuals.Name(ord.GoalKind), pSel ? _theme.Active : pColor, pSel);
                     mi++;
-                    if (sel) { selLocal = local; haveSel = true; selOp = op; }
+                    if (pSel) { selLocal = pLocal; haveSel = true; selIsNode = false; selOrder = ord; }
+
+                    if (!expanded || ord.Nodes == null) continue;
+                    foreach (var n in ord.Nodes)
+                    {
+                        if (n.IsGoal) continue;   // the goal is the parent marker; children are its prerequisites
+                        var cLocal = _projection.WorldToMapLocal(n.Position);
+                        var connector = n.Unreachable ? _theme.WarnText : _theme.Muted;
+                        DrawLine(Line(li++), pLocal, cLocal, connector);
+
+                        bool cSel = n.ObjectiveId == selectedId;
+                        bool dim = n.Complete || !n.Active;            // done / not-yet-fielded reads dimmer
+                        var cColor = n.Unreachable ? _theme.WarnText : ObjectiveVisuals.Color(n.Kind);
+                        if (dim) cColor.a = UiTokens.LineOpacity;
+                        DrawMarker(mi, cLocal, cColor, UiTokens.MarkerSizeFallback);
+                        DrawLabel(mi, cLocal, ObjectiveVisuals.Name(n.Kind), cSel ? _theme.Active : cColor, cSel);
+                        mi++;
+                        if (cSel) { selLocal = cLocal; haveSel = true; selIsNode = true; selOrder = ord; selNode = n; }
+                    }
                 }
             }
             for (int i = mi; i < _markers.Count; i++) _markers[i].gameObject.SetActive(false);
             for (int i = mi; i < _objLabels.Count; i++) _objLabels[i].gameObject.SetActive(false);
             for (int i = mi; i < _labelBgs.Count; i++) _labelBgs[i].gameObject.SetActive(false);
-
-            // For the selection, draw a status-colored line to each assigned squad's units + a cluster label
-            // ("Armor Alpha · engaged"), so the player sees who is working it, not anonymous lines.
-            int li = 0, sl = 0;
-            if (haveSel && squads != null && unitPositions != null)
-            {
-                string selOpId = selOp.Id;
-                foreach (var sq in squads)
-                {
-                    if (sq.AssignedOperationId != selOpId || sq.MemberUnitIds == null) continue;
-                    var col = StatusColor(sq.Status);
-                    float cx = 0f, cy = 0f; int n = 0;
-                    foreach (var uid in sq.MemberUnitIds)
-                    {
-                        if (!unitPositions.TryGetValue(uid, out var uw)) continue;
-                        var ul = _projection.WorldToMapLocal(uw);
-                        DrawLine(Line(li++), new Vec3(selLocal.X, selLocal.Y, 0f), ul, col);
-                        cx += ul.X; cy += ul.Y; n++;
-                    }
-                    if (n > 0)
-                    {
-                        var slbl = SquadLabel(sl++);
-                        ((RectTransform)slbl.transform).localPosition = new Vector3(cx / n, cy / n + 8f, 0f);
-                        slbl.text = $"{sq.Name} · {StatusPhrase(sq.Status)}";
-                        slbl.color = col;
-                    }
-                }
-            }
             for (int i = li; i < _lines.Count; i++) _lines[i].gameObject.SetActive(false);
-            for (int i = sl; i < _squadLabels.Count; i++) _squadLabels[i].gameObject.SetActive(false);
 
-            // The "why/what" header next to the selected objective: intent + phase + threat + ownership.
+            RenderArrivals(unitPositions, queue);
+
+            // The "why/what" header next to the selection: intent + phase/status + force + ownership.
             EnsureSelInfo();
             if (haveSel)
             {
@@ -117,11 +121,8 @@ namespace Nucleus.Ui
                 irt.pivot = new Vector2(right ? 1f : 0f, low ? 0f : 1f);
                 _selInfo.alignment = right ? TMPro.TextAlignmentOptions.TopRight : TMPro.TextAlignmentOptions.TopLeft;
                 irt.localPosition = new Vector3(selLocal.X + (right ? -12f : 12f), selLocal.Y + (low ? 12f : 20f), 0f);
-                string threat = selOp.ThreatCount > 0
-                    ? $"Threat {selOp.ThreatCount}" + (selOp.ThreatAirDefense > 0 ? $" ({selOp.ThreatAirDefense} SAM)" : "")
-                    : "Threat —";
-                _selInfo.text = $"{ObjectiveVisuals.Name(selOp.Kind)}\n{ObjectiveVisuals.PhaseLabel(selOp.Phase)} · {ObjectiveVisuals.StatusLabel(selOp.Status)}\n{threat}\n"
-                    + $"{(selOp.PlayerOwned ? "yours" : "AI")} · {selOp.SquadCount} squad{(selOp.SquadCount == 1 ? "" : "s")}";
+                _selInfo.text = selIsNode ? NodeInfo(selNode) : OrderInfo(selOrder);
+                _selInfo.color = (selIsNode && selNode.Unreachable) ? _theme.WarnText : _theme.Active;
                 _selInfo.gameObject.SetActive(true);
             }
             else _selInfo.gameObject.SetActive(false);
@@ -131,18 +132,125 @@ namespace Nucleus.Ui
             {
                 var rt = (RectTransform)_selRing.transform;
                 rt.localPosition = new Vector3(selLocal.X, selLocal.Y, 0f);
-                rt.sizeDelta = new Vector2(42f, 42f);
+                rt.sizeDelta = new Vector2(UiTokens.SelectionRingSize, UiTokens.SelectionRingSize);
                 _selRing.gameObject.SetActive(true);
             }
             else _selRing.gameObject.SetActive(false);
         }
 
-        // Pooled map label (objective tag + priority), drawn next to its marker.
+        // Reinforcements carry no map position of their own, so anchor in-flight buys at the friendly centroid
+        // (the home front) and stack them with their ETA. No-op until a queue view + unit positions are supplied.
+        private void RenderArrivals(IReadOnlyDictionary<string, Vec3> unitPositions, IReadOnlyList<Cmd.QueueItemView> queue)
+        {
+            int ar = 0;
+            if (queue != null && queue.Count > 0 && unitPositions != null && unitPositions.Count > 0)
+            {
+                var cl = _projection.WorldToMapLocal(Centroid(unitPositions));
+                foreach (var q in queue)
+                {
+                    if (ar >= MaxArrivalMarkers) break;
+                    float y = cl.Y + ar * 16f;
+                    var col = _theme.EnRoute;
+
+                    var ring = ArrivalRing(ar);
+                    var rrt = (RectTransform)ring.transform;
+                    rrt.localPosition = new Vector3(cl.X, y, 0f);
+                    rrt.sizeDelta = new Vector2(UiTokens.MarkerSizeFallback, UiTokens.MarkerSizeFallback);
+                    ring.color = col;
+
+                    var lbl = ArrivalLabel(ar);
+                    ((RectTransform)lbl.transform).localPosition = new Vector3(cl.X + UiTokens.MapLabelOffsetX, y, 0f);
+                    string what = !string.IsNullOrEmpty(q.Contents) ? q.Contents : q.Name;
+                    lbl.text = q.EtaSeconds > 0f ? $"{what} · {q.EtaSeconds:0}s" : what;
+                    lbl.color = col;
+                    ar++;
+                }
+            }
+            for (int i = ar; i < _arrivalRings.Count; i++) _arrivalRings[i].gameObject.SetActive(false);
+            for (int i = ar; i < _arrivalLabels.Count; i++) _arrivalLabels[i].gameObject.SetActive(false);
+        }
+
+        private static bool HasSelectedNode(Cmd.OrderView ord, string selectedId)
+        {
+            if (selectedId == null || ord.Nodes == null) return false;
+            foreach (var n in ord.Nodes) if (!n.IsGoal && n.ObjectiveId == selectedId) return true;
+            return false;
+        }
+
+        /// <summary>The goal node's live position (tracks drag-to-move); falls back to the order's fixed
+        /// <see cref="Cmd.OrderView.Position"/>. Shared with the canopy layer so both anchor a parent identically.</summary>
+        public static Vec3 GoalPosition(Cmd.OrderView ord)
+        {
+            if (ord.Nodes != null)
+                foreach (var n in ord.Nodes) if (n.IsGoal) return n.Position;
+            return ord.Position;
+        }
+
+        private static Vec3 Centroid(IReadOnlyDictionary<string, Vec3> positions)
+        {
+            float x = 0f, y = 0f, z = 0f; int n = 0;
+            foreach (var p in positions.Values) { x += p.X; y += p.Y; z += p.Z; n++; }
+            return n > 0 ? new Vec3(x / n, y / n, z / n) : default;
+        }
+
+        // Selection detail for a picked prerequisite node — mirrors PresentationBuilder.BuildNodeDetail wording.
+        private string NodeInfo(Cmd.OrderNodeView n)
+        {
+            string status = n.Complete ? "Complete"
+                : n.Active ? $"Active · {ObjectiveVisuals.PhaseLabel(n.Phase)}"
+                : n.DependenciesMet ? "Ready — awaiting force"
+                : "Blocked — waiting on prerequisites";
+            string force = n.SquadCount > 0 ? $"{n.SquadCount} squad{(n.SquadCount == 1 ? "" : "s")}" : "no force yet";
+            string who = n.Autonomy == Cmd.AutonomyLevel.Manual ? "yours" : "AI";
+            string reach = n.Unreachable ? "\nNo force can reach this" : "";
+            return $"{ObjectiveVisuals.Name(n.Kind)}\n{status}\n{force} · {who}{reach}";
+        }
+
+        // Selection detail for a picked order (the goal): status + prerequisite progress + ownership.
+        private string OrderInfo(Cmd.OrderView o)
+        {
+            int done = 0, total = 0;
+            if (o.Nodes != null)
+                foreach (var n in o.Nodes) { if (n.IsGoal) continue; total++; if (n.Complete) done++; }
+            string who = (o.PlayerOwned || o.Autonomy == Cmd.AutonomyLevel.Manual) ? "yours" : "AI";
+            string prog = total > 0 ? $"{done}/{total} prereqs done" : "no prerequisites";
+            return $"{ObjectiveVisuals.Name(o.GoalKind)}\n{OrderStatusLabel(o.Status)}\n{prog}\n{who}";
+        }
+
+        private static string OrderStatusLabel(Cmd.OrderStatus s)
+            => s == Cmd.OrderStatus.Complete ? "complete"
+             : s == Cmd.OrderStatus.Failed ? "failed" : "active";
+
+        private void DrawMarker(int i, Vec3 local, Color color, float size)
+        {
+            var m = Marker(i);
+            var rt = (RectTransform)m.transform;
+            rt.localPosition = new Vector3(local.X, local.Y, 0f);
+            rt.sizeDelta = new Vector2(size, size);
+            m.color = color;
+        }
+
+        // Pooled map label drawn next to its marker, over a contrast pill so it reads on any terrain.
+        private void DrawLabel(int i, Vec3 local, string text, Color color, bool selected)
+        {
+            var lbl = Label(i);
+            ((RectTransform)lbl.transform).localPosition = new Vector3(local.X + UiTokens.MapLabelOffsetX, local.Y, 0f);
+            lbl.text = text;
+            lbl.color = color;
+            lbl.fontSize = selected ? UiTokens.FontHeader : UiTokens.FontHint;   // selection cue
+            var bg = LabelBg(i);
+            var brt = (RectTransform)bg.transform;
+            brt.localPosition = new Vector3(local.X + UiTokens.MapLabelOffsetX - 3f, local.Y, 0f);
+            brt.sizeDelta = new Vector2(lbl.preferredWidth + 6f, lbl.fontSize + 4f);
+            brt.SetSiblingIndex(lbl.transform.GetSiblingIndex()); // sit just behind its label
+        }
+
+        // Pooled map label, drawn next to its marker.
         private TMPro.TextMeshProUGUI Label(int i)
         {
             while (_objLabels.Count <= i)
             {
-                var t = UiFactory.Label("ObjLabel" + _objLabels.Count, _layer, "", 10f, Color.white);
+                var t = UiFactory.Label("ObjLabel" + _objLabels.Count, _layer, "", UiTokens.FontHint, Color.white);
                 var rt = t.rectTransform;
                 rt.pivot = new Vector2(0f, 0.5f);
                 rt.sizeDelta = new Vector2(120f, 16f);
@@ -168,6 +276,33 @@ namespace Nucleus.Ui
             return _labelBgs[i];
         }
 
+        private Image ArrivalRing(int i)
+        {
+            while (_arrivalRings.Count <= i)
+            {
+                var img = UiFactory.Ring("ArrivalRing" + _arrivalRings.Count, _layer, _theme.EnRoute, dashed: true);
+                ((RectTransform)img.transform).pivot = new Vector2(0.5f, 0.5f);
+                _arrivalRings.Add(img);
+            }
+            _arrivalRings[i].gameObject.SetActive(true);
+            return _arrivalRings[i];
+        }
+
+        private TMPro.TextMeshProUGUI ArrivalLabel(int i)
+        {
+            while (_arrivalLabels.Count <= i)
+            {
+                var t = UiFactory.Label("ArrivalLabel" + _arrivalLabels.Count, _layer, "", UiTokens.FontHint, _theme.EnRoute);
+                var rt = t.rectTransform;
+                rt.pivot = new Vector2(0f, 0.5f);
+                rt.sizeDelta = new Vector2(160f, 16f);
+                t.alignment = TMPro.TextAlignmentOptions.Left;
+                _arrivalLabels.Add(t);
+            }
+            _arrivalLabels[i].gameObject.SetActive(true);
+            return _arrivalLabels[i];
+        }
+
         private void EnsureSelRing()
         {
             if (_selRing != null) return;
@@ -176,52 +311,10 @@ namespace Nucleus.Ui
             rt.pivot = new Vector2(0.5f, 0.5f);
         }
 
-
-        // Short phrase + color for a squad's status, so a line/label reads as "what is this squad doing".
-        private static string StatusPhrase(Nucleus.Core.Command.SquadStatus s)
-        {
-            switch (s)
-            {
-                case Nucleus.Core.Command.SquadStatus.Engaged: return "engaged";
-                case Nucleus.Core.Command.SquadStatus.Ready: return "en route";
-                case Nucleus.Core.Command.SquadStatus.Forming: return "forming";
-                case Nucleus.Core.Command.SquadStatus.Depleted: return "depleted";
-                default: return "reserve";
-            }
-        }
-
-        private Color StatusColor(Nucleus.Core.Command.SquadStatus s)
-        {
-            switch (s)
-            {
-                case Nucleus.Core.Command.SquadStatus.Engaged: return NativeColors.Hostile;   // in contact
-                case Nucleus.Core.Command.SquadStatus.Ready: return NativeColors.Friendly;    // moving up
-                case Nucleus.Core.Command.SquadStatus.Forming: return _theme.SquadForming;
-                case Nucleus.Core.Command.SquadStatus.Depleted: return _theme.SquadDepleted;
-                default: return _theme.SquadReserve;
-            }
-        }
-
-        // Pooled label placed at a squad's unit cluster.
-        private TMPro.TextMeshProUGUI SquadLabel(int i)
-        {
-            while (_squadLabels.Count <= i)
-            {
-                var t = UiFactory.Label("SquadLabel" + _squadLabels.Count, _layer, "", 10f, Color.white);
-                var rt = t.rectTransform;
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.sizeDelta = new Vector2(140f, 16f);
-                t.alignment = TMPro.TextAlignmentOptions.Center;
-                _squadLabels.Add(t);
-            }
-            _squadLabels[i].gameObject.SetActive(true);
-            return _squadLabels[i];
-        }
-
         private void EnsureSelInfo()
         {
             if (_selInfo != null) return;
-            _selInfo = UiFactory.Label("ObjSelInfo", _layer, "", 11f, _theme.Active);
+            _selInfo = UiFactory.Label("ObjSelInfo", _layer, "", UiTokens.FontHint, _theme.Active);
             var rt = _selInfo.rectTransform;
             rt.pivot = new Vector2(0f, 1f);                 // top-left anchored to the marker
             rt.sizeDelta = new Vector2(150f, 64f);
@@ -234,8 +327,9 @@ namespace Nucleus.Ui
             foreach (var m in _markers) m.gameObject.SetActive(false);
             foreach (var l in _objLabels) l.gameObject.SetActive(false);
             foreach (var l in _labelBgs) l.gameObject.SetActive(false);
-            foreach (var l in _squadLabels) l.gameObject.SetActive(false);
             foreach (var l in _lines) l.gameObject.SetActive(false);
+            foreach (var r in _arrivalRings) r.gameObject.SetActive(false);
+            foreach (var l in _arrivalLabels) l.gameObject.SetActive(false);
             if (_selRing != null) _selRing.gameObject.SetActive(false);
             if (_selInfo != null) _selInfo.gameObject.SetActive(false);
         }
@@ -252,9 +346,9 @@ namespace Nucleus.Ui
                 {
                     img.sprite = NativeIcons.Warhead;
                     img.preserveAspect = true;
-                    rt.sizeDelta = new Vector2(16f, 16f);
+                    rt.sizeDelta = new Vector2(UiTokens.MarkerSize, UiTokens.MarkerSize);
                 }
-                else rt.sizeDelta = new Vector2(11f, 11f);
+                else rt.sizeDelta = new Vector2(UiTokens.MarkerSizeFallback, UiTokens.MarkerSizeFallback);
                 _markers.Add(img);
             }
             _markers[i].gameObject.SetActive(true);

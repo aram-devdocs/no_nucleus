@@ -17,7 +17,6 @@ namespace Nucleus.Game
         private readonly GameProductionService _prodService = new GameProductionService();
         private readonly ProductionQueue _prodQueue = new ProductionQueue();
         private Core.Command.ConvoyCatalog _catalog = new Core.Command.ConvoyCatalog(new List<Core.Command.ConvoyOption>());
-        private int _counter;
 
         public CommanderService(CommanderConfig cfg)
         {
@@ -88,7 +87,12 @@ namespace Nucleus.Game
             foreach (var op in _auto.Operations)
             {
                 if (op.Status != OperationStatus.Active) continue;
-                if (!Families.ActiveInPhase(op.CombatPhase).Contains(RoleFamily.AirCombat)) continue;
+                // The single-domain air/naval objectives engage aircraft regardless of the assault phase cursor;
+                // the ground-assault kinds publish a zone only while their phase actually wants jets.
+                var k = op.Objective.Kind;
+                bool airKind = k == ObjectiveKind.ControlAirspace || k == ObjectiveKind.SuppressAirDefense
+                    || k == ObjectiveKind.NavalStrike;
+                if (!airKind && !Families.ActiveInPhase(op.CombatPhase).Contains(RoleFamily.AirCombat)) continue;
                 zones.Add(op.Objective.Position);
             }
             AircraftIntent.SetZones(zones);
@@ -113,10 +117,14 @@ namespace Nucleus.Game
         // ---- objectives (the single command primitive) ----
         public string CreateObjective(ObjectiveKind kind, Vec3 world, string targetId = null)
         {
-            var id = "obj-" + (++_counter);
-            _auto.Objectives.Add(new Objective(id, kind, world, ObjectiveSource.Player, targetId, priority: 5f));
+            // Player drops are first-class orders: decompose into the same dependency-sequenced tree the AI uses,
+            // sited on the threats around the drop. The returned id is the goal — what Edit/Move/Remove address
+            // (removing the goal cascades: the order completes and its children are pruned).
+            var known = _intel.KnownEnemiesNear(world, float.MaxValue);
+            var snapshot = new WorldSnapshot(LastRoster, known, 0f, null, UnityEngine.Time.unscaledTime);
+            var goalId = CommanderBrain.CreatePlayerObjective(_auto, snapshot, kind, world, targetId);
             _auto.Log.Append(new ReportEvent(UnityEngine.Time.unscaledTime, ReportKind.ObjectiveAdded, $"You set {ObjectiveText.Name(kind)}", null));
-            return id;
+            return goalId;
         }
 
         // Edit/Move mutate the Objective IN PLACE — the live operation shares the reference, so its tasking
@@ -191,6 +199,17 @@ namespace Nucleus.Game
                 if (op.Id == operationId)
                 {
                     op.Autonomy = op.Autonomy == AutonomyLevel.Manual ? AutonomyLevel.Auto : AutonomyLevel.Manual;
+                    return;
+                }
+        }
+
+        /// <summary>Take a whole order over (AI yields its tree so you assign + drive the nodes) or hand it back.</summary>
+        public void ToggleOrderManual(string orderId)
+        {
+            foreach (var o in _auto.Orders)
+                if (o.Id == orderId)
+                {
+                    o.Autonomy = o.Autonomy == AutonomyLevel.Manual ? AutonomyLevel.Auto : AutonomyLevel.Manual;
                     return;
                 }
         }

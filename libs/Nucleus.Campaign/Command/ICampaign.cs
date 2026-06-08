@@ -36,6 +36,8 @@ namespace Nucleus.Core.Command
         // ---- commands ----
         void ToggleSquadManual(string squadId);
         void ToggleOperationManual(string operationId);
+        /// <summary>Take a whole order over (the AI yields its tree so you assign + drive its nodes) or hand it back.</summary>
+        void ToggleOrderManual(string orderId);
         void BuyConvoy(string name);
         void SaveCampaign(string path);
         bool LoadCampaign(string path);

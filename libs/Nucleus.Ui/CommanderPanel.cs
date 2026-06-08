@@ -29,14 +29,17 @@ namespace Nucleus.Ui
         private readonly Action<string> _onSelectObjective;
         private readonly Action<string> _onRemoveObjective;
         private readonly Action<string, string> _onAssignSquad;   // (objectiveId, squadId)
-        private Transform _assignContainer;
-        private TextMeshProUGUI _assignHdr;
-        private readonly List<EntityRow> _assignRows = new List<EntityRow>();
         private readonly Action<string, int> _onNudgePriority;
         private readonly Action<string> _onCycleKind;
-        private Transform _objContainer;
-        private TextMeshProUGUI _objHint, _objEditor;
-        private readonly List<EntityRow> _objRows = new List<EntityRow>();
+        private TextMeshProUGUI _objHint;
+        // Command-center order tree + selection detail (replaces the stacked objective/operation lists).
+        private readonly Action<string> _onToggleOrderManual;   // (selected objectiveId) -> take its order over / release
+        private Transform _treeContainer;
+        private TextMeshProUGUI _treeEmpty;
+        private readonly List<EntityRow> _treeRows = new List<EntityRow>();
+        private TextMeshProUGUI _detailTitle, _detailStatus, _detailForce, _detailActionLabel;
+        private Image _detailActionImg;
+        private GameObject _detailAction;
         private readonly List<KindButton> _kindButtons = new List<KindButton>();
         private struct KindButton { public Image Img; public Cmd.ObjectiveKind Kind; }
         private Cmd.ObjectiveKind? _armedObjective;   // the kind the player is about to drop
@@ -68,7 +71,7 @@ namespace Nucleus.Ui
             Build = 1 << 4,
             Feed = 1 << 5,
             Scoreboard = 1 << 6,  // dynamic-war attrition board: both factions' score/funds/losses + win state
-            Objectives = 1 << 7,  // drop-then-edit-in-place objective palette + list + editor
+            Objectives = 1 << 7,  // drop palette + command-center order tree + selection-detail pane
             All = Objectives | Mode | Operations | Squads | Build | Feed,
         }
 
@@ -80,10 +83,12 @@ namespace Nucleus.Ui
             Action<Cmd.ObjectiveKind> onArmObjective = null, Action<string> onSelectObjective = null,
             Action<string> onRemoveObjective = null, Action<string, int> onNudgePriority = null,
             Action<string> onCycleKind = null, Action<string, string> onAssignSquad = null,
+            Action<string> onToggleOrderManual = null,
             PanelSections sections = PanelSections.All)
         {
             _sections = sections;
             _theme = theme;
+            _onToggleOrderManual = onToggleOrderManual;
             _onToggleOpManual = onToggleOpManual;
             _onToggleSquadManual = onToggleSquadManual;
             _onBuyConvoy = onBuyConvoy;
@@ -132,21 +137,31 @@ namespace Nucleus.Ui
                 _objHint = UiFactory.Label("ObjHint", layout.transform, UiStrings.ObjectivesHint, 11f, theme.Muted);
                 UiFactory.PreferredHeight(_objHint.gameObject, 30f);
 
-                _objContainer = UiFactory.VerticalLayout("ObjList", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
+                // The command-center order tree: a parent row per goal + indented prerequisite rows, each
+                // selectable; the AI/YOU badge doubles as the select target (per-row click).
+                UiFactory.SectionHeader(layout.transform, UiStrings.OrdersHeader, theme);
+                UiFactory.PreferredHeight(UiFactory.Label("OrdersHint", layout.transform,
+                    UiStrings.OrdersTreeHint, 11f, theme.Muted).gameObject, 30f);
+                _treeContainer = UiFactory.VerticalLayout("OrderTree", layout.transform, 2f, new RectOffset(0, 0, 0, 0)).transform;
+                _treeEmpty = UiFactory.Label("OrdersEmpty", layout.transform, UiStrings.OrdersEmpty, 12f, theme.Muted);
+                UiFactory.PreferredHeight(_treeEmpty.gameObject, 48f);
 
-                _objEditor = UiFactory.Label("ObjEditor", layout.transform, "", 11f, theme.Text);
-                UiFactory.PreferredHeight(_objEditor.gameObject, 18f);
-                var eRow = UiFactory.HorizontalLayout("ObjEdit", layout.transform, 4f);
-                UiFactory.PreferredHeight(eRow.gameObject, 28f);
-                UiFactory.Button("PrioDown", eRow.transform, "PRIO -", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, -1); });
-                UiFactory.Button("PrioUp", eRow.transform, "PRIO +", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, +1); });
-                UiFactory.Button("Retype", eRow.transform, "RETYPE", theme, () => { if (_selectedObjectiveId != null) _onCycleKind?.Invoke(_selectedObjectiveId); });
-                var removeBtn = UiFactory.Button("ObjRemove", eRow.transform, "REMOVE", theme, () => { if (_selectedObjectiveId != null) { _onRemoveObjective?.Invoke(_selectedObjectiveId); _selectedObjectiveId = null; } });
-                if (removeBtn.image != null) removeBtn.image.color = theme.Danger; // destructive = the ONLY red
-
-                _assignHdr = UiFactory.Label("AssignHdr", layout.transform, "", 11f, theme.Accent);
-                UiFactory.PreferredHeight(_assignHdr.gameObject, 16f);
-                _assignContainer = UiFactory.VerticalLayout("AssignList", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
+                // Selection detail pane for the picked node: title (kind), status, force, live phase, and the
+                // primary Take Over / Release action bound to ICampaign.ToggleOrderManual.
+                UiFactory.Divider(layout.transform, theme.Muted);
+                _detailTitle = UiFactory.Label("DetailTitle", layout.transform, UiStrings.NoNodeSelected, 13f, theme.Muted);
+                UiFactory.PreferredHeight(_detailTitle.gameObject, 20f);
+                _detailStatus = UiFactory.Label("DetailStatus", layout.transform, "", 12f, theme.Text);
+                UiFactory.PreferredHeight(_detailStatus.gameObject, 18f);
+                _detailForce = UiFactory.Label("DetailForce", layout.transform, "", 11f, theme.Muted);
+                UiFactory.PreferredHeight(_detailForce.gameObject, 16f);
+                var takeOverBtn = UiFactory.Button("OrderTakeOver", layout.transform, "Take Over", theme,
+                    () => { if (_selectedObjectiveId != null) _onToggleOrderManual?.Invoke(_selectedObjectiveId); });
+                UiFactory.PreferredHeight(takeOverBtn.gameObject, 28f);
+                _detailAction = takeOverBtn.gameObject;
+                _detailActionImg = takeOverBtn.GetComponent<Image>();
+                _detailActionLabel = takeOverBtn.GetComponentInChildren<TextMeshProUGUI>();
+                _detailAction.SetActive(false);
             }
 
             if (Has(PanelSections.Mode))
@@ -286,12 +301,11 @@ namespace Nucleus.Ui
             _kindButtons.Add(new KindButton { Img = btn.GetComponent<Image>(), Kind = kind });
         }
 
-        /// <summary>Render the objective list + selected-objective editor + assign-force list from the pure
-        /// <see cref="PanelVm"/>. The panel keeps only the palette highlight + armed-drop hint (UI-local arm state).</summary>
+        /// <summary>Render the drop palette + the command-center order tree + the selection-detail pane from the
+        /// pure presentation VMs. The panel keeps only UI-local arm/selection state.</summary>
         public void RenderObjectives(Cmd.HqSnapshot hq)
         {
-            if (_objContainer == null) return;
-            var vm = PresentationBuilder.Build(hq, new PanelInteraction(_armedObjective, _selectedObjectiveId), null, 0f);
+            if (_treeContainer == null) return;
 
             foreach (var kb in _kindButtons)
                 kb.Img.color = _armedObjective == kb.Kind ? _theme.Active : _theme.ButtonIdle;
@@ -301,14 +315,55 @@ namespace Nucleus.Ui
                     ? $"Drop {ObjectiveVisuals.Name(_armedObjective.Value)}: click a spot on the map."
                     : UiStrings.ObjectivesHintArmedPrompt;
 
-            FillRows(_objRows, _objContainer, vm.ObjectiveRows, "Obj",
+            var tree = PresentationBuilder.BuildOrderTree(hq, _selectedObjectiveId);
+            if (_treeEmpty != null) _treeEmpty.gameObject.SetActive(tree.Count == 0);
+            EnsureEntityRows(_treeRows, _treeContainer, tree.Count, "Order",
                 id => { _selectedObjectiveId = id; _onSelectObjective?.Invoke(id); });
+            for (int i = 0; i < _treeRows.Count; i++)
+            {
+                if (i < tree.Count) { var r = _treeRows[i]; r.Id = tree[i].Id; ApplyTreeRow(r, tree[i]); _treeRows[i] = r; }
+                else _treeRows[i].Go.SetActive(false);
+            }
 
-            if (_objEditor != null) _objEditor.text = vm.ObjectiveEditor ?? UiStrings.NoObjectiveSelected;
+            RenderNodeDetail(hq);
+        }
 
-            if (_assignHdr != null) _assignHdr.text = vm.AssignHeader;
-            FillRows(_assignRows, _assignContainer, vm.AssignRows, "Assign",
-                squadId => { if (_selectedObjectiveId != null) _onAssignSquad?.Invoke(_selectedObjectiveId, squadId); });
+        // Apply one order-tree row: indent (parent=0, prerequisite=1) via TMP left-margin, kind dot, selection
+        // color, dimmed when unreachable, and the AI/YOU badge on the row's select button.
+        private void ApplyTreeRow(EntityRow r, OrderRowVm vm)
+        {
+            r.Label.margin = new Vector4(vm.Indent * 14f, 0f, 0f, 0f);
+            r.Label.text = (vm.ShowKindDot ? Dot(vm.Kind) : "") + vm.Label;
+            r.Label.color = Resolve(vm.LabelColor, vm.Kind);
+            r.Label.alpha = vm.Unreachable ? 0.45f : 1f;
+            r.BtnLabel.text = vm.Badge;
+            r.BtnImg.color = vm.Selected ? _theme.Active : Resolve(vm.BadgeColor, vm.Kind);
+            r.Go.SetActive(true);
+        }
+
+        // The selection-detail pane for the picked node: title/status/force + the Take Over / Release action.
+        private void RenderNodeDetail(Cmd.HqSnapshot hq)
+        {
+            if (_detailTitle == null) return;
+            var d = PresentationBuilder.BuildNodeDetail(hq, _selectedObjectiveId);
+            if (!d.HasSelection)
+            {
+                _detailTitle.text = UiStrings.NoNodeSelected;
+                _detailTitle.color = _theme.Muted;
+                _detailTitle.alpha = 1f;
+                _detailStatus.text = "";
+                _detailForce.text = "";
+                if (_detailAction != null) _detailAction.SetActive(false);
+                return;
+            }
+            _detailTitle.text = Dot(d.Kind) + d.Title;
+            _detailTitle.color = Resolve(d.TitleColor, d.Kind);
+            _detailTitle.alpha = d.Unreachable ? 0.45f : 1f;
+            _detailStatus.text = d.Status;
+            _detailForce.text = d.Force;
+            if (_detailActionLabel != null) _detailActionLabel.text = d.Action;
+            if (_detailActionImg != null) _detailActionImg.color = Resolve(d.ActionColor, d.Kind);
+            if (_detailAction != null) _detailAction.SetActive(true);
         }
 
         // Map a pure VM row list onto a pooled EntityRow list: grow the pool, apply each row, hide the rest.

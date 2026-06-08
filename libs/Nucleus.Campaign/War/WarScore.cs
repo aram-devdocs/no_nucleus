@@ -7,6 +7,12 @@ namespace Nucleus.Core.War
     /// still buy with cash, but each buy bleeds score far faster). Defeated at zero.</summary>
     public sealed class WarScore
     {
+        // Default attrition knobs, exposed so the scoreboard's "how the score works" line is derived here (SSOT),
+        // never re-typed in the UI. The constructor defaults to these.
+        public const float DefaultStart = 1000f;
+        public const float DefaultUnitValue = 8f;
+        public const float DefaultBaseValue = 120f;
+
         public float Score { get; private set; }
         public int BasesLost { get; private set; }
         public int UnitsLost { get; private set; }
@@ -17,7 +23,7 @@ namespace Nucleus.Core.War
         private readonly float _spendPenaltyBase; // score lost per $ spent at FULL bases
         private readonly float _falloffPerBaseLost; // exponential growth of the spend penalty per base lost
 
-        public WarScore(float start = 1000f, float unitValue = 8f, float baseValue = 120f,
+        public WarScore(float start = DefaultStart, float unitValue = DefaultUnitValue, float baseValue = DefaultBaseValue,
             float spendPenaltyBase = 0.02f, float falloffPerBaseLost = 0.6f)
         {
             // Same-typed float knobs — guard each so a transposed/negative argument fails loudly, not silently.

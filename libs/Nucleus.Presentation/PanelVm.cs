@@ -32,19 +32,67 @@ namespace Nucleus.Presentation
         }
     }
 
-    /// <summary>The attrition board as fractions (0..1 of the starting pool) + a worded status.</summary>
+    /// <summary>The attrition board as fractions (0..1 of the starting pool) + a worded status + the rules line
+    /// that explains how the score is won/lost.</summary>
     public readonly struct ScoreboardVm
     {
-        public readonly string BluforLine, OpforLine, Status;
+        public readonly string BluforLine, OpforLine, Status, Rules;
         public readonly float BluforFraction, OpforFraction;
         public readonly UiColor StatusColor;
 
         public ScoreboardVm(string bluforLine, float bluforFraction, string opforLine, float opforFraction,
-            string status, UiColor statusColor)
+            string status, UiColor statusColor, string rules)
         {
             BluforLine = bluforLine; BluforFraction = bluforFraction;
             OpforLine = opforLine; OpforFraction = opforFraction;
-            Status = status; StatusColor = statusColor;
+            Status = status; StatusColor = statusColor; Rules = rules;
+        }
+    }
+
+    /// <summary>One row of the command-center order tree: a parent order (indent 0) or a child node (indent 1),
+    /// pre-resolved to label + colors + an owner badge, with selection + reachability flags.</summary>
+    public readonly struct OrderRowVm
+    {
+        public readonly string Id;            // objective id for a node; order id for a parent
+        public readonly bool IsParent;
+        public readonly int Indent;
+        public readonly string Label;
+        public readonly UiColor LabelColor;
+        public readonly ObjectiveKind Kind;
+        public readonly bool ShowKindDot;
+        public readonly string Badge;         // "AI" / "YOU"
+        public readonly UiColor BadgeColor;
+        public readonly bool Selected;
+        public readonly bool Unreachable;
+
+        public OrderRowVm(string id, bool isParent, int indent, string label, UiColor labelColor,
+            ObjectiveKind kind, bool showKindDot, string badge, UiColor badgeColor, bool selected, bool unreachable)
+        {
+            Id = id; IsParent = isParent; Indent = indent; Label = label; LabelColor = labelColor;
+            Kind = kind; ShowKindDot = showKindDot; Badge = badge; BadgeColor = badgeColor;
+            Selected = selected; Unreachable = unreachable;
+        }
+    }
+
+    /// <summary>The selection-detail pane for the picked order node: status, force, live phase, and the primary
+    /// take-over/release action. <see cref="HasSelection"/> is false when nothing is picked.</summary>
+    public readonly struct NodeDetailVm
+    {
+        public readonly bool HasSelection;
+        public readonly string Title;
+        public readonly UiColor TitleColor;
+        public readonly ObjectiveKind Kind;
+        public readonly string Status;        // "Active · SEAD" / "Blocked · waiting on prerequisites" / "Complete"
+        public readonly string Force;         // "2 squads" / "no force yet"
+        public readonly string Action;        // "Take Over" / "Release"
+        public readonly UiColor ActionColor;
+        public readonly bool Unreachable;
+
+        public NodeDetailVm(bool hasSelection, string title, UiColor titleColor, ObjectiveKind kind, string status,
+            string force, string action, UiColor actionColor, bool unreachable)
+        {
+            HasSelection = hasSelection; Title = title; TitleColor = titleColor; Kind = kind; Status = status;
+            Force = force; Action = action; ActionColor = actionColor; Unreachable = unreachable;
         }
     }
 

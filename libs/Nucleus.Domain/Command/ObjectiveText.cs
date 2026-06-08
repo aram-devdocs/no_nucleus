@@ -19,11 +19,13 @@ namespace Nucleus.Core.Command
                 case ObjectiveKind.DefendArea:      return "Defend area";
                 case ObjectiveKind.ControlAirspace: return "Control airspace";
                 case ObjectiveKind.Resupply:        return "Resupply";
+                case ObjectiveKind.SuppressAirDefense: return "Suppress air defense";
+                case ObjectiveKind.NavalStrike:     return "Naval strike";
                 default:                            return "Recon";
             }
         }
 
-        /// <summary>Terse tag for tight contexts: CAP / DESTROY / DEFEND / AIR / SUPPLY / RECON.</summary>
+        /// <summary>Terse tag for tight contexts: CAP / DESTROY / DEFEND / AIR / SUPPLY / RECON / SEAD / NAVAL.</summary>
         public static string Tag(ObjectiveKind kind)
         {
             switch (kind)
@@ -33,6 +35,8 @@ namespace Nucleus.Core.Command
                 case ObjectiveKind.DefendArea:      return "DEFEND";
                 case ObjectiveKind.ControlAirspace: return "AIR";
                 case ObjectiveKind.Resupply:        return "SUPPLY";
+                case ObjectiveKind.SuppressAirDefense: return "SEAD";
+                case ObjectiveKind.NavalStrike:     return "NAVAL";
                 default:                            return "RECON";
             }
         }

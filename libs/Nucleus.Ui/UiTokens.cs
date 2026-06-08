@@ -35,8 +35,13 @@ namespace Nucleus.Ui
         public const float SetupPanelHeight = 520f;
         public const float HudWidth = 360f;
         public const float HudHeight = 168f;
+        public const float WarStripWidth = 440f;      // top-center fly-and-command strip (war score + next action)
+        public const float WarStripHeight = 92f;
+        public const float WarBarHeight = 8f;          // thin attrition bar inside the war strip
         public const float BadgeWidth = 330f;
         public const float BadgeHeight = 30f;
+        public const float BannerWidth = 560f;        // top-center in-flight notice (AI-commanding)
+        public const float BannerHeight = 34f;
 
         // Map overlay sizes
         public const float MarkerSize = 16f;          // objective marker with the native sprite
