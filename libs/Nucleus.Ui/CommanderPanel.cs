@@ -49,7 +49,6 @@ namespace Nucleus.Ui
         private TextMeshProUGUI _buildFunds, _buildStatus;
         private TextMeshProUGUI _scoreTitle, _scoreBlu, _scoreOp, _scoreStatus;
         private Image _scoreBluBar, _scoreOpBar;
-        private float _scoreMax;  // highest score seen = the full-bar reference, so bars shrink as sides attrit
 
         private struct OpRow { public GameObject Go; public TextMeshProUGUI Label; public Image BtnImg; public TextMeshProUGUI BtnLabel; public string OpId; }
         private struct EntityRow { public GameObject Go; public TextMeshProUGUI Label; public Image BtnImg; public TextMeshProUGUI BtnLabel; public string Id; }
@@ -248,8 +247,9 @@ namespace Nucleus.Ui
         public void RenderScoreboard(Cmd.WarfareCampaign.Scoreboard b)
         {
             if (_scoreBlu == null) return;
-            _scoreMax = Math.Max(_scoreMax, Math.Max(b.BluforScore, b.OpforScore));
-            float denom = Math.Max(1f, _scoreMax);
+            // Bars read as "distance to defeat": score over the starting pool (WarScore starts at 1000 and only
+            // falls), so a half-full bar means half the war's attrition budget is gone.
+            const float denom = 1000f;
 
             _scoreBlu.text = $"{b.BluforName} [{(b.BluforAi ? "AI" : "YOU")}]  {b.BluforScore:0}  ·  ${b.BluforFunds:0}  ·  -{b.BluforUnitsLost}u/-{b.BluforBasesLost}b";
             _scoreOp.text = $"{b.OpforName} [{(b.OpforAi ? "AI" : "YOU")}]  {b.OpforScore:0}  ·  ${b.OpforFunds:0}  ·  -{b.OpforUnitsLost}u/-{b.OpforBasesLost}b";
@@ -503,7 +503,9 @@ namespace Nucleus.Ui
                     r.Label.text = $"{o.Name}{contents} · {o.Cost:0}";
                     bool afford = (funds - queuedCost) >= o.Cost;
                     r.BtnLabel.text = "BUY";
-                    r.BtnImg.color = afford ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnImg.color = afford ? _theme.Active : _theme.ButtonIdle;   // green = go, gray = can't afford
+                    var buyBtn = r.BtnImg.GetComponent<Button>();
+                    if (buyBtn != null) buyBtn.interactable = afford;              // can't click into debt
                     r.Go.SetActive(true);
                     _buildRows[i] = r;
                 }
@@ -549,7 +551,7 @@ namespace Nucleus.Ui
                     var op = ops[i];
                     var r = _opRows[i];
                     r.OpId = op.Id;
-                    r.Label.text = $"{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} — {ObjectiveVisuals.PhaseLabel(op.Phase)} [{op.Status}]";
+                    r.Label.text = $"{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} — {ObjectiveVisuals.PhaseLabel(op.Phase)} [{ObjectiveVisuals.StatusLabel(op.Status)}]";
                     bool manual = op.Autonomy == Nucleus.Core.Command.AutonomyLevel.Manual;
                     r.BtnLabel.text = manual ? "YOU" : "AI";
                     r.BtnImg.color = manual ? _theme.Accent : _theme.Active;

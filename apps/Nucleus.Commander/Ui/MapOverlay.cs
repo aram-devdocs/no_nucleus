@@ -60,7 +60,7 @@ namespace Nucleus.Ui
                     var lbl = Label(mi);
                     ((RectTransform)lbl.transform).localPosition = new Vector3(local.X + 10f, local.Y, 0f);
                     lbl.text = ObjectiveVisuals.Name(op.Kind);
-                    lbl.color = sel ? NativeColors.Friendly : ObjectiveVisuals.Color(op.Kind);
+                    lbl.color = sel ? _theme.Active : ObjectiveVisuals.Color(op.Kind);   // selection cue
                     lbl.fontSize = sel ? 13f : 11f;
                     // Contrast pill so the label reads over any terrain; sized to the text, drawn behind it.
                     var bg = LabelBg(mi);
@@ -120,7 +120,7 @@ namespace Nucleus.Ui
                 string threat = selOp.ThreatCount > 0
                     ? $"Threat {selOp.ThreatCount}" + (selOp.ThreatAirDefense > 0 ? $" ({selOp.ThreatAirDefense} SAM)" : "")
                     : "Threat —";
-                _selInfo.text = $"{ObjectiveVisuals.Name(selOp.Kind)}\n{ObjectiveVisuals.PhaseLabel(selOp.Phase)} · {selOp.Status}\n{threat}\n"
+                _selInfo.text = $"{ObjectiveVisuals.Name(selOp.Kind)}\n{ObjectiveVisuals.PhaseLabel(selOp.Phase)} · {ObjectiveVisuals.StatusLabel(selOp.Status)}\n{threat}\n"
                     + $"{(selOp.PlayerOwned ? "yours" : "AI")} · {selOp.SquadCount} squad{(selOp.SquadCount == 1 ? "" : "s")}";
                 _selInfo.gameObject.SetActive(true);
             }
@@ -171,7 +171,7 @@ namespace Nucleus.Ui
         private void EnsureSelRing()
         {
             if (_selRing != null) return;
-            _selRing = UiFactory.Ring("ObjSelRing", _layer, NativeColors.Friendly);
+            _selRing = UiFactory.Ring("ObjSelRing", _layer, _theme.Active);
             var rt = (RectTransform)_selRing.transform;
             rt.pivot = new Vector2(0.5f, 0.5f);
         }
@@ -221,7 +221,7 @@ namespace Nucleus.Ui
         private void EnsureSelInfo()
         {
             if (_selInfo != null) return;
-            _selInfo = UiFactory.Label("ObjSelInfo", _layer, "", 11f, NativeColors.Friendly);
+            _selInfo = UiFactory.Label("ObjSelInfo", _layer, "", 11f, _theme.Active);
             var rt = _selInfo.rectTransform;
             rt.pivot = new Vector2(0f, 1f);                 // top-left anchored to the marker
             rt.sizeDelta = new Vector2(150f, 64f);

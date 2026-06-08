@@ -48,8 +48,7 @@ namespace Nucleus.Ui
             UiFactory.Stretch((RectTransform)col.transform);
 
             UiFactory.PreferredHeight(UiFactory.Label("Hdr", col.transform,
-                "Choose your side. The other sides are run by the AI commander. Attrition wins the war.",
-                12f, theme.Muted).gameObject, 40f);
+                UiStrings.SetupHeader, 12f, theme.Muted).gameObject, 40f);
 
             UiFactory.PreferredHeight(UiFactory.Label("SideHdr", col.transform, "YOUR SIDE", 13f, theme.Accent).gameObject, 20f);
             foreach (var f in _factions)
@@ -79,7 +78,7 @@ namespace Nucleus.Ui
             var start = UiFactory.Button("Start", col.transform, "START WAR", theme,
                 () => _onStart?.Invoke(_playerFaction, _aiCommander, _aiAutoFill));
             UiFactory.PreferredHeight(start.gameObject, 38f);
-            start.GetComponent<Image>().color = _theme.Active;
+            start.GetComponent<Image>().color = _theme.Accent;   // primary action (Active is reserved for on/selected)
 
             Refresh();
         }

@@ -83,13 +83,49 @@ namespace Nucleus.Composition
                 var op = _buf[i];
                 var row = Row(i);
                 bool top = i == 0;
-                row.text = (top ? "▶ " : "  ") +
-                    $"{Nucleus.Ui.ObjectiveVisuals.Tag(op.Kind)}  {Nucleus.Ui.ObjectiveVisuals.PhaseLabel(op.Phase)}  {op.SquadCount} sq";
-                var c = Nucleus.Ui.ObjectiveVisuals.Color(op.Kind);
-                row.color = top ? Color.Lerp(c, Color.white, 0.35f) : c;
-                row.fontSize = top ? 13f : 12f;
+                // Readiness of the op's squads (Eng/Rte/Frm/Dep/Rsv) so a glance says "forming up" vs "in contact".
+                string ready = Readiness(hq, op.Id);
+                row.text = (top ? "▶ " : "   ") +
+                    $"{Nucleus.Ui.ObjectiveVisuals.Tag(op.Kind)}  {Nucleus.Ui.ObjectiveVisuals.PhaseLabel(op.Phase)}  {op.SquadCount}sq{ready}";
+                // Top objective is the one strong visual: the on/selected green + a clear size jump.
+                row.color = top ? _theme.Active : Nucleus.Ui.ObjectiveVisuals.Color(op.Kind);
+                row.fontSize = top ? 14f : 11f;
             }
             for (int i = n; i < _rows.Count; i++) _rows[i].gameObject.SetActive(false);
+        }
+
+        // The dominant readiness of the squads on an operation, as a short suffix ("  Eng"). Empty if none.
+        private static string Readiness(Cmd.HqSnapshot hq, string opId)
+        {
+            if (hq?.Squads == null) return "";
+            var best = (Cmd.SquadStatus)(-1);
+            foreach (var s in hq.Squads)
+            {
+                if (s.AssignedOperationId != opId) continue;
+                if ((int)best < 0 || Rank(s.Status) > Rank(best)) best = s.Status;
+            }
+            if ((int)best < 0) return "";
+            switch (best)
+            {
+                case Cmd.SquadStatus.Engaged: return "  Eng";
+                case Cmd.SquadStatus.Forming: return "  Frm";
+                case Cmd.SquadStatus.Depleted: return "  Dep";
+                case Cmd.SquadStatus.Ready: return "  Rte";
+                default: return "  Rsv";
+            }
+        }
+
+        // Attention priority: in-contact first, then forming, hurt, en route, reserve.
+        private static int Rank(Cmd.SquadStatus s)
+        {
+            switch (s)
+            {
+                case Cmd.SquadStatus.Engaged: return 4;
+                case Cmd.SquadStatus.Forming: return 3;
+                case Cmd.SquadStatus.Depleted: return 2;
+                case Cmd.SquadStatus.Ready: return 1;
+                default: return 0;
+            }
         }
 
         private TMPro.TextMeshProUGUI Row(int i)

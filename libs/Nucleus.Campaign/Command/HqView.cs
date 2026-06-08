@@ -179,15 +179,18 @@ namespace Nucleus.Core.Command
                 .Select(kv => $"{kv.Value}× {kv.Key}"));
         }
 
+        // One format with a trailing [AI]/[YOU] badge so a glance reads both what the squad is doing AND who
+        // controls it, without cross-referencing the autonomy button.
         private static string SquadActivity(Squad s, CommanderState state)
         {
-            if (s.Autonomy == AutonomyLevel.Manual) return "YOURS (manual)";
+            string who = s.Autonomy == AutonomyLevel.Manual ? "YOU" : "AI";
             if (!string.IsNullOrEmpty(s.AssignedOperationId))
             {
                 var op = state.Operations.Find(o => o.Id == s.AssignedOperationId);
-                if (op != null) return $"{ObjectiveText.Name(op.Objective.Kind)} — {ObjectiveText.PhaseLabel(op.CombatPhase)}";
+                if (op != null)
+                    return $"{ObjectiveText.Name(op.Objective.Kind)} — {ObjectiveText.PhaseLabel(op.CombatPhase)} [{who}]";
             }
-            return s.Status.ToString();
+            return $"{s.Status} [{who}]";
         }
     }
 }

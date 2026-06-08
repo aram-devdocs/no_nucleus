@@ -25,7 +25,7 @@ namespace Nucleus.Ui
             var bar = UiFactory.Panel("DragBar", Root, theme.TabBackground);
             bar.anchorMin = new Vector2(0f, 1f); bar.anchorMax = new Vector2(1f, 1f); bar.pivot = new Vector2(0.5f, 1f);
             bar.sizeDelta = new Vector2(0f, UiTokens.ButtonHeight); bar.anchoredPosition = Vector2.zero;
-            var label = UiFactory.Label("Title", bar, title + "   (drag to move)", UiTokens.FontBody, theme.Muted, TMPro.TextAlignmentOptions.Center);
+            var label = UiFactory.Label("Title", bar, title, UiTokens.FontBody, theme.Muted, TMPro.TextAlignmentOptions.Center);
             UiFactory.Stretch(label.rectTransform);
             bar.gameObject.AddComponent<DragHandle>().Target = Root;
 

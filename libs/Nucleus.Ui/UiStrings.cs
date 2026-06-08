@@ -18,9 +18,9 @@ namespace Nucleus.Ui
         // Hints
         public const string ObjectivesHint = "Pick a kind, then click the map to drop an objective.";
         public const string ObjectivesHintArmedPrompt = "Pick a kind, then click the map. Click a marker to select & edit it.";
-        public const string ModeHint = "AI COMMANDER: the AI creates objectives (off = only you do).  AI AUTO-FILL: the AI forms squads, recruits, and assigns them to objectives (off = you assign).";
-        public const string OperationsHint = "Each operation is run by AI (the commander sequences its phases) or YOU (manual). Tap the AI/YOU button to switch.";
-        public const string SquadsHint = "Each squad is AI-run (the commander tasks it) or YOURS (you hold it for manual orders). Tap the AI/YOU button to switch.";
+        public const string ModeHint = "AI COMMANDER: AI creates objectives. AI AUTO-FILL: AI forms & assigns squads.";
+        public const string OperationsHint = "Each operation runs on AI or YOU (manual). Tap AI/YOU to switch.";
+        public const string SquadsHint = "Each squad runs on AI or is YOURS (manual). Tap AI/YOU to switch.";
         public const string BuildAircraftNote = "AIRCRAFT — spawn from your airbases (not bought here).";
         public const string BuildHint = "Spend faction funds on reinforcement convoys (they arrive off-map and drive to the front). Aircraft are flown from your airbases via the game's spawn menu. Every purchase also costs attrition — more so once your bases are lost.";
         public const string AttritionHint = "Drive the enemy's score to zero. It falls as a side loses units and bases — and as it spends on reinforcement (faster once bases are lost).";
@@ -32,7 +32,8 @@ namespace Nucleus.Ui
         public const string BuildEmpty = "No convoys offered for this faction/map. Aircraft still spawn from your airbases.";
         public const string NoOrders = "No orders yet. Pick a convoy above to reinforce.";
         public const string NoOrdersInProgress = "No orders in progress. Pick a convoy above to reinforce (it arrives off-map and drives in).";
-        public const string NoObjectiveSelected = "No objective selected.";
+        public const string NoObjectiveSelected = "Select an objective to edit.";
+        public const string SetupHeader = "Pick your faction. Other sides are AI-controlled.";
 
         // War status
         public const string WarInProgress = "War in progress — drive a faction to zero to win.";
