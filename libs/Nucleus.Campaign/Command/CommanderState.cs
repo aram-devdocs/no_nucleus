@@ -30,16 +30,22 @@ namespace Nucleus.Core.Command
         public List<Composition> ProductionNeeds { get; } = new List<Composition>();
         /// <summary>Last objective each unit was tasked toward — so the brain only re-issues on change (no spam).</summary>
         public Dictionary<string, string> LastObjectiveByUnit { get; } = new Dictionary<string, string>();
-        /// <summary>Pending suggestions the brain surfaces under <see cref="AutonomyLevel.Assisted"/> — the AI
-        /// proposes, the player confirms. Rebuilt each tick; a confirmed objective leaves this list once its
-        /// operation opens. The UI lists these; confirming one calls <see cref="ConfirmProposal"/>.</summary>
-        public List<Proposal> Proposals { get; } = new List<Proposal>();
-        /// <summary>Objective ids the player has authorised under Assisted — the brain opens operations for
-        /// these even while Assisted (otherwise it only proposes). Pruned with their objective.</summary>
+        /// <summary>Objective ids carried for persistence compatibility (the old Assisted proposal flow is gone;
+        /// the two-toggle model replaced it). Retained so the save format is unchanged.</summary>
         public HashSet<string> ConfirmedObjectives { get; } = new HashSet<string>();
 
+        private readonly List<string> _purgeScratch = new List<string>();
         private int _opId;
         private int _objId;
+
+        /// <summary>Forget tasking memory for units not tasked this tick (reused buffer; can't remove mid-enumeration).</summary>
+        public void PurgeUntaskedMemory(ICollection<string> tasked)
+        {
+            _purgeScratch.Clear();
+            foreach (var k in LastObjectiveByUnit.Keys)
+                if (!tasked.Contains(k)) _purgeScratch.Add(k);
+            foreach (var k in _purgeScratch) LastObjectiveByUnit.Remove(k);
+        }
 
         /// <summary>The operation-id counter (last issued). Exposed so persistence can save/restore it,
         /// keeping <see cref="NextOperationId"/> from colliding with restored ids. Same-assembly only.</summary>
@@ -63,12 +69,5 @@ namespace Nucleus.Core.Command
 
         public Operation OperationFor(string objectiveId) =>
             Operations.Find(op => op.Objective.Id == objectiveId && !op.IsTerminal);
-
-        /// <summary>Authorise a proposed operation (Assisted): the next brain tick opens it. The ref id is the
-        /// objective id carried on the <see cref="Proposal"/>.</summary>
-        public void ConfirmProposal(string objectiveId)
-        {
-            if (!string.IsNullOrEmpty(objectiveId)) ConfirmedObjectives.Add(objectiveId);
-        }
     }
 }

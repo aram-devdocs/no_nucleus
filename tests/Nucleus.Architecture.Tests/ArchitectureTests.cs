@@ -9,10 +9,9 @@ namespace Nucleus.Architecture.Tests
 {
     /// <summary>
     /// Enforces the Nucleus dependency graph by reading the BUILT Nucleus.*.dll assemblies with Mono.Cecil
-    /// (metadata only — never loads them). Keys on ASSEMBLY names (Nucleus.*), which exist from Phase 1 even
-    /// while namespaces remain Nucleus.* until the Phase 7 rename. Until the libs exist the rule facts
-    /// pass vacuously; the synthetic tests below prove the rules actually bite, so a vacuous pass can never be
-    /// a false green. Run after building the solution (the audit script builds Nucleus.sln first).
+    /// (metadata only — never loads them). Keys on ASSEMBLY names (Nucleus.*). Until the libs exist the rule
+    /// facts pass vacuously; the synthetic tests below prove the rules actually bite, so a vacuous pass can never
+    /// be a false green. Run after building the solution (the audit script builds Nucleus.sln first).
     ///
     /// Rules: (1) pure libs reference no Unity/game/BepInEx; (2) no app references another app; (3) per-lib
     /// allowed Nucleus references encode the DAG + ownership; (4) the Nucleus.* reference graph is acyclic.
@@ -77,7 +76,7 @@ namespace Nucleus.Architecture.Tests
     /// <summary>Pure, data-driven architecture rules (no I/O) so they're independently testable.</summary>
     internal static class Rules
     {
-        public static readonly string[] PureLibs = { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" };
+        public static readonly string[] PureLibs = { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign", "Nucleus.Sim" };
         public static readonly string[] Apps = { "Nucleus.Platform", "Nucleus.Commander", "Nucleus.Build", "Nucleus.Squad", "Nucleus.Warfare" };
 
         public static readonly Dictionary<string, HashSet<string>> AllowedNucleusRefs = new()
@@ -94,6 +93,9 @@ namespace Nucleus.Architecture.Tests
             ["Nucleus.GameSdk"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" },
             // Ui hosts the shared campaign panel (CommanderPanel), so it reads the campaign read models.
             ["Nucleus.Ui"] = new() { "Nucleus.Domain", "Nucleus.Production", "Nucleus.Campaign" },
+            // The headless sim/self-play lib runs the pure brain over a seeded battlefield — sits atop Campaign
+            // (whose closure is Domain+Squads+Production), no Unity (consumed by tests + tools/Nucleus.Evolve).
+            ["Nucleus.Sim"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" },
         };
 
         public static bool IsGameOrUnity(string asmName) =>

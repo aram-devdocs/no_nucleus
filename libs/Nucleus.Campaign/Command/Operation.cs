@@ -3,13 +3,13 @@ using Nucleus.Core.Model;
 
 namespace Nucleus.Core.Command
 {
+    /// <summary>Lifecycle of a commander operation: being planned, actively running, completed, or failed/abandoned.</summary>
     public enum OperationStatus { Planning, Active, Complete, Failed }
 
     /// <summary>
     /// A commander operation: one <see cref="Objective"/>, the force assigned to it (squad ids), an autonomy
-    /// level, and a battle-plan phase. Execution is delegated to the existing per-unit pipeline via a linked
-    /// <see cref="CommanderOrder"/> id (the brain issues/updates that order). Pure state; the phase engine
-    /// (gating SEAD→strike→assault) is layered on in P2.
+    /// level, and a combat-phase cursor the brain advances each tick (gating recon→air→SEAD→strike→assault) to
+    /// emit per-unit <see cref="Nucleus.Core.Model.UnitTask"/>s. Pure state.
     /// </summary>
     public sealed class Operation
     {
@@ -18,13 +18,10 @@ namespace Nucleus.Core.Command
         public List<string> SquadIds { get; }
         public AutonomyLevel Autonomy { get; set; }
         public OperationStatus Status { get; set; }
-        public OrderPhase Phase { get; set; }
         /// <summary>Combined-arms phase cursor (advances via PhaseGates each tick).</summary>
         public CombatPhase CombatPhase { get; set; } = CombatPhase.Recon;
         /// <summary>Threat at the objective when the operation opened — the baseline for the "softened" gate.</summary>
         public ThreatPicture InitialThreat { get; set; }
-        /// <summary>The CommanderOrder this operation drives through the AssignmentManager (null until issued).</summary>
-        public string OrderId { get; set; }
 
         public Operation(string id, Objective objective, IEnumerable<string> squadIds = null)
         {
@@ -33,7 +30,6 @@ namespace Nucleus.Core.Command
             SquadIds = squadIds != null ? new List<string>(squadIds) : new List<string>();
             Autonomy = AutonomyLevel.Auto;
             Status = OperationStatus.Planning;
-            Phase = OrderPhase.Forming;
         }
 
         public bool IsTerminal => Status == OperationStatus.Complete || Status == OperationStatus.Failed;

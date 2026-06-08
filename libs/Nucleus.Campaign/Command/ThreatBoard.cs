@@ -4,38 +4,24 @@ using Nucleus.Core.Model;
 
 namespace Nucleus.Core.Command
 {
-    /// <summary>
-    /// A spatial cluster of known enemies — the unit the planner reasons about instead of individual
-    /// contacts. Carries the group's footprint (centre + radius), an aggregate <see cref="ThreatPicture"/>,
-    /// the summed strategic priority and the dominant role family, so an objective can be tasked against a
-    /// whole pocket of resistance at once.
-    /// </summary>
+    /// <summary>A spatial cluster of known enemies — the pocket the planner tasks an objective against, instead
+    /// of individual contacts. Carries footprint, aggregate threat, summed priority and dominant family.</summary>
     public sealed class ThreatGroup
     {
-        /// <summary>Centroid of the group's enemies.</summary>
         public Vec3 Center { get; }
-
-        /// <summary>Largest distance from <see cref="Center"/> to any member — the group's footprint.</summary>
+        /// <summary>Largest distance from <see cref="Center"/> to any member — the footprint.</summary>
         public float Radius { get; }
-
-        /// <summary>Aggregate threat built from the group's enemies (air-defense/armor/air/radar flags + counts).</summary>
         public ThreatPicture Threat { get; }
-
-        /// <summary>Sum of the members' <see cref="EnemyView.StrategicPriority"/> — how badly this pocket matters.</summary>
+        /// <summary>Sum of members' <see cref="EnemyView.StrategicPriority"/> — how much this pocket matters.</summary>
         public float TotalStrategicPriority { get; }
-
-        /// <summary>The most common <see cref="RoleFamily"/> among members (via <see cref="Families.Of"/>).</summary>
         public RoleFamily Dominant { get; }
-
-        /// <summary>Number of enemies in the group.</summary>
         public int Count { get; }
-
-        /// <summary>The enemies in the group (so callers can pick a representative target without reaching into Threat).</summary>
+        /// <summary>Low-confidence members — scout before committing a strike force.</summary>
+        public int InaccurateCount { get; }
         public IReadOnlyList<EnemyView> Members { get; }
 
         public ThreatGroup(IReadOnlyList<EnemyView> members)
         {
-            // Public ctor — guard against null/empty/null-entries (would NRE or silently mis-classify).
             var live = (members ?? new List<EnemyView>()).Where(m => m != null).ToList();
             if (live.Count == 0)
                 throw new System.ArgumentException("ThreatGroup requires at least one non-null member.", nameof(members));
@@ -43,13 +29,16 @@ namespace Nucleus.Core.Command
             Count = live.Count;
 
             float sx = 0f, sy = 0f, sz = 0f, priority = 0f;
+            int inaccurate = 0;
             foreach (var e in live)
             {
                 sx += e.Position.X;
                 sy += e.Position.Y;
                 sz += e.Position.Z;
                 priority += e.StrategicPriority;
+                if (!e.Accurate) inaccurate++;
             }
+            InaccurateCount = inaccurate;
             float inv = 1f / Count;
             Center = new Vec3(sx * inv, sy * inv, sz * inv);
             TotalStrategicPriority = priority;
@@ -73,11 +62,8 @@ namespace Nucleus.Core.Command
         }
     }
 
-    /// <summary>
-    /// Builds the commander's threat board: greedy proximity clustering of known enemies into
-    /// <see cref="ThreatGroup"/>s. Highest-priority contacts seed groups first (deterministic, Id as
-    /// tie-break) so the board is stable across ticks. Pure + Unity-free.
-    /// </summary>
+    /// <summary>Greedy proximity clustering of known enemies into <see cref="ThreatGroup"/>s. Highest-priority
+    /// contacts seed first (Id tie-break) so the board is stable across ticks.</summary>
     public static class ThreatBoard
     {
         public static IReadOnlyList<ThreatGroup> Build(IReadOnlyList<EnemyView> known, float clusterRadius)

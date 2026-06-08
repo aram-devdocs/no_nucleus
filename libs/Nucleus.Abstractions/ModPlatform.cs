@@ -3,12 +3,9 @@ using System.Collections.Generic;
 
 namespace Nucleus.Abstractions
 {
-    /// <summary>
-    /// The registration entry point. The host installs <see cref="Register"/>; each mod calls it from its
-    /// BepInEx Awake (after a hard dependency on the platform guarantees the host loaded first). Explicit
-    /// registration — not a reflection scan — so load order is deterministic. While the platform and Commander
-    /// ship as one assembly (Phase 3), the host simply sets the handler in-process.
-    /// </summary>
+    /// <summary>The registration entry point. The host installs a handler via <see cref="SetHandler"/>; each mod
+    /// calls <see cref="Register"/> from its BepInEx Awake. Explicit registration, not a reflection scan, so load
+    /// order is deterministic.</summary>
     public static class ModPlatform
     {
         /// <summary>BepInPlugin GUID of the host (used by mods' [BepInDependency] once they are separate plugins).</summary>

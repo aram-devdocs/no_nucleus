@@ -5,7 +5,8 @@ namespace Nucleus.Core.Command
 {
     /// <summary>
     /// A force requirement / make-up expressed as counts per role family — e.g. "2× Armor, 1× AirDefense".
-    /// Used as a squad's target make-up and as the gap data Production fills + displays. Pure value type.
+    /// Used as a squad's target make-up and as the gap data Production fills + displays. Mutable model
+    /// (Add/Set); engine-free.
     /// </summary>
     public sealed class Composition
     {

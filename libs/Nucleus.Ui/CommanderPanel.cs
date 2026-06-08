@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nucleus.Core.Model;
-using Nucleus.Core.Planning;
 using Cmd = Nucleus.Core.Command;
 using TMPro;
 using UnityEngine;
@@ -10,22 +9,14 @@ using UnityEngine.UI;
 
 namespace Nucleus.Ui
 {
-    /// <summary>
-    /// Commander modal content. Player picks domains (air/land/sea), a pull radius, then arms Attack/Defend
-    /// and clicks the map. Shows the live order list with per-order clear. Owns its control state
-    /// (Domains/RangeMeters); the runtime reads those when previewing/placing. No game access.
-    /// </summary>
+    /// <summary>The shared commander panel each mod renders its slice of, selected via <see cref="PanelSections"/>.
+    /// Pure presentation over the campaign read-models — no game access.</summary>
     public sealed class CommanderPanel
     {
         private readonly Theme _theme;
         private readonly RectTransform _root;
-        private readonly TextMeshProUGUI _title;
-        private readonly TextMeshProUGUI _status;
-        private readonly TextMeshProUGUI _rangeLabel;
-        private readonly TextMeshProUGUI _ordersHeader;
         private readonly TextMeshProUGUI _hqHeader;
         private readonly TextMeshProUGUI _hqBody;
-        // The two command toggles (mod is always on).
         private Image _aiCmdImg, _autoFillImg;
         private TextMeshProUGUI _aiCmdLabel, _autoFillLabel;
         private bool _aiCommanderOn = true, _autoFillOn = true;
@@ -33,34 +24,36 @@ namespace Nucleus.Ui
         private readonly Action<string> _onToggleOpManual;
         private readonly Action<string> _onToggleSquadManual;
         private readonly Action<string> _onBuyConvoy;
+        private readonly Action<Cmd.ObjectiveKind> _onArmObjective;
+        private readonly Action<string> _onSelectObjective;
+        private readonly Action<string> _onRemoveObjective;
+        private readonly Action<string, string> _onAssignSquad;   // (objectiveId, squadId)
+        private Transform _assignContainer;
+        private TextMeshProUGUI _assignHdr;
+        private readonly List<EntityRow> _assignRows = new List<EntityRow>();
+        private readonly Action<string, int> _onNudgePriority;
+        private readonly Action<string> _onCycleKind;
+        private Transform _objContainer;
+        private TextMeshProUGUI _objHint, _objEditor;
+        private readonly List<EntityRow> _objRows = new List<EntityRow>();
+        private readonly List<KindButton> _kindButtons = new List<KindButton>();
+        private struct KindButton { public Image Img; public Cmd.ObjectiveKind Kind; }
+        private Cmd.ObjectiveKind? _armedObjective;   // the kind the player is about to drop
+        private string _selectedObjectiveId;          // the objective currently being edited
         private readonly List<OpRow> _opRows = new List<OpRow>();
         private readonly Transform _squadsContainer;
         private readonly List<EntityRow> _squadRows = new List<EntityRow>();
         private readonly Transform _buildContainer;
         private readonly List<EntityRow> _buildRows = new List<EntityRow>();
-        // Empty-state hints (shown when a section has no data, so a screen never looks blank/broken).
         private TextMeshProUGUI _buildEmpty, _squadsEmpty, _opsEmpty;
+        private TextMeshProUGUI _buildFunds, _buildStatus;
+        private TextMeshProUGUI _scoreTitle, _scoreBlu, _scoreOp, _scoreStatus;
+        private Image _scoreBluBar, _scoreOpBar;
 
         private struct OpRow { public GameObject Go; public TextMeshProUGUI Label; public Image BtnImg; public TextMeshProUGUI BtnLabel; public string OpId; }
-        // Generic interactive row: a label + an action button carrying an id (squad id / convoy name).
         private struct EntityRow { public GameObject Go; public TextMeshProUGUI Label; public Image BtnImg; public TextMeshProUGUI BtnLabel; public string Id; }
 
-        private readonly Transform _ordersContainer;
-        private readonly List<DomToggle> _domToggles = new List<DomToggle>();
-        private readonly Image _attackImg, _defendImg, _captureImg, _resupplyImg, _buildImg, _moveImg;
-
-        private struct DomToggle { public Image Img; public TextMeshProUGUI Label; public DomainSet Bit; public string Name; }
-        private readonly Action<string> _onClearOrder;
-        private readonly List<RowWidgets> _rows = new List<RowWidgets>();
-
-        private DomainSet _domains = DomainSet.All;
-        private int _rangeKm = 6;
-
         public RectTransform Root => _root;
-        public DomainSet Domains => _domains;
-        public float RangeMeters => _rangeKm * 1000f;
-
-        private struct RowWidgets { public GameObject Go; public TextMeshProUGUI Label; public Button Clear; public string OrderId; }
 
         /// <summary>Which sections the panel builds — so each mod renders only its slice (CMD = Orders|Mode,
         /// Build = Build, Squad = Squads, Warfare = Operations|Feed).</summary>
@@ -68,33 +61,40 @@ namespace Nucleus.Ui
         public enum PanelSections
         {
             None = 0,
-            Orders = 1 << 0,      // manual order placement: domains, range, arm buttons, orders list
             Mode = 1 << 1,        // commander mode selector + confirm
             Operations = 1 << 2,
             Squads = 1 << 3,
             Build = 1 << 4,
             Feed = 1 << 5,
-            All = Orders | Mode | Operations | Squads | Build | Feed,
+            Scoreboard = 1 << 6,  // dynamic-war attrition board: both factions' score/funds/losses + win state
+            Objectives = 1 << 7,  // drop-then-edit-in-place objective palette + list + editor
+            All = Objectives | Mode | Operations | Squads | Build | Feed,
         }
 
         private readonly PanelSections _sections;
 
-        public CommanderPanel(Transform parent, Theme theme, Action<OrderKind> onArm, Action onClearAll,
-            Action<string> onClearOrder, Action<bool> onSetAiCommander = null,
+        public CommanderPanel(Transform parent, Theme theme, Action<bool> onSetAiCommander = null,
             Action<bool> onSetAutoFill = null, Action<string> onToggleOpManual = null,
             Action<string> onToggleSquadManual = null, Action<string> onBuyConvoy = null,
+            Action<Cmd.ObjectiveKind> onArmObjective = null, Action<string> onSelectObjective = null,
+            Action<string> onRemoveObjective = null, Action<string, int> onNudgePriority = null,
+            Action<string> onCycleKind = null, Action<string, string> onAssignSquad = null,
             PanelSections sections = PanelSections.All)
         {
             _sections = sections;
             _theme = theme;
-            _onClearOrder = onClearOrder;
             _onToggleOpManual = onToggleOpManual;
             _onToggleSquadManual = onToggleSquadManual;
             _onBuyConvoy = onBuyConvoy;
+            _onArmObjective = onArmObjective;
+            _onSelectObjective = onSelectObjective;
+            _onRemoveObjective = onRemoveObjective;
+            _onAssignSquad = onAssignSquad;
+            _onNudgePriority = onNudgePriority;
+            _onCycleKind = onCycleKind;
             _root = UiFactory.Panel("CommanderPanel", parent, theme.PanelBackground);
-            // Scrollable content: a clipped viewport + a content column whose height fits its children, so the
-            // many sections never compress (the jerk) — they extend and the panel scrolls instead.
-            var viewport = UiFactory.Panel("Viewport", _root, new Color(0f, 0f, 0f, 0f));
+            // Clipped viewport + content column sized to its children, so sections extend and scroll, never compress.
+            var viewport = UiFactory.Panel("Viewport", _root, theme.Transparent);
             UiFactory.Stretch(viewport);
             viewport.gameObject.AddComponent<RectMask2D>();
             var layout = UiFactory.VerticalLayout("Layout", viewport, 6f, new RectOffset(10, 10, 10, 10));
@@ -107,61 +107,50 @@ namespace Nucleus.Ui
             scroll.content = lrt; scroll.viewport = viewport;
             scroll.horizontal = false; scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 24f;
+            // Permanent scrollbar — wheel-only scrolling was undiscoverable.
+            scroll.verticalScrollbar = UiFactory.VerticalScrollbar(_root, theme);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
 
             bool Has(PanelSections s) => (_sections & s) != 0;
 
-            if (Has(PanelSections.Orders))
+            if (Has(PanelSections.Objectives))
             {
-                _title = UiFactory.Label("Title", layout.transform, "COMMANDER", 18f, theme.Accent);
-                UiFactory.PreferredHeight(_title.gameObject, 24f);
-                _status = UiFactory.Label("Status", layout.transform, "", 13f, theme.Muted);
-                UiFactory.PreferredHeight(_status.gameObject, 32f);
+                UiFactory.SectionHeader(layout.transform, UiStrings.ObjectivesHeader, theme);
 
-                // Domain toggles (checkbox-style: "[x] AIR" on, "[ ] AIR" off; single accent so state is obvious)
-                UiFactory.Label("DomHint", layout.transform, "DOMAINS (who may be tasked)", 11f, theme.Muted);
-                var domRow = UiFactory.HorizontalLayout("Domains", layout.transform, 6f);
-                UiFactory.PreferredHeight(domRow.gameObject, 26f);
-                AddToggle(domRow.transform, "AIR", DomainSet.Air);
-                AddToggle(domRow.transform, "LAND", DomainSet.Land);
-                AddToggle(domRow.transform, "SEA", DomainSet.Sea);
+                var pRow1 = UiFactory.HorizontalLayout("ObjPalette1", layout.transform, 4f);
+                UiFactory.PreferredHeight(pRow1.gameObject, 28f);
+                AddKindButton(pRow1.transform, "CAPTURE", Cmd.ObjectiveKind.CapturePoint);
+                AddKindButton(pRow1.transform, "DESTROY", Cmd.ObjectiveKind.DestroyTarget);
+                AddKindButton(pRow1.transform, "DEFEND", Cmd.ObjectiveKind.DefendArea);
+                var pRow2 = UiFactory.HorizontalLayout("ObjPalette2", layout.transform, 4f);
+                UiFactory.PreferredHeight(pRow2.gameObject, 28f);
+                AddKindButton(pRow2.transform, "AIRSPACE", Cmd.ObjectiveKind.ControlAirspace);
+                AddKindButton(pRow2.transform, "RECON", Cmd.ObjectiveKind.Recon);
+                AddKindButton(pRow2.transform, "RESUPPLY", Cmd.ObjectiveKind.Resupply);
 
-                // Range stepper
-                var rangeRow = UiFactory.HorizontalLayout("Range", layout.transform, 6f);
-                UiFactory.PreferredHeight(rangeRow.gameObject, 26f);
-                UiFactory.Button("RangeDown", rangeRow.transform, "Range -", theme, () => StepRange(-1));
-                _rangeLabel = UiFactory.Label("RangeLabel", rangeRow.transform, "", 13f, theme.Text, TextAlignmentOptions.Center);
-                UiFactory.Button("RangeUp", rangeRow.transform, "Range +", theme, () => StepRange(+1));
+                _objHint = UiFactory.Label("ObjHint", layout.transform, UiStrings.ObjectivesHint, 11f, theme.Muted);
+                UiFactory.PreferredHeight(_objHint.gameObject, 30f);
 
-                // Arm + clear
-                var armRow = UiFactory.HorizontalLayout("Arm", layout.transform, 6f);
-                UiFactory.PreferredHeight(armRow.gameObject, 30f);
-                _attackImg = UiFactory.Button("Attack", armRow.transform, "Attack", theme, () => onArm?.Invoke(OrderKind.Attack)).GetComponent<Image>();
-                _defendImg = UiFactory.Button("Defend", armRow.transform, "Defend", theme, () => onArm?.Invoke(OrderKind.Defend)).GetComponent<Image>();
+                _objContainer = UiFactory.VerticalLayout("ObjList", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
 
-                var armRow2 = UiFactory.HorizontalLayout("Arm2", layout.transform, 6f);
-                UiFactory.PreferredHeight(armRow2.gameObject, 30f);
-                _captureImg = UiFactory.Button("Capture", armRow2.transform, "Capture", theme, () => onArm?.Invoke(OrderKind.Capture)).GetComponent<Image>();
-                _resupplyImg = UiFactory.Button("Resupply", armRow2.transform, "Resupply", theme, () => onArm?.Invoke(OrderKind.Resupply)).GetComponent<Image>();
-                _buildImg = UiFactory.Button("Build", armRow2.transform, "Build", theme, () => onArm?.Invoke(OrderKind.Build)).GetComponent<Image>();
+                _objEditor = UiFactory.Label("ObjEditor", layout.transform, "", 11f, theme.Text);
+                UiFactory.PreferredHeight(_objEditor.gameObject, 18f);
+                var eRow = UiFactory.HorizontalLayout("ObjEdit", layout.transform, 4f);
+                UiFactory.PreferredHeight(eRow.gameObject, 28f);
+                UiFactory.Button("PrioDown", eRow.transform, "PRIO -", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, -1); });
+                UiFactory.Button("PrioUp", eRow.transform, "PRIO +", theme, () => { if (_selectedObjectiveId != null) _onNudgePriority?.Invoke(_selectedObjectiveId, +1); });
+                UiFactory.Button("Retype", eRow.transform, "RETYPE", theme, () => { if (_selectedObjectiveId != null) _onCycleKind?.Invoke(_selectedObjectiveId); });
+                var removeBtn = UiFactory.Button("ObjRemove", eRow.transform, "REMOVE", theme, () => { if (_selectedObjectiveId != null) { _onRemoveObjective?.Invoke(_selectedObjectiveId); _selectedObjectiveId = null; } });
+                if (removeBtn.image != null) removeBtn.image.color = theme.Danger; // destructive = the ONLY red
 
-                var armRow3 = UiFactory.HorizontalLayout("Arm3", layout.transform, 6f);
-                UiFactory.PreferredHeight(armRow3.gameObject, 30f);
-                _moveImg = UiFactory.Button("Move", armRow3.transform, "Move", theme, () => onArm?.Invoke(OrderKind.Move)).GetComponent<Image>();
-
-                var clearAll = UiFactory.Button("ClearAll", layout.transform, "Clear all orders", theme, () => onClearAll?.Invoke());
-                UiFactory.PreferredHeight(clearAll.gameObject, 24f);
-
-                _ordersHeader = UiFactory.Label("OrdersHeader", layout.transform, "Orders", 14f, theme.Text);
-                UiFactory.PreferredHeight(_ordersHeader.gameObject, 22f);
-                _ordersContainer = UiFactory.VerticalLayout("Orders", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
+                _assignHdr = UiFactory.Label("AssignHdr", layout.transform, "", 11f, theme.Accent);
+                UiFactory.PreferredHeight(_assignHdr.gameObject, 16f);
+                _assignContainer = UiFactory.VerticalLayout("AssignList", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
             }
 
             if (Has(PanelSections.Mode))
             {
-                // The mod is always on. Two toggles: who creates objectives (AI or you), and whether the AI
-                // auto-fills objectives with squads (forms + recruits + assigns). Green when on.
-                _hqHeader = UiFactory.Label("HqHeader", layout.transform, "COMMANDER", 14f, theme.Accent);
-                UiFactory.PreferredHeight(_hqHeader.gameObject, 22f);
+                _hqHeader = UiFactory.SectionHeader(layout.transform, UiStrings.CommanderHeader, theme);
 
                 var aiCmdBtn = UiFactory.Button("AiCommander", layout.transform, "AI COMMANDER", theme,
                     () => onSetAiCommander?.Invoke(!_aiCommanderOn));
@@ -176,76 +165,286 @@ namespace Nucleus.Ui
                 _autoFillLabel = autoFillBtn.GetComponentInChildren<TextMeshProUGUI>();
 
                 UiFactory.PreferredHeight(UiFactory.Label("ToggleHint", layout.transform,
-                    "AI COMMANDER: the AI creates objectives (off = only you do).  AI AUTO-FILL: the AI forms squads, recruits, and assigns them to objectives (off = you assign).",
-                    11f, theme.Muted).gameObject, 44f);
+                    UiStrings.ModeHint, 11f, theme.Muted).gameObject, 44f);
             }
 
             if (Has(PanelSections.Operations))
             {
-                // OPERATIONS — one interactive row per op with an AUTO/MANUAL toggle (take a slice).
-                UiFactory.PreferredHeight(UiFactory.Label("OpsHdr", layout.transform, "OPERATIONS", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, UiStrings.OperationsHeader, theme);
+                UiFactory.PreferredHeight(UiFactory.Label("OpsHint", layout.transform,
+                    UiStrings.OperationsHint, 11f, theme.Muted).gameObject, 30f);
                 _opsContainer = UiFactory.VerticalLayout("HqOps", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
-                _opsEmpty = UiFactory.Label("OpsEmpty", layout.transform, "No operations running. Drop an objective on the map (or enable AI COMMANDER) and the squads will form up and fight.", 12f, theme.Muted);
+                _opsEmpty = UiFactory.Label("OpsEmpty", layout.transform, UiStrings.OpsEmpty, 12f, theme.Muted);
                 UiFactory.PreferredHeight(_opsEmpty.gameObject, 48f);
             }
 
             if (Has(PanelSections.Squads))
             {
-                // SQUADS — name + what it's doing + an AUTO/MANUAL toggle (manage each squad).
-                UiFactory.PreferredHeight(UiFactory.Label("SquadsHdr", layout.transform, "SQUADS", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, UiStrings.SquadsHeader, theme);
+                UiFactory.PreferredHeight(UiFactory.Label("SquadsHint", layout.transform,
+                    UiStrings.SquadsHint, 11f, theme.Muted).gameObject, 30f);
                 _squadsContainer = UiFactory.VerticalLayout("HqSquads", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
-                _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, "No squads yet. Squads form automatically from your forces as the war starts.", 12f, theme.Muted);
+                _squadsEmpty = UiFactory.Label("SquadsEmpty", layout.transform, UiStrings.SquadsEmpty, 12f, theme.Muted);
                 UiFactory.PreferredHeight(_squadsEmpty.gameObject, 48f);
             }
 
             if (Has(PanelSections.Build))
             {
-                // BUILD — buy troops: a row per convoy (name + contents + cost) with a BUY button.
-                UiFactory.PreferredHeight(UiFactory.Label("BuildHdr", layout.transform, "BUILD — buy troops", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, UiStrings.BuildHeader, theme);
+                UiFactory.PreferredHeight(UiFactory.Label("BuildAircraft", layout.transform,
+                    UiStrings.BuildAircraftNote, 11f, theme.Muted).gameObject, 16f);
+                UiFactory.PreferredHeight(UiFactory.Label("BuildHint", layout.transform,
+                    UiStrings.BuildHint, 11f, theme.Muted).gameObject, 56f);
+                _buildFunds = UiFactory.Label("BuildFunds", layout.transform, UiStrings.FundsPlaceholder, 12f, theme.Accent);
+                UiFactory.PreferredHeight(_buildFunds.gameObject, 18f);
                 _buildContainer = UiFactory.VerticalLayout("HqBuild", layout.transform, 3f, new RectOffset(0, 0, 0, 0)).transform;
-                _buildEmpty = UiFactory.Label("BuildEmpty", layout.transform, "No convoys available for this faction/map yet.", 12f, theme.Muted);
+                _buildEmpty = UiFactory.Label("BuildEmpty", layout.transform, UiStrings.BuildEmpty, 12f, theme.Muted);
                 UiFactory.PreferredHeight(_buildEmpty.gameObject, 36f);
+                UiFactory.PreferredHeight(UiFactory.Label("BuildQHdr", layout.transform, UiStrings.OrdersHeader, 11f, theme.Muted).gameObject, 16f);
+                _buildStatus = UiFactory.Label("BuildStatus", layout.transform, UiStrings.NoOrders, 11f, theme.Text);
+                UiFactory.PreferredHeight(_buildStatus.gameObject, 64f);
+            }
+
+            if (Has(PanelSections.Scoreboard))
+            {
+                UiFactory.SectionHeader(layout.transform, UiStrings.AttritionHeader, theme);
+                _scoreTitle = UiFactory.Label("ScoreTitle", layout.transform,
+                    UiStrings.AttritionHint, 11f, theme.Muted);
+                UiFactory.PreferredHeight(_scoreTitle.gameObject, 40f);
+
+                _scoreBlu = UiFactory.Label("ScoreBlu", layout.transform, "BLUFOR", 13f, theme.ScoreBlufor);
+                UiFactory.PreferredHeight(_scoreBlu.gameObject, 20f);
+                _scoreBluBar = MakeBar("BluBar", layout.transform, theme.ScoreBlufor);
+
+                _scoreOp = UiFactory.Label("ScoreOp", layout.transform, "OPFOR", 13f, theme.ScoreOpfor);
+                UiFactory.PreferredHeight(_scoreOp.gameObject, 20f);
+                _scoreOpBar = MakeBar("OpBar", layout.transform, theme.ScoreOpfor);
+
+                _scoreStatus = UiFactory.Label("ScoreStatus", layout.transform, "", 12f, theme.Text);
+                UiFactory.PreferredHeight(_scoreStatus.gameObject, 22f);
             }
 
             if (Has(PanelSections.Feed))
             {
-                // FEED — production status + recent battle events (what the commander is doing).
-                UiFactory.PreferredHeight(UiFactory.Label("FeedHdr", layout.transform, "FEED", 12f, theme.Accent).gameObject, 18f);
+                UiFactory.SectionHeader(layout.transform, UiStrings.FeedHeader, theme);
                 _hqBody = UiFactory.Label("HqBody", layout.transform, "", 12f, theme.Muted);
                 UiFactory.PreferredHeight(_hqBody.gameObject, 110f);
             }
-
-            RefreshControls();
         }
 
-        private static readonly Color OnColor = new Color(0.30f, 0.85f, 0.45f, 1f);
+        // A thin progress bar: a dark track with a colored fill child whose right anchor encodes the fraction.
+        private Image MakeBar(string name, Transform parent, Color fill)
+        {
+            var track = UiFactory.Panel(name + "Track", parent, _theme.BarTrack);
+            UiFactory.PreferredHeight(track.gameObject, 12f);
+            var bar = UiFactory.Panel(name + "Fill", track, fill);
+            bar.anchorMin = new Vector2(0f, 0f);
+            bar.anchorMax = new Vector2(1f, 1f);
+            bar.offsetMin = Vector2.zero; bar.offsetMax = Vector2.zero;
+            return bar.GetComponent<Image>();
+        }
+
+        public void RenderScoreboard(Cmd.WarfareCampaign.Scoreboard b)
+        {
+            if (_scoreBlu == null) return;
+            // Bars read as "distance to defeat": score over the starting pool (WarScore starts at 1000 and only
+            // falls), so a half-full bar means half the war's attrition budget is gone.
+            const float denom = 1000f;
+
+            _scoreBlu.text = $"{b.BluforName} [{(b.BluforAi ? "AI" : "YOU")}]  {b.BluforScore:0}  ·  ${b.BluforFunds:0}  ·  -{b.BluforUnitsLost}u/-{b.BluforBasesLost}b";
+            _scoreOp.text = $"{b.OpforName} [{(b.OpforAi ? "AI" : "YOU")}]  {b.OpforScore:0}  ·  ${b.OpforFunds:0}  ·  -{b.OpforUnitsLost}u/-{b.OpforBasesLost}b";
+            SetBar(_scoreBluBar, b.BluforScore / denom);
+            SetBar(_scoreOpBar, b.OpforScore / denom);
+
+            if (b.Over)
+            {
+                _scoreStatus.text = b.WinnerName != null ? $"WAR OVER — {b.WinnerName} WINS" : UiStrings.WarOverDraw;
+                _scoreStatus.color = _theme.Active;
+            }
+            else
+            {
+                _scoreStatus.text = UiStrings.WarInProgress;
+                _scoreStatus.color = _theme.Muted;
+            }
+        }
+
+        private static void SetBar(Image bar, float fraction)
+        {
+            if (bar == null) return;
+            float f = Mathf.Clamp01(fraction);
+            var rt = bar.rectTransform;
+            rt.anchorMax = new Vector2(f, 1f);
+            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        }
+
+        // ---- Objectives section ------------------------------------------------------------------------
+
+        public Cmd.ObjectiveKind? ArmedObjective => _armedObjective;
+        // Kind-colored bullet from ObjectiveVisuals (shared with the map markers, so they can't drift).
+        private static string Dot(Cmd.ObjectiveKind kind) => $"<color=#{ObjectiveVisuals.Hex(kind)}>●</color> ";
+
+        public string SelectedObjectiveId => _selectedObjectiveId;
+        public void SetSelectedObjective(string id) => _selectedObjectiveId = id;
+        public void ClearArmedObjective() => _armedObjective = null;
+
+        private void AddKindButton(Transform parent, string label, Cmd.ObjectiveKind kind)
+        {
+            var btn = UiFactory.Button("Kind_" + kind, parent, label, _theme, () =>
+            {
+                _armedObjective = _armedObjective == kind ? (Cmd.ObjectiveKind?)null : kind;
+                _onArmObjective?.Invoke(kind);
+            });
+            _kindButtons.Add(new KindButton { Img = btn.GetComponent<Image>(), Kind = kind });
+        }
+
+        /// <summary>Render the objective palette, live objective list, and selected-objective editor from the same
+        /// operations read-model the map markers use, so panel and map agree.</summary>
+        public void RenderObjectives(Cmd.HqSnapshot hq)
+        {
+            if (_objContainer == null) return;
+
+            foreach (var kb in _kindButtons)
+                kb.Img.color = _armedObjective == kb.Kind ? _theme.Active : _theme.ButtonIdle;
+
+            if (_objHint != null)
+            {
+                _objHint.text = _armedObjective.HasValue
+                    ? $"Drop {ObjectiveVisuals.Name(_armedObjective.Value)}: click a spot on the map."
+                    : UiStrings.ObjectivesHintArmedPrompt;
+            }
+
+            var ops = hq?.Operations;
+            int count = ops?.Count ?? 0;
+            EnsureEntityRows(_objRows, _objContainer, System.Math.Min(count, 8), "Obj",
+                id => { _selectedObjectiveId = id; _onSelectObjective?.Invoke(id); });
+            for (int i = 0; i < _objRows.Count; i++)
+            {
+                var r = _objRows[i];
+                if (ops != null && i < count && i < 8)
+                {
+                    var op = ops[i];
+                    r.Id = op.ObjectiveId;
+                    bool sel = op.ObjectiveId == _selectedObjectiveId;
+                    string owner = op.PlayerOwned ? "you" : "AI";
+                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} · {ObjectiveVisuals.PhaseLabel(op.Phase)} · {op.SquadCount} sq [{owner}]";
+                    r.Label.color = sel ? _theme.Active : _theme.Text;
+                    r.BtnLabel.text = "SELECT";
+                    r.BtnImg.color = sel ? _theme.Active : _theme.ButtonIdle;
+                    r.Go.SetActive(true);
+                    _objRows[i] = r;
+                }
+                else r.Go.SetActive(false);
+            }
+
+            if (_objEditor != null)
+            {
+                if (_selectedObjectiveId == null) { _objEditor.text = UiStrings.NoObjectiveSelected; }
+                else
+                {
+                    string text = "Editing selected objective.";
+                    if (ops != null)
+                        foreach (var o in ops)
+                            if (o.ObjectiveId == _selectedObjectiveId)
+                            {
+                                string owner = o.PlayerOwned ? "yours" : "AI";
+                                text = $"{ObjectiveVisuals.Name(o.Kind)} · {ObjectiveVisuals.PhaseLabel(o.Phase)} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner} · Priority {o.Priority:0.#} (PRIO -/+)";
+                                break;
+                            }
+                    _objEditor.text = text;
+                }
+            }
+
+            RenderAssignList(hq);
+        }
+
+        // Free, suitable squads for the selected objective, each with an ASSIGN button. (Release is the squad
+        // card's AI/YOU toggle, not here.)
+        private void RenderAssignList(Cmd.HqSnapshot hq)
+        {
+            if (_assignContainer == null) return;
+            var ops = hq?.Operations;
+            var squads = hq?.Squads;
+
+            Cmd.ObjectiveKind? selKind = null;
+            if (_selectedObjectiveId != null && ops != null)
+                foreach (var o in ops) if (o.ObjectiveId == _selectedObjectiveId) { selKind = o.Kind; break; }
+
+            if (selKind == null || squads == null)
+            {
+                if (_assignHdr != null) _assignHdr.text = "";
+                foreach (var r in _assignRows) r.Go.SetActive(false);
+                return;
+            }
+
+            var suitable = Cmd.Families.SuitableFor(selKind.Value);
+            var candidates = new List<Cmd.SquadView>();
+            foreach (var s in squads)
+                if (string.IsNullOrEmpty(s.AssignedOperationId) && suitable.Contains(s.Family))
+                    candidates.Add(s);
+
+            if (_assignHdr != null)
+                _assignHdr.text = candidates.Count > 0 ? "ASSIGN FORCE → selected objective" : "ASSIGN FORCE — no free suitable squads";
+
+            int shown = System.Math.Min(candidates.Count, 4);
+            EnsureEntityRows(_assignRows, _assignContainer, shown, "Assign",
+                squadId => { if (_selectedObjectiveId != null) _onAssignSquad?.Invoke(_selectedObjectiveId, squadId); });
+            for (int i = 0; i < _assignRows.Count; i++)
+            {
+                var r = _assignRows[i];
+                if (i < shown)
+                {
+                    var s = candidates[i];
+                    r.Id = s.Id;
+                    string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
+                    r.Label.text = $"{s.Name} · {comp}";
+                    r.BtnLabel.text = "ASSIGN";
+                    r.BtnImg.color = _theme.Active;
+                    r.Go.SetActive(true);
+                    _assignRows[i] = r;
+                }
+                else r.Go.SetActive(false);
+            }
+        }
 
         /// <summary>Render the two command toggles + the HQ readout.</summary>
         public void RenderHq(Cmd.HqSnapshot hq, Cmd.ConvoyCatalog catalog, float funds)
         {
             bool running = hq != null;
 
-            // The two toggles — green when on; reflect live state.
             if (_aiCmdImg != null && hq != null)
             {
                 _aiCommanderOn = hq.AiCreatesObjectives;
                 _autoFillOn = hq.AiAutoFill;
-                _aiCmdImg.color = _aiCommanderOn ? OnColor : _theme.ButtonIdle;
-                _autoFillImg.color = _autoFillOn ? OnColor : _theme.ButtonIdle;
+                _aiCmdImg.color = _aiCommanderOn ? _theme.Active : _theme.ButtonIdle;
+                _autoFillImg.color = _autoFillOn ? _theme.Active : _theme.ButtonIdle;
                 if (_aiCmdLabel != null) _aiCmdLabel.text = _aiCommanderOn ? "AI COMMANDER: ON" : "AI COMMANDER: OFF";
                 if (_autoFillLabel != null) _autoFillLabel.text = _autoFillOn ? "AI AUTO-FILL: ON" : "AI AUTO-FILL: OFF";
             }
 
-            // BUILD menu (Build section) — available whenever a catalog exists.
-            if (_buildContainer != null) RenderBuildRows(catalog, funds);
+            // Affordability is net of already-queued spend, so the BUY tint agrees with the "After" warning below.
+            if (_buildContainer != null) RenderBuildRows(catalog, funds, hq?.QueuedCost ?? 0f);
+            if (_buildFunds != null)
+            {
+                float after = funds - hq.QueuedCost;
+                _buildFunds.text = $"Funds: {funds:0}  ·  Queued: {hq.QueuedCost:0}  ·  After: {after:0}";
+                _buildFunds.color = after < 0f ? _theme.WarnText : _theme.Accent;
+            }
+            if (_buildStatus != null)
+            {
+                var sb = new System.Text.StringBuilder();
+                if (hq != null)
+                {
+                    foreach (var line in hq.Production.Take(3)) sb.AppendLine(line);
+                    foreach (var e in hq.Recent)
+                        if (e.Kind == Cmd.ReportKind.ProductionQueued) { sb.AppendLine("· " + e.Text); break; }
+                }
+                _buildStatus.text = sb.Length > 0 ? sb.ToString().TrimEnd()
+                    : UiStrings.NoOrdersInProgress;
+            }
 
-            // OPERATIONS (Operations section).
             if (_opsContainer != null) RenderOpRows(running ? hq.Operations : null);
-
-            // SQUADS (Squads section).
             if (_squadsContainer != null) RenderSquadRows(running ? hq.Squads : null);
 
-            // FEED (Feed section) — production + recent events.
             if (_hqBody != null)
             {
                 if (!running) { _hqBody.text = ""; }
@@ -259,7 +458,6 @@ namespace Nucleus.Ui
             }
         }
 
-        // Squad rows: "Name · Family ×N — activity" + an AUTO/MANUAL toggle. Pooled + index-captured.
         private void RenderSquadRows(System.Collections.Generic.IReadOnlyList<Cmd.SquadView> squads)
         {
             int count = squads?.Count ?? 0;
@@ -273,10 +471,13 @@ namespace Nucleus.Ui
                 {
                     var s = squads[i];
                     r.Id = s.Id;
-                    r.Label.text = $"{s.Name} · {s.Family} ×{s.Strength} — {s.Activity}";
+                    string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
+                    string need = s.TargetStrength > s.Strength ? $" ({s.Strength}/{s.TargetStrength})" : "";
+                    r.Label.text = $"{s.Name} · {comp}{need} — {s.Activity}";
+                    r.Label.color = s.Depleted ? _theme.WarnText : _theme.Text;
                     bool manual = s.Autonomy == Cmd.AutonomyLevel.Manual;
-                    r.BtnLabel.text = manual ? "MANUAL" : "AUTO";
-                    r.BtnImg.color = manual ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnLabel.text = manual ? "YOU" : "AI";
+                    r.BtnImg.color = manual ? _theme.Accent : _theme.Active;
                     r.Go.SetActive(true);
                     _squadRows[i] = r;
                 }
@@ -284,8 +485,7 @@ namespace Nucleus.Ui
             }
         }
 
-        // Build rows: "name [contents] · cost" + a BUY button (greyed when unaffordable). Pooled.
-        private void RenderBuildRows(Cmd.ConvoyCatalog catalog, float funds)
+        private void RenderBuildRows(Cmd.ConvoyCatalog catalog, float funds, float queuedCost)
         {
             var opts = catalog?.Options;
             int count = opts?.Count ?? 0;
@@ -301,9 +501,11 @@ namespace Nucleus.Ui
                     r.Id = o.Name;
                     string contents = string.IsNullOrEmpty(o.Contents) ? "" : $" [{o.Contents}]";
                     r.Label.text = $"{o.Name}{contents} · {o.Cost:0}";
-                    bool afford = funds >= o.Cost;
+                    bool afford = (funds - queuedCost) >= o.Cost;
                     r.BtnLabel.text = "BUY";
-                    r.BtnImg.color = afford ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnImg.color = afford ? _theme.Active : _theme.ButtonIdle;   // green = go, gray = can't afford
+                    var buyBtn = r.BtnImg.GetComponent<Button>();
+                    if (buyBtn != null) buyBtn.interactable = afford;              // can't click into debt
                     r.Go.SetActive(true);
                     _buildRows[i] = r;
                 }
@@ -311,129 +513,37 @@ namespace Nucleus.Ui
             }
         }
 
-        // Build/grow a pool of generic label+button rows in a container; button calls onClick(row.Id).
+        // Shared scaffold for the pooled list builders: flexible label + fixed-width action button.
+        private (GameObject go, TextMeshProUGUI label, Button btn) BuildRow(Transform container, string name, string btnText, float btnWidth)
+        {
+            var row = UiFactory.HorizontalLayout(name, container, 4f);
+            UiFactory.PreferredHeight(row.gameObject, 18f);
+            var label = UiFactory.Label("L", row.transform, "", 12f, _theme.Text);
+            var btn = UiFactory.Button("B", row.transform, btnText, _theme, null);
+            var le = btn.gameObject.GetComponent<LayoutElement>() ?? btn.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = btnWidth; le.flexibleWidth = 0f;
+            return (row.gameObject, label, btn);
+        }
+
+        // Grow a pool of label+button rows; each button calls onClick(row.Id).
         private void EnsureEntityRows(List<EntityRow> pool, Transform container, int count, string tag,
             Action<string> onClick)
         {
             while (pool.Count < count)
             {
-                var row = UiFactory.HorizontalLayout(tag + "Row" + pool.Count, container, 4f);
-                UiFactory.PreferredHeight(row.gameObject, 18f);
-                var label = UiFactory.Label("L", row.transform, "", 12f, _theme.Text);
-                var btn = UiFactory.Button("B", row.transform, "", _theme, null);
-                var le = btn.gameObject.GetComponent<LayoutElement>() ?? btn.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 64f; le.flexibleWidth = 0f;
+                var (go, label, btn) = BuildRow(container, tag + "Row" + pool.Count, "", 64f);
                 int idx = pool.Count;
                 btn.onClick.AddListener(() => { var id = pool[idx].Id; if (id != null) onClick?.Invoke(id); });
-                pool.Add(new EntityRow { Go = row.gameObject, Label = label, BtnImg = btn.GetComponent<Image>(),
+                pool.Add(new EntityRow { Go = go, Label = label, BtnImg = btn.GetComponent<Image>(),
                     BtnLabel = btn.GetComponentInChildren<TextMeshProUGUI>() });
             }
         }
 
-        public void SetVisible(bool visible)
-        {
-            if (_root != null) _root.gameObject.SetActive(visible);
-        }
-
-        public void Render(IReadOnlyList<OrderState> orders, FactionInfo faction, OrderKind? armed, AssignmentPreview preview,
-            IReadOnlyDictionary<string, string> unitNames = null)
-        {
-            if (_root == null || _title == null) return; // Orders section not built — nothing to render here
-
-            _title.text = faction != null ? $"COMMANDER — {faction.Name}" : "COMMANDER";
-            if (armed == OrderKind.Build)
-            {
-                _status.text = "Build: click the map to commission a convoy (queued at your base).";
-            }
-            else if (armed.HasValue)
-            {
-                int n = preview != null ? preview.Count : 0;
-                if (n > 0)
-                {
-                    string names = string.Join(", ", preview.Assignable.Take(4).Select(u => u.Name));
-                    if (n > 4) names += $" +{n - 4}";
-                    _status.text = $"{armed.Value} -> {n} will respond: {names}";
-                }
-                else
-                {
-                    _status.text = $"{armed.Value}: no units available — widen range/domains (or all are tasked)";
-                }
-            }
-            else
-            {
-                _status.text = "Pick domains + range, then Attack/Defend, then click the map.";
-            }
-            _attackImg.color = armed == OrderKind.Attack ? OrderColors.Attack : _theme.ButtonIdle;
-            _defendImg.color = armed == OrderKind.Defend ? OrderColors.Defend : _theme.ButtonIdle;
-            _captureImg.color = armed == OrderKind.Capture ? OrderColors.Capture : _theme.ButtonIdle;
-            _resupplyImg.color = armed == OrderKind.Resupply ? OrderColors.Resupply : _theme.ButtonIdle;
-            _buildImg.color = armed == OrderKind.Build ? OrderColors.Build : _theme.ButtonIdle;
-            _moveImg.color = armed == OrderKind.Move ? OrderColors.Move : _theme.ButtonIdle;
-
-            _ordersHeader.text = $"Orders: {orders.Count}";
-            EnsureRows(orders.Count);
-            for (int i = 0; i < _rows.Count; i++)
-            {
-                if (i < orders.Count)
-                {
-                    var o = orders[i];
-                    var r = _rows[i];
-                    r.OrderId = o.Order.Id;
-                    r.Label.text = $"{o.Order.Kind.ToString().ToUpperInvariant()} · {BattlePlan.Label(o.Phase)}{UnitSuffix(o, unitNames)}";
-                    r.Label.color = o.Status == OrderStatus.Failed ? new Color(1f, 0.5f, 0.5f)
-                        : o.Status == OrderStatus.Complete ? _theme.Arrived
-                        : OrderColors.For(o.Order.Kind);
-                    r.Go.SetActive(true);
-                    _rows[i] = r;
-                }
-                else
-                {
-                    _rows[i].Go.SetActive(false);
-                }
-            }
-        }
-
-        // The order row's assigned-unit list: up to a few names (or ids if no name map), with overflow count.
-        private static string UnitSuffix(OrderState o, IReadOnlyDictionary<string, string> names)
-        {
-            int n = o.AssignedUnitIds.Count;
-            if (n == 0) return "";
-            if (names == null) return $" · {n} unit{(n == 1 ? "" : "s")}";
-            const int show = 4;
-            string list = string.Join(", ", o.AssignedUnitIds.Take(show)
-                .Select(id => names.TryGetValue(id, out var nm) ? nm : id));
-            if (n > show) list += $" +{n - show}";
-            return " · " + list;
-        }
-
-        private void AddToggle(Transform parent, string name, DomainSet bit)
-        {
-            var btn = UiFactory.Button("Dom_" + name, parent, name, _theme, () => Flip(bit));
-            var lbl = btn.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true);
-            _domToggles.Add(new DomToggle { Img = btn.GetComponent<Image>(), Label = lbl, Bit = bit, Name = name });
-        }
-
-        private void Flip(DomainSet bit) { _domains ^= bit; RefreshControls(); }
-        private void StepRange(int delta) { _rangeKm = Mathf.Clamp(_rangeKm + delta, 1, 20); RefreshControls(); }
-
-        private void RefreshControls()
-        {
-            foreach (var t in _domToggles)
-            {
-                bool on = (_domains & t.Bit) != 0;
-                t.Img.color = on ? _theme.Accent : _theme.ButtonIdle;             // single accent = ON, dim = OFF
-                if (t.Label != null) t.Label.text = (on ? "[x] " : "[ ] ") + t.Name; // unambiguous checkbox glyph
-            }
-            if (_rangeLabel != null) _rangeLabel.text = $"{_rangeKm}.0 km";
-        }
-
-        // Interactive per-operation rows in the HQ section: label + an AUTO/MANUAL toggle that takes that one
-        // operation off the AI (or hands it back). Pooled + index-captured like the order rows.
         private void RenderOpRows(IReadOnlyList<Nucleus.Core.Command.OperationView> ops)
         {
             int count = ops?.Count ?? 0;
             if (_opsEmpty != null) _opsEmpty.gameObject.SetActive(count == 0);
-            EnsureOpRows(System.Math.Min(count, 5)); // cap visible op rows
+            EnsureOpRows(System.Math.Min(count, 5));
             for (int i = 0; i < _opRows.Count; i++)
             {
                 if (ops != null && i < count && i < 5)
@@ -441,10 +551,10 @@ namespace Nucleus.Ui
                     var op = ops[i];
                     var r = _opRows[i];
                     r.OpId = op.Id;
-                    r.Label.text = $"{op.Kind} — {op.Phase} [{op.Status}]";
+                    r.Label.text = $"{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} — {ObjectiveVisuals.PhaseLabel(op.Phase)} [{ObjectiveVisuals.StatusLabel(op.Status)}]";
                     bool manual = op.Autonomy == Nucleus.Core.Command.AutonomyLevel.Manual;
-                    r.BtnLabel.text = manual ? "MANUAL" : "AUTO";
-                    r.BtnImg.color = manual ? _theme.Accent : _theme.ButtonIdle;
+                    r.BtnLabel.text = manual ? "YOU" : "AI";
+                    r.BtnImg.color = manual ? _theme.Accent : _theme.Active;
                     r.Go.SetActive(true);
                     _opRows[i] = r;
                 }
@@ -459,32 +569,11 @@ namespace Nucleus.Ui
         {
             while (_opRows.Count < count)
             {
-                var row = UiFactory.HorizontalLayout("OpRow" + _opRows.Count, _opsContainer, 4f);
-                UiFactory.PreferredHeight(row.gameObject, 18f);
-                var label = UiFactory.Label("L", row.transform, "", 12f, _theme.Text);
-                var btn = UiFactory.Button("Auto", row.transform, "AUTO", _theme, null);
-                var le = btn.gameObject.GetComponent<LayoutElement>() ?? btn.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 62f; le.flexibleWidth = 0f;
+                var (go, label, btn) = BuildRow(_opsContainer, "OpRow" + _opRows.Count, "AUTO", 62f);
                 int idx = _opRows.Count;
                 btn.onClick.AddListener(() => { var id = _opRows[idx].OpId; if (id != null) _onToggleOpManual?.Invoke(id); });
-                _opRows.Add(new OpRow { Go = row.gameObject, Label = label, BtnImg = btn.GetComponent<Image>(),
+                _opRows.Add(new OpRow { Go = go, Label = label, BtnImg = btn.GetComponent<Image>(),
                     BtnLabel = btn.GetComponentInChildren<TextMeshProUGUI>() });
-            }
-        }
-
-        private void EnsureRows(int count)
-        {
-            while (_rows.Count < count)
-            {
-                var row = UiFactory.HorizontalLayout("OrderRow" + _rows.Count, _ordersContainer, 4f);
-                UiFactory.PreferredHeight(row.gameObject, 18f);
-                var label = UiFactory.Label("L", row.transform, "", 12f, _theme.Text);
-                var clearBtn = UiFactory.Button("X", row.transform, "X", _theme, null);
-                var le = clearBtn.gameObject.GetComponent<LayoutElement>() ?? clearBtn.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 22f; le.flexibleWidth = 0f;
-                int idx = _rows.Count;
-                clearBtn.onClick.AddListener(() => { var id = _rows[idx].OrderId; if (id != null) _onClearOrder?.Invoke(id); });
-                _rows.Add(new RowWidgets { Go = row.gameObject, Label = label, Clear = clearBtn });
             }
         }
     }

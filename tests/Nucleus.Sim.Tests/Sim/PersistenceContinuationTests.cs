@@ -9,7 +9,7 @@ using Xunit;
 namespace Nucleus.Sim
 {
     /// <summary>
-    /// The headless north-star proof for save/resume: run the real brain for N ticks, save the campaign to a
+    /// The headless proof for save/resume: run the real brain for N ticks, save the campaign to a
     /// string, continue the original for M more ticks, then restore from the saved string and continue the
     /// SAME M ticks — and assert the two traces are byte-for-byte identical. Proves resuming a saved campaign
     /// changes nothing about how the war unfolds, which is the core guarantee of a persistent dynamic war.

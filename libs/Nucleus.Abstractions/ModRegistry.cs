@@ -19,12 +19,12 @@ namespace Nucleus.Abstractions
 
         private readonly List<Entry> _entries = new List<Entry>();
         private readonly Func<IMod, IModContext> _contextFor;
-        private readonly Action<string, bool> _persist;
+        private readonly Action<string, bool>? _persist;
 
         /// <param name="contextFor">Factory that builds a mod's context at initialize time.</param>
         /// <param name="persist">Optional: called with (modId, enabled) whenever a mod is toggled, so the host
         /// can save the choice (e.g. to BepInEx config). No-op by default.</param>
-        public ModRegistry(Func<IMod, IModContext> contextFor, Action<string, bool> persist = null)
+        public ModRegistry(Func<IMod, IModContext> contextFor, Action<string, bool>? persist = null)
         {
             _contextFor = contextFor ?? throw new ArgumentNullException(nameof(contextFor));
             _persist = persist;
@@ -41,6 +41,9 @@ namespace Nucleus.Abstractions
         public void Add(IMod mod, bool enabled)
         {
             if (mod == null) throw new ArgumentNullException(nameof(mod));
+            // Fail fast with an actionable contract error rather than a bare NRE deep in Find/lifecycle.
+            if (mod.Info == null) throw new ArgumentException("mod.Info must be set", nameof(mod));
+            if (string.IsNullOrEmpty(mod.Info.Id)) throw new ArgumentException("mod.Info.Id must be set", nameof(mod));
             if (Find(mod.Info.Id) != null) return;
             _entries.Add(new Entry { Mod = mod, Enabled = enabled });
             if (enabled) EnsureInitialized(_entries[_entries.Count - 1]);

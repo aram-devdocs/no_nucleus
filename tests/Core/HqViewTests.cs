@@ -130,5 +130,40 @@ namespace Nucleus.Tests
             Assert.Empty(snap.Operations);
             Assert.Empty(snap.Squads);
         }
+
+        [Fact]
+        public void A_dropped_objective_with_no_operation_yet_still_shows_as_a_selectable_row()
+        {
+            // The player drops an objective (auto-fill off, so no squad/operation forms yet). It must STILL
+            // surface as a row/marker so it can be selected, edited and moved in place.
+            var state = new CommanderState();
+            var dropped = new Objective("obj-7", ObjectiveKind.DestroyTarget, P(1234f, 5678f), ObjectiveSource.Player, priority: 3f);
+            state.Objectives.Add(dropped);
+
+            var snap = HqView.Build(state, new BattleLog(), new ProductionQueue());
+
+            var view = Assert.Single(snap.Operations);
+            Assert.Equal("obj-7", view.ObjectiveId);
+            Assert.Equal(ObjectiveKind.DestroyTarget, view.Kind);
+            Assert.Equal(1234f, view.Position.X, 3);
+            Assert.Equal(3f, view.Priority, 3);
+            Assert.True(view.PlayerOwned);
+            Assert.Equal(0, view.SquadCount);
+        }
+
+        [Fact]
+        public void An_objective_that_already_has_an_operation_is_not_duplicated()
+        {
+            var state = new CommanderState();
+            var obj = Obj("o1", ObjectiveKind.CapturePoint);
+            state.Objectives.Add(obj);
+            state.Operations.Add(new Operation("op-1", obj, new[] { "s1" }));
+
+            var snap = HqView.Build(state, new BattleLog(), new ProductionQueue());
+
+            // One row — the operation — not a second placeholder for the same objective.
+            Assert.Single(snap.Operations);
+            Assert.Equal("op-1", snap.Operations[0].Id);
+        }
     }
 }

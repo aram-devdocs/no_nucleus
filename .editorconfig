@@ -1,0 +1,49 @@
+; Nucleus — shared formatting + C# style conventions.
+; Conventions are SUGGESTIONS (IDE hints + `dotnet format`), never escalated to build warnings/errors,
+; so they document house style without breaking the TreatWarningsAsErrors build. The real enforcement is
+; the architecture tests (the dependency-DAG + purity canaries) and the headless test suites.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{ps1,sh}]
+indent_size = 4
+
+[*.{md,txt}]
+trim_trailing_whitespace = false
+
+[*.cs]
+# File-scoped namespaces, var usage, expression-bodied members — house style, hint-only.
+csharp_style_namespace_declarations = file_scoped:silent
+csharp_prefer_braces = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Naming: private fields _camelCase, constants PascalCase, interfaces IPascalCase.
+dotnet_naming_rule.private_fields_underscore.severity = suggestion
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+dotnet_naming_rule.interfaces_i_prefix.severity = suggestion
+dotnet_naming_rule.interfaces_i_prefix.symbols = interfaces
+dotnet_naming_rule.interfaces_i_prefix.style = i_prefix
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.i_prefix.required_prefix = I
+dotnet_naming_style.i_prefix.capitalization = pascal_case
+
+# Determinism guard is a TEST, not a lint rule — but flag the obvious hazard as a hint.
+dotnet_diagnostic.CA5394.severity = suggestion   ; insecure/non-deterministic randomness

@@ -5,7 +5,8 @@ namespace Nucleus.Core.Command
 {
     /// <summary>
     /// A buyable production package: one purchase delivers a fixed <see cref="Composition"/> of role
-    /// families at a fixed cost. The atom the production planner shops from. Pure value type.
+    /// families at a fixed cost. The atom the production planner shops from. Effectively-immutable holder
+    /// (get-only) over a mutable Composition; engine-free.
     /// </summary>
     public sealed class ConvoyOption
     {

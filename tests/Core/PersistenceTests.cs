@@ -63,9 +63,7 @@ namespace Nucleus.Core.Tests
             {
                 Autonomy = AutonomyLevel.Auto,
                 Status = OperationStatus.Active,
-                Phase = OrderPhase.Engaging,
                 CombatPhase = CombatPhase.Strike,
-                OrderId = "ord-7",
                 InitialThreat = new ThreatPicture(enemies),
             };
             state.Operations.Add(op);
@@ -134,9 +132,7 @@ namespace Nucleus.Core.Tests
                 Assert.Equal(x.SquadIds, y.SquadIds);
                 Assert.Equal(x.Autonomy, y.Autonomy);
                 Assert.Equal(x.Status, y.Status);
-                Assert.Equal(x.Phase, y.Phase);
                 Assert.Equal(x.CombatPhase, y.CombatPhase);
-                Assert.Equal(x.OrderId, y.OrderId);
                 Assert.Equal(x.InitialThreat?.Count ?? -1, y.InitialThreat?.Count ?? -1);
                 if (x.InitialThreat != null)
                 {

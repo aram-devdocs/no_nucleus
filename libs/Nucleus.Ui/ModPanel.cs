@@ -19,19 +19,19 @@ namespace Nucleus.Ui
         {
             Root = UiFactory.Panel("NucleusPanel", parent, theme.PanelBackground);
             Root.anchorMin = new Vector2(0f, 1f); Root.anchorMax = new Vector2(0f, 1f); Root.pivot = new Vector2(0f, 1f);
-            Root.sizeDelta = new Vector2(460f, 880f);
+            Root.sizeDelta = new Vector2(UiTokens.ModPanelWidth, UiTokens.ModPanelHeight);
             Root.anchoredPosition = new Vector2(24f, -40f);
 
             var bar = UiFactory.Panel("DragBar", Root, theme.TabBackground);
             bar.anchorMin = new Vector2(0f, 1f); bar.anchorMax = new Vector2(1f, 1f); bar.pivot = new Vector2(0.5f, 1f);
-            bar.sizeDelta = new Vector2(0f, 26f); bar.anchoredPosition = Vector2.zero;
-            var label = UiFactory.Label("Title", bar, title + "   (drag to move)", 12f, theme.Muted, TMPro.TextAlignmentOptions.Center);
+            bar.sizeDelta = new Vector2(0f, UiTokens.ButtonHeight); bar.anchoredPosition = Vector2.zero;
+            var label = UiFactory.Label("Title", bar, title, UiTokens.FontBody, theme.Muted, TMPro.TextAlignmentOptions.Center);
             UiFactory.Stretch(label.rectTransform);
             bar.gameObject.AddComponent<DragHandle>().Target = Root;
 
-            Content = UiFactory.Panel("Content", Root, new Color(0f, 0f, 0f, 0f));
+            Content = UiFactory.Panel("Content", Root, theme.Transparent);
             Content.anchorMin = Vector2.zero; Content.anchorMax = Vector2.one;
-            Content.offsetMin = Vector2.zero; Content.offsetMax = new Vector2(0f, -26f); // leave room for the drag bar
+            Content.offsetMin = Vector2.zero; Content.offsetMax = new Vector2(0f, -UiTokens.ButtonHeight); // leave room for the drag bar
 
             Nucleus.Ui.Native.NativeUi.Border(Root, theme.Accent); // native frame so it reads as a game window
         }

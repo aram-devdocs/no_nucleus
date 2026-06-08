@@ -16,6 +16,7 @@ namespace Nucleus.Core.Command
         Other        // munitions / buildings / unclassified (not squadable)
     }
 
+    /// <summary>Maps a <see cref="Role"/> to its <see cref="RoleFamily"/> and reports which families act in a given combat phase.</summary>
     public static class Families
     {
         public static RoleFamily Of(Role role)
@@ -79,7 +80,10 @@ namespace Nucleus.Core.Command
                 case ObjectiveKind.DestroyTarget:
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.Artillery, RoleFamily.AirCombat };
                 case ObjectiveKind.CapturePoint:
-                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.Infantry };
+                    // Combined-arms: armor + infantry take and hold the point, but air/artillery must be able to
+                    // win air superiority, suppress SAMs and soften a DEFENDED point first — otherwise a capture
+                    // op against an air/AD-screened pocket stalls forever at the air-superiority gate.
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.Infantry, RoleFamily.Artillery, RoleFamily.AirCombat };
                 case ObjectiveKind.DefendArea:
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirDefense, RoleFamily.Armor };
                 case ObjectiveKind.ControlAirspace:

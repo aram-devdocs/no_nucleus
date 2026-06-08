@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Nucleus.GameSdk</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — engine-access layer: converts live game state into the domain read-models and executes tasking, via a codegen'd typed reflection seam (GameSdk/NativeAssets). References the game DLLs (bring your own via setup-sdk).</Description>
     <!-- Engine-access layer: reads game state into the domain types and executes their outputs, plus the
          codegen'd typed reflection seam (GameSdk/NativeAssets). Touches Unity/Assembly-CSharp, so it imports
          the shared game references. NOT a pure lib (arch test permits it game refs). -->

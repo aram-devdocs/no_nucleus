@@ -78,8 +78,8 @@ namespace Nucleus.Core.Model
 
         public ThreatPicture(IReadOnlyList<EnemyView> enemies)
         {
-            Enemies = enemies;
-            foreach (var e in enemies)
+            Enemies = enemies ?? new List<EnemyView>();   // coalesce (matches WorldSnapshot) — no bare NRE
+            foreach (var e in Enemies)
             {
                 if (e.Cap.IsAirDefense) { HasAirDefense = true; AirDefenseCount++; }
                 if (e.Cap.Role == Role.GroundRadar || e.Cap.Role == Role.AwacsEw) { HasRadar = true; RadarCount++; }

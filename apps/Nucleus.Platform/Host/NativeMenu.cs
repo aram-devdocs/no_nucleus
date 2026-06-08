@@ -50,7 +50,7 @@ namespace Nucleus.Host
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = new Vector2(480f, 0f);     // width fixed; height driven by the fitter
             rt.anchoredPosition = Vector2.zero;
-            panelGo.GetComponent<Image>().color = new Color(0.05f, 0.07f, 0.09f, 0.97f);
+            panelGo.GetComponent<Image>().color = Nucleus.Ui.Theme.Default.MenuBackground;
 
             var vlg = panelGo.GetComponent<VerticalLayoutGroup>();
             vlg.padding = new RectOffset(22, 22, 20, 20);
@@ -78,7 +78,7 @@ namespace Nucleus.Host
             htmp.text = "Enable or disable mods:";
             htmp.fontSize = 16f;
             htmp.alignment = TextAlignmentOptions.Center;
-            htmp.color = new Color(0.7f, 0.78f, 0.85f, 1f);
+            htmp.color = Nucleus.Ui.Theme.Default.MenuText;
             Height(hint, 24f);
 
             foreach (var mod in registry.Mods)

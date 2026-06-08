@@ -18,18 +18,15 @@ namespace Nucleus.Core.Command
         Blocked
     }
 
-    /// <summary>
-    /// An immutable, Unity-free record of one thing that happened in the battle. <see cref="OperationId"/>
-    /// is optional (null) for events not tied to a specific operation.
-    /// </summary>
+    /// <summary>One immutable battle event. <see cref="OperationId"/> is null for events not tied to an operation.</summary>
     public readonly struct ReportEvent
     {
         public float Time { get; }
         public ReportKind Kind { get; }
         public string Text { get; }
-        public string OperationId { get; }
+        public string? OperationId { get; }
 
-        public ReportEvent(float time, ReportKind kind, string text, string operationId = null)
+        public ReportEvent(float time, ReportKind kind, string text, string? operationId = null)
         {
             Time = time;
             Kind = kind;
@@ -38,16 +35,12 @@ namespace Nucleus.Core.Command
         }
     }
 
-    /// <summary>
-    /// A fixed-capacity ring buffer of <see cref="ReportEvent"/>s forming the commander's battle feed. When
-    /// full, the oldest entry is overwritten. Pure Core: no Unity, no allocation per <see cref="Append"/>
-    /// beyond the event being stored.
-    /// </summary>
+    /// <summary>Fixed-capacity ring buffer forming the commander's battle feed; oldest entry is overwritten when full.</summary>
     public sealed class BattleLog
     {
         private readonly ReportEvent[] _buffer;
-        private int _start;   // index of the oldest entry
-        private int _count;   // number of live entries
+        private int _start;   // oldest entry
+        private int _count;
 
         public BattleLog(int capacity = 100)
         {
@@ -55,33 +48,33 @@ namespace Nucleus.Core.Command
             _buffer = new ReportEvent[capacity];
         }
 
-        /// <summary>Maximum number of entries retained before the oldest is dropped.</summary>
         public int Capacity => _buffer.Length;
-
-        /// <summary>Number of entries currently held (0..Capacity).</summary>
         public int Count => _count;
 
-        /// <summary>Adds an event. When the buffer is full the oldest entry is overwritten.</summary>
         public void Append(ReportEvent e)
         {
             int end = (_start + _count) % _buffer.Length;
             _buffer[end] = e;
 
             if (_count == _buffer.Length)
-            {
-                // Full: the write landed on the oldest slot, so advance start to drop it.
-                _start = (_start + 1) % _buffer.Length;
-            }
+                _start = (_start + 1) % _buffer.Length;   // overwrote the oldest slot — advance past it
             else
-            {
                 _count++;
-            }
         }
 
-        /// <summary>
-        /// Returns up to <paramref name="n"/> most-recent events, newest first. Capped at both
-        /// <paramref name="n"/> and the current <see cref="Count"/>.
-        /// </summary>
+        /// <summary>Appends unless the newest entry is identical (same kind + text), so a steady-state bark
+        /// (e.g. "defending HQ" every tick) appears once. Use <see cref="Append"/> for one-shot events.</summary>
+        public void AppendDistinct(ReportEvent e)
+        {
+            if (_count > 0)
+            {
+                int last = (_start + _count - 1) % _buffer.Length;
+                if (_buffer[last].Kind == e.Kind && _buffer[last].Text == e.Text) return;
+            }
+            Append(e);
+        }
+
+        /// <summary>Up to <paramref name="n"/> most-recent events, newest first.</summary>
         public IReadOnlyList<ReportEvent> Recent(int n)
         {
             if (n < 0) n = 0;
@@ -89,14 +82,13 @@ namespace Nucleus.Core.Command
             var result = new List<ReportEvent>(take);
             for (int i = 0; i < take; i++)
             {
-                // Walk backwards from the newest entry.
                 int idx = (_start + _count - 1 - i) % _buffer.Length;
                 result.Add(_buffer[idx]);
             }
             return result;
         }
 
-        /// <summary>Yields the events belonging to <paramref name="opId"/> in chronological (oldest-first) order.</summary>
+        /// <summary>Events for <paramref name="opId"/>, oldest first.</summary>
         public IEnumerable<ReportEvent> ForOperation(string opId)
         {
             for (int i = 0; i < _count; i++)

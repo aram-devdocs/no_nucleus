@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Nucleus.Campaign</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — the autonomous commander brain: objective generation, operations, combined-arms phases, the two-faction dynamic war, and save/resume. Engine-free + deterministic.</Description>
     <!-- The autonomous brain + operations + manual-order planning. Depends on Domain + Squads + Production
          (the only lib allowed to reference Squads AND Production). No Unity. -->
   </PropertyGroup>

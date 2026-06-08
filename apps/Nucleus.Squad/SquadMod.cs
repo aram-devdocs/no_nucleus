@@ -35,8 +35,8 @@ namespace Nucleus.Squad
                 Label = "SQD",
                 BuildContent = parent =>
                 {
-                    _panel = new CommanderPanel(parent, ctx.Ui.Theme, onArm: null, onClearAll: null,
-                        onClearOrder: null, onToggleSquadManual: id => ctx.Campaign?.ToggleSquadManual(id),
+                    _panel = new CommanderPanel(parent, ctx.Ui.Theme,
+                        onToggleSquadManual: id => ctx.Campaign?.ToggleSquadManual(id),
                         sections: CommanderPanel.PanelSections.Squads);
                     UiFactory.Stretch(_panel.Root);
                 },

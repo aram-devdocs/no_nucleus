@@ -22,6 +22,7 @@ namespace Nucleus
 
         internal static ManualLogSource Log;
         internal static Host.ModHost Host;
+        internal static Host.WarSetupController Setup;
 
         // Per-mod enabled state, bound lazily to config (Mods.<id>.Enabled) so the loader toggle persists.
         private readonly Dictionary<string, ConfigEntry<bool>> _modEnabled = new Dictionary<string, ConfigEntry<bool>>();
@@ -47,14 +48,28 @@ namespace Nucleus
             Application.runInBackground = true;
 
             Host = new Host.ModHost(Logger, ModEnabled, SetModEnabled);
+            Setup = new Host.WarSetupController(Host.Game, Logger);
 
             var harmony = new Harmony(Guid);
             ApplyPatch(harmony, typeof(Patches.MainMenuBadgePatch));
+            ApplyPatch(harmony, typeof(Patches.MainMenuTickPatch));
+            ApplyPatch(harmony, typeof(Patches.MissionManagerTickPatch));
             ApplyPatch(harmony, typeof(Patches.DynamicMapUpdateTickPatch));
             ApplyPatch(harmony, typeof(Patches.VirtualMFDPatch));
 
             Log.LogInfo("Nucleus Platform loaded.");
+
+            // Dev: optionally dump the game's built-in mission TextAssets so we can fork one (env-gated, no-op off).
+            Nucleus.Host.MissionExporter.MaybeExport(Log);
+            // Dev test harness: optionally auto-load a mission + emit in-mission markers (trigger-gated, no-op off).
+            // Driven by the MainMenu.Update + DynamicMap.Update patches (this game pumps no Update on our objects).
+            Nucleus.Host.MissionAutoLoader.Maybe(Log);
+            // Dev VISUAL harness: optionally drive the UI + capture screenshots in-mission (trigger-gated, no-op off).
+            Nucleus.Host.VisualProbe.Maybe(Log);
         }
+
+        // Game quitting: let each mod tear down (e.g. Warfare persists the campaign so a multi-hour war survives).
+        private void OnApplicationQuit() => Host?.Registry.ShutdownAll();
 
         private static void ApplyPatch(Harmony harmony, Type patchType)
         {

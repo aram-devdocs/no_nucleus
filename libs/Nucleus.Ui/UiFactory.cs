@@ -16,10 +16,7 @@ namespace Nucleus.Ui
         /// <summary>A native game button sprite (captured at runtime) so our buttons match the game's look.</summary>
         public static Sprite ButtonSprite;
 
-        /// <summary>
-        /// The TMP font used by all labels. Resolved lazily; composition may set it explicitly from a
-        /// cloned in-game label for guaranteed-correct material.
-        /// </summary>
+        /// <summary>The TMP font for all labels. Resolved lazily; composition may set it from a cloned in-game label.</summary>
         public static TMP_FontAsset Font
         {
             get
@@ -72,15 +69,6 @@ namespace Nucleus.Ui
             return tmp;
         }
 
-        /// <summary>A centered placeholder label filling its parent — for mod screens whose real content
-        /// lands in a later phase, so the native MFD screen is non-empty and proves the bezel/highlight path.</summary>
-        public static TextMeshProUGUI Placeholder(Transform parent, string text)
-        {
-            var label = Label("Placeholder", parent, text, 18f, new Color(0.85f, 0.9f, 0.95f, 1f), TextAlignmentOptions.Center);
-            Stretch(label.rectTransform);
-            return label;
-        }
-
         public static Button Button(string name, Transform parent, string text, Theme theme, UnityAction onClick)
         {
             var rt = Panel(name, parent, theme.ButtonIdle);
@@ -98,6 +86,18 @@ namespace Nucleus.Ui
             label.margin = new Vector4(4f, 0f, 4f, 0f);
             label.enableWordWrapping = false;          // buttons are single-line — never reflow their height
             label.overflowMode = TextOverflowModes.Ellipsis;
+            return btn;
+        }
+
+        /// <summary>A button with pinned height (UiTokens.ButtonHeight) + optional fixed width, so it never
+        /// jitters as text/state changes. width &lt;= 0 flexes to the row.</summary>
+        public static Button ButtonFixed(string name, Transform parent, string text, Theme theme,
+            UnityAction onClick, float width = 0f)
+        {
+            var btn = Button(name, parent, text, theme, onClick);
+            var le = btn.gameObject.GetComponent<LayoutElement>() ?? btn.gameObject.AddComponent<LayoutElement>();
+            le.minHeight = le.preferredHeight = UiTokens.ButtonHeight; le.flexibleHeight = 0f;
+            if (width > 0f) { le.minWidth = le.preferredWidth = width; le.flexibleWidth = 0f; }
             return btn;
         }
 
@@ -133,6 +133,51 @@ namespace Nucleus.Ui
             img.raycastTarget = false;
             ((RectTransform)go.transform).pivot = new Vector2(0f, 0.5f); // pivot at line start
             return img;
+        }
+
+        /// <summary>A vertical scrollbar (track + draggable handle) for a ScrollRect, anchored to the parent's right edge.</summary>
+        public static Scrollbar VerticalScrollbar(Transform parent, Theme theme, float width = 10f)
+        {
+            var go = new GameObject("Scrollbar", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Scrollbar));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+            rt.anchorMin = new Vector2(1f, 0f); rt.anchorMax = new Vector2(1f, 1f); rt.pivot = new Vector2(1f, 0.5f);
+            rt.sizeDelta = new Vector2(width, 0f); rt.anchoredPosition = Vector2.zero;
+            go.GetComponent<Image>().color = theme.ScrollbarTrack;
+
+            var area = new GameObject("SlidingArea", typeof(RectTransform));
+            var art = (RectTransform)area.transform; art.SetParent(rt, false);
+            art.anchorMin = Vector2.zero; art.anchorMax = Vector2.one; art.offsetMin = Vector2.zero; art.offsetMax = Vector2.zero;
+
+            var handle = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var hrt = (RectTransform)handle.transform; hrt.SetParent(art, false);
+            hrt.anchorMin = Vector2.zero; hrt.anchorMax = Vector2.one; hrt.offsetMin = Vector2.zero; hrt.offsetMax = Vector2.zero;
+            var himg = handle.GetComponent<Image>(); himg.color = theme.Accent;
+
+            var sb = go.GetComponent<Scrollbar>();
+            sb.handleRect = hrt; sb.targetGraphic = himg; sb.direction = Scrollbar.Direction.BottomToTop;
+            return sb;
+        }
+
+        /// <summary>A thin full-width horizontal rule for separating panel sections (visual hierarchy).</summary>
+        public static Image Divider(Transform parent, Color color)
+        {
+            var go = new GameObject("Divider", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            img.raycastTarget = false;
+            PreferredHeight(go, 2f);
+            return img;
+        }
+
+        /// <summary>An accent section header preceded by a divider — the one consistent way to start a panel section.</summary>
+        public static TextMeshProUGUI SectionHeader(Transform parent, string text, Theme theme)
+        {
+            Divider(parent, theme.Muted);
+            var h = Label(text.GetHashCode().ToString(), parent, text, 13f, theme.Accent);
+            PreferredHeight(h.gameObject, 20f);
+            return h;
         }
 
         public static LayoutElement PreferredHeight(GameObject go, float height)

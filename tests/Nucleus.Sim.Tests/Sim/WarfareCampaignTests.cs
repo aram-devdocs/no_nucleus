@@ -4,6 +4,7 @@ using System.Text;
 using Nucleus.Core.Command;
 using Nucleus.Core.Model;
 using Nucleus.Core.Persistence;
+using Nucleus.Core.War;
 using Xunit;
 
 namespace Nucleus.Sim
@@ -124,6 +125,97 @@ namespace Nucleus.Sim
                 traceResumed.AppendLine(Fingerprint(resumed, resumed.Step(scriptViews[t].blu, scriptViews[t].op)));
 
             Assert.Equal(traceOriginal.ToString(), traceResumed.ToString());
+        }
+
+        [Fact]
+        public void Battlefield_losses_drive_each_factions_attrition_score()
+        {
+            var (a, b) = Forces();
+            var rng = new Pcg(0xA77);
+            var war = new WarfareCampaign();
+            float bluStart = war.War.Blufor.Score.Score, opStart = war.War.Opfor.Score.Score;
+
+            for (int t = 0; t < 40; t++)
+            {
+                foreach (var e in a.Concat(b)) { e.X += rng.Range(-20f, 20f); e.Z += rng.Range(-20f, 20f); }
+                // Kill one unit from each side on a couple of ticks — the roster shrinks ⇒ attrition.
+                if (t == 10) { a.First(u => u.Alive).Hp = 0f; }
+                if (t == 15) { b.First(u => u.Alive).Hp = 0f; b.First(u => u.Alive).Hp = 0f; }
+                var (blu, op) = Views(a, b, t);
+                war.Step(blu, op);
+            }
+
+            Assert.True(war.War.Blufor.Score.Score < bluStart, "blufor took losses ⇒ score must drop");
+            Assert.True(war.War.Opfor.Score.Score < opStart, "opfor took losses ⇒ score must drop");
+            Assert.Equal(1, war.War.Blufor.Score.UnitsLost);
+            Assert.True(war.War.Opfor.Score.UnitsLost >= 1);
+        }
+
+        [Fact]
+        public void Reinforcement_spend_and_base_loss_persist_across_save_resume()
+        {
+            var war = new WarfareCampaign();
+            war.War.Blufor.Commander = CommanderKind.Human;     // a human-led side
+            war.RecordBaseLost(blufor: false, count: 2);        // opfor loses 2 bases
+            Assert.True(war.Reinforce(blufor: true, cost: 500f)); // blufor buys reinforcements
+            float bluScore = war.War.Blufor.Score.Score;
+            float bluFunds = war.War.Blufor.Funds;
+
+            var restored = WarfareSave.Deserialize(WarfareSave.Serialize(war));
+            Assert.Equal(CommanderKind.Human, restored.War.Blufor.Commander);
+            Assert.Equal(2, restored.War.Opfor.Score.BasesLost);
+            Assert.Equal(bluScore, restored.War.Blufor.Score.Score, 2);
+            Assert.Equal(bluFunds, restored.War.Blufor.Funds, 2);
+            Assert.Equal(500f, restored.War.Blufor.Score.TotalSpent, 2);
+        }
+
+        [Fact]
+        public void A_side_attrited_to_zero_ends_the_war_with_a_winner()
+        {
+            var war = new WarfareCampaign();
+            Assert.False(war.IsOver);
+            for (int i = 0; i < 30; i++) war.RecordBaseLost(blufor: false); // grind opfor down
+            Assert.True(war.IsOver);
+            var board = war.SnapshotBoard();
+            Assert.True(board.Over);
+            Assert.Equal(war.War.Blufor.FactionName, board.WinnerName);
+        }
+
+        [Fact]
+        public void Explicit_loss_reporting_counts_every_kill_even_when_reinforcements_arrive()
+        {
+            // The live driver feeds exact kills (roster heuristic off), so a reinforcing side is not under-bled.
+            var war = new WarfareCampaign { UseRosterAttrition = false };
+            war.RecordUnitLost(blufor: true, count: 3);   // 3 died this tick...
+            // ...even though the roster also grew by 2 reinforcements (net -1) — all 3 must still count.
+            Assert.Equal(3, war.War.Blufor.Score.UnitsLost);
+        }
+
+        [Fact]
+        public void A_faction_name_with_delimiters_does_not_corrupt_the_save()
+        {
+            var war = new WarfareCampaign(
+                war: new WarState(new WarSide("Red\tForce\nNorth"), new WarSide("Blue")));
+            war.RecordBaseLost(blufor: true, count: 1);
+            var restored = WarfareSave.Deserialize(WarfareSave.Serialize(war));
+            // Name is sanitized (delimiters stripped) but the record stays intact and aligned.
+            Assert.DoesNotContain('\t', restored.War.Blufor.FactionName);
+            Assert.Equal(1, restored.War.Blufor.Score.BasesLost);
+            Assert.Equal("Blue", restored.War.Opfor.FactionName);
+        }
+
+        [Fact]
+        public void V1_save_without_a_war_section_still_loads_with_a_default_war()
+        {
+            // A legacy v1 file: header without baselines, no @@NUCLEUS-WAR@@ lines.
+            var legacy =
+                "NUCLEUS-WARFARE\t1\t7\n" +
+                "@@NUCLEUS-FACTION@@\tBlufor\n" +
+                "@@NUCLEUS-FACTION@@\tOpfor\n";
+            var c = WarfareSave.Deserialize(legacy);
+            Assert.Equal(7, c.Turn);
+            Assert.NotNull(c.War);
+            Assert.False(c.War.IsOver);
         }
     }
 }

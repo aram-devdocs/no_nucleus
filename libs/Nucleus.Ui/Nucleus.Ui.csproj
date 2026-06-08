@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Nucleus.Ui</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — UI kit for mod HUDs: uGUI atoms/theme/tokens, the shared CommanderPanel, and a native-widget harvest (NativeUi) that composes the game's own widgets (BetterBorder/BoxToggle/Button). References game UI DLLs.</Description>
     <!-- UI toolkit (atoms, theme, native-asset caches, drag, menu badge) + the shared CommanderPanel that all
          mods render their slice of. Touches Unity UI/TMP and one native game UI type (BetterBorder). Among
          Nucleus libs it depends on Domain + the pure campaign read-models (Campaign/Production). -->

@@ -4,12 +4,9 @@ using UnityEngine;
 
 namespace Nucleus.Host
 {
-    /// <summary>
-    /// The per-mod context the host hands a mod at initialize time. Phase 3: Log + the shared Game services
-    /// are real; the UI surface and button registry are placeholders until the host owns the single Canvas and
-    /// arbitrates bezel slots (Phase 4, when a second mod needs to share). Config binding returns the default
-    /// for now (Commander reads the plugin config directly).
-    /// </summary>
+    /// <summary>The per-mod context the host hands a mod at initialize time: Log, shared Game services, and the
+    /// host-owned button registry. The UI surface is a placeholder (Commander uses its own canvas) and
+    /// BindConfig returns the default (Commander reads the plugin config directly).</summary>
     internal sealed class ModContext : IModContext
     {
         private readonly IMod _mod;
@@ -41,8 +38,8 @@ namespace Nucleus.Host
         public void ShareCampaign(Nucleus.Core.Command.ICampaign campaign) => _setCampaign?.Invoke(campaign);
     }
 
-    /// <summary>Placeholder UI surface (a host-owned canvas layer is a later step). Commander uses its own
-    /// runtime/canvas; Build/Squad reach the game via their bezel button + Game services for now.</summary>
+    /// <summary>Minimal UI surface: each mod builds into its bezel screen and reaches the game via Game services.
+    /// Commander owns its own runtime/canvas.</summary>
     internal sealed class HostModUi : IModUi
     {
         public RectTransform CreateLayer(string name) => null;

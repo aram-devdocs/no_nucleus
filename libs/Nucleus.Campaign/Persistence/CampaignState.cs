@@ -102,9 +102,7 @@ namespace Nucleus.Core.Persistence
                 {
                     Autonomy = op.Autonomy,
                     Status = op.Status,
-                    Phase = op.Phase,
                     CombatPhase = op.CombatPhase,
-                    OrderId = op.OrderId,
                     InitialThreat = CloneThreat(op.InitialThreat),
                 };
                 state.Operations.Add(copy);

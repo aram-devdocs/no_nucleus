@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Nucleus.Evolve</AssemblyName>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Deterministic genome self-play: evolves commander personalities in the headless sim and writes a
+         reviewable genepool + report. Output is for human review; not auto-applied to shipped gameplay. -->
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\Nucleus.Sim\Nucleus.Sim.csproj" />
+  </ItemGroup>
+</Project>

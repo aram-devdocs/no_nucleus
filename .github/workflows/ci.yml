@@ -6,9 +6,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Always-on pure gate: the Unity-free projects build and test in the cloud without the proprietary
-  # game DLLs. The full solution (which references Assembly-CSharp) is gated below on lib/ being present.
-  headless:
+  # Always-on pure gate: the Unity-free projects build and test in the cloud without the proprietary game
+  # DLLs. The full solution (which references Assembly-CSharp) is gated below on lib/ being present.
+  # Job id is the branch-protection required status check ("test") — keep them in sync.
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +28,9 @@ jobs:
 
       - name: Log-audit parser
         run: dotnet test tests/Nucleus.LogAudit.Tests/Nucleus.LogAudit.Tests.csproj -c Release
+
+      - name: Installer (Unity-free)
+        run: dotnet test tests/Nucleus.Installer.Tests/Nucleus.Installer.Tests.csproj -c Release
 
       # The full solution build + game-contract tests require the proprietary game DLLs in lib/, which are
       # gitignored (the game's IP) and produced locally by scripts/setup-sandbox.ps1. On GitHub-hosted

@@ -15,7 +15,7 @@ LAUNCH  := $(PS) scripts/run.ps1
 .DEFAULT_GOAL := help
 .PHONY: help dev run build rebuild clean test audit check logaudit smoke \
         platform commander build-mod squad warfare \
-        sandbox mission codegen
+        sandbox mission codegen export-missions
 
 help:
 	@echo "Nucleus dev targets:"
@@ -34,6 +34,8 @@ help:
 	@echo "  setup / content:"
 	@echo "  make sandbox     create/refresh the gitignored .sandbox game mirror (+ BepInEx)"
 	@echo "  make mission     install the demo mission into your user Missions folder"
+	@echo "  make export-missions  dump the game's built-in missions to artifacts/ (to fork, e.g. Escalation)"
+	@echo "  make dynamic-mission  fork Escalation into the Nucleus Dynamic Warfare mission (run export-missions first)"
 	@echo "  make codegen     regenerate the typed game SDK (run after a game update)"
 	@echo "  make clean       remove build outputs"
 
@@ -93,6 +95,14 @@ sandbox:
 
 mission:
 	$(PS) scripts/install-demo-mission.ps1
+
+# Dump the game's built-in missions (Escalation, etc.) to artifacts/ so they can be forked into Nucleus missions.
+export-missions:
+	$(PS) scripts/export-missions.ps1
+
+# Build the Nucleus Dynamic Warfare mission by forking the game's Escalation export (run export-missions first).
+dynamic-mission:
+	$(PS) scripts/build-dynamic-warfare-mission.ps1
 
 codegen:
 	bash scripts/generate-types.sh

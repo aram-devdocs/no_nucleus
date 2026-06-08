@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using Nucleus.Core.Command;
 using Nucleus.Core.Model;
 using Nucleus.Core.Persistence;
@@ -66,6 +67,67 @@ namespace Nucleus.Core.Tests
                 Assert.True(File.Exists(path));
             }
             finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+        }
+
+        [Fact]
+        public void Save_writes_hashset_and_dict_collections_in_ordinal_order()
+        {
+            // ConfirmedObjectives (HashSet) + LastObjectiveByUnit (Dictionary) enumerate in
+            // process-randomized order — they must be sorted on write so the save is byte-identical across runs.
+            var path = TempPath("sort-" + System.Guid.NewGuid().ToString("N") + ".ncs");
+            try
+            {
+                var state = new CommanderState();
+                foreach (var id in new[] { "zulu", "alpha", "mike" }) state.ConfirmedObjectives.Add(id);
+                state.LastObjectiveByUnit["u-z"] = "1";
+                state.LastObjectiveByUnit["u-a"] = "2";
+                state.LastObjectiveByUnit["u-m"] = "3";
+                CampaignStore.Save(path, state);
+
+                var lines = File.ReadAllLines(path);
+                Assert.Equal(new[] { "alpha", "mike", "zulu" },
+                    lines.Where(l => l.StartsWith("CONFIRMED")).Select(l => l.Split('\t')[1]));
+                Assert.Equal(new[] { "u-a", "u-m", "u-z" },
+                    lines.Where(l => l.StartsWith("LASTOBJ")).Select(l => l.Split('\t')[1]));
+            }
+            finally { File.Delete(path); }
+        }
+
+        [Fact]
+        public void Save_load_resave_is_byte_identical()
+        {
+            // The byte-identity invariant: a saved campaign re-saved after a load must be textually identical.
+            var p1 = TempPath("bi1-" + System.Guid.NewGuid().ToString("N") + ".ncs");
+            var p2 = TempPath("bi2-" + System.Guid.NewGuid().ToString("N") + ".ncs");
+            try
+            {
+                var state = new CommanderState();
+                foreach (var id in new[] { "obj-3", "obj-1", "obj-2" }) state.ConfirmedObjectives.Add(id);
+                state.LastObjectiveByUnit["u3"] = "obj-3";
+                state.LastObjectiveByUnit["u1"] = "obj-1";
+                CampaignStore.Save(p1, state);
+                CampaignStore.Save(p2, CampaignStore.Load(p1));
+                Assert.Equal(File.ReadAllText(p1), File.ReadAllText(p2));
+            }
+            finally { File.Delete(p1); File.Delete(p2); }
+        }
+
+        [Fact]
+        public void Load_tolerates_truncated_known_records_without_throwing()
+        {
+            // Forward-compat contract: a truncated / older known record (missing trailing columns) must be
+            // skipped, not abort the whole load with IndexOutOfRange.
+            var path = TempPath("trunc-" + System.Guid.NewGuid().ToString("N") + ".ncs");
+            try
+            {
+                CampaignStore.Save(path, Sample("obj-z", true));
+                // Append deliberately short known records (each missing required trailing columns).
+                File.AppendAllText(path, "\nOBJ\nSQUAD\tonly-id\nLASTOBJ\tu1\nOPTHREAT\top\nSQUADCOMP\nOPSQUAD\top\nOP\n");
+                var loaded = CampaignStore.Load(path);   // before the fix this threw IndexOutOfRangeException
+                Assert.NotNull(loaded);
+                Assert.Equal("obj-z", loaded.Objectives[0].Id);   // the valid record still round-tripped
+            }
+            finally { File.Delete(path); }
         }
 
         [Fact]

@@ -8,3 +8,7 @@ decompiled/
 
 # Build artifacts (nupkg, coverage, audit summary)
 artifacts/
+
+# Forked-from-game mission data (Escalation = game IP). Rebuild locally with
+# scripts/build-dynamic-warfare-mission.ps1 after `make export-missions`. Never commit game IP.
+/missions/Nucleus Dynamic Warfare/Nucleus Dynamic Warfare.json

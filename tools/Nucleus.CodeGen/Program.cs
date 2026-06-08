@@ -6,24 +6,16 @@ using System.Text;
 using Mono.Cecil;
 
 // ============================================================================
-// Commander typed-SDK generator.
+// Commander typed-SDK generator. The declarative manifest below is the single
+// source of truth for every game member the mod depends on. From it, all verified
+// against the real Assembly-CSharp at generation time, it emits:
+//   1. GameEnums.generated.cs  — mirror enums pure Core needs.
+//   2. GameRef.generated.cs    — verified member-name consts for reflection seams.
+//   3. GameSdk.generated.cs    — typed reflection accessors for private members.
+//   4. GameContract.Generated.cs — one contract test asserting every member still
+//      exists with the expected shape (fails loudly, listing all drift at once).
 //
-// A SINGLE declarative manifest (below) of every game member the mod depends on
-// is the source of truth. From it we emit, all verified against the REAL game
-// assembly at generation time:
-//
-//   1. src/Core/Generated/GameEnums.generated.cs  — mirror enums PURE Core needs.
-//   2. src/Core/Generated/GameRef.generated.cs     — verified member-name consts.
-//   3. src/Game/Generated/GameSdk.generated.cs      — TYPED reflection accessors
-//        for private members (types discovered from Cecil; no magic strings).
-//   4. tests/GameContract/GameContract.Generated.cs — one contract test that
-//        asserts EVERY manifest member still exists with the expected shape.
-//
-// Generation FAILS LOUDLY (listing every drifted member at once) if the game
-// changed. So when the game updates: regenerate -> codegen and/or the compiler
-// and/or CI point at exactly where the mod no longer fits. "Tight af."
-//
-// Discipline: list a member here only when the mod actually uses it.
+// List a member here only when the mod actually uses it.
 // Run: dotnet run --project tools/Nucleus.CodeGen   (needs lib/Assembly-CSharp.dll)
 // ============================================================================
 
@@ -76,44 +68,40 @@ var deps = new List<Dep>
     // ---- GlobalPosition conversion ----
     new("GlobalPosition", "AsVector3", "method"),
 
-    // ---- P2: production (commission) ----
+    // ---- production (convoy purchase) ----
     new("NuclearOption.Networking.Player", "CmdPurchaseConvoy", "method"),
     new("Faction", "GetConvoyGroups", "method"),
     new("Faction/ConvoyGroup", "GetCost", "method"),
     new("Faction/ConvoyGroup", "Name", "field"),
     new("FactionHQ", "factionFunds", "property", Public: true),
 
-    // ---- P2: capture + logistics ----
+    // ---- capture + logistics ----
     new("IRearmable", null, "type"),
     new("Airbase", "CurrentHQ", "property"),
     new("Airbase", "center",    "field"),
 
-    // ---- P4: aircraft tasking (steer IDLE aircraft via the pilot's own no-target state — NOT a faction
-    //         Objective, which the decompile shows also pulls idle ground/ships = the stampede). ----
+    // ---- aircraft tasking: steer IDLE aircraft via the pilot's own no-target state — NOT a faction
+    //      Objective, which also pulls idle ground/ships (the stampede). ----
     new("AIPilotCombatModes", "NoTarget", "method"),         // postfix target (private)
     new("PilotBaseState", "aircraft",    "field", Reflected: true),  // protected Aircraft
     new("PilotBaseState", "destination", "field", Reflected: true),  // protected GlobalPosition (we override)
 
-    // ---- P6: native UI single-source-of-truth. GameAssets is the game's visual-resource singleton; every
-    //         asset the mod uses is captured ONCE into a generated NativeAssets snapshot (Asset:true) so no
-    //         color/font/icon value is ever hardcoded or duplicated in our UI. Cecil discovers each field's
-    //         real type; the contract test guards them; a game update => regenerate => compiler points at
-    //         exactly what drifted. ----
+    // ---- native UI single-source-of-truth: every GameAssets visual resource the mod uses is captured ONCE
+    //      into a generated NativeAssets snapshot (Asset:true), so no color/font/icon is hardcoded or
+    //      duplicated. Cecil discovers each field's real type; the contract test guards against drift. ----
     new("GameAssets", "i", "property", Static: true),
-    new("GameAssets", "playerNameFont", "field", Public: true, Asset: true), // native HUD font (used now)
-    new("GameAssets", "HUDFriendly", "field", Public: true, Asset: true),    // friendly color (used now)
-    new("GameAssets", "HUDHostile",  "field", Public: true, Asset: true),    // hostile color (used now)
-    new("GameAssets", "HUDNeutral",  "field", Public: true, Asset: true),    // neutral color (P6.2 overlay)
+    new("GameAssets", "playerNameFont", "field", Public: true, Asset: true), // native HUD font
+    new("GameAssets", "HUDFriendly", "field", Public: true, Asset: true),    // friendly color
+    new("GameAssets", "HUDHostile",  "field", Public: true, Asset: true),    // hostile color
+    new("GameAssets", "HUDNeutral",  "field", Public: true, Asset: true),    // neutral color
     new("GameAssets", "airbaseSprite", "field", Public: true, Asset: true),  // map: airbase icon
     new("GameAssets", "targetUnitSprite", "field", Public: true, Asset: true), // map: enemy contact icon
     new("GameAssets", "targetUnitSpriteFriendly", "field", Public: true, Asset: true), // map: friendly icon
     new("GameAssets", "missileWarningSprite", "field", Public: true, Asset: true),     // threat: missile warning
     new("GameAssets", "warheadSprite", "field", Public: true, Asset: true),  // threat/strike icon
 
-    // ---- P6: native UI components the mod clones/configures so its UI IS the game's UI. BetterBorder is
-    //         already used LIVE (frames our panel) — guarding it here means a game rename fails the contract
-    //         instead of silently breaking the panel. The toggles + group are the P6.2 harvest targets
-    //         (clone a live instance, rebind onValueChanged); their public surface is asserted to exist. ----
+    // ---- native UI components the mod clones/configures so its UI IS the game's UI. Guarding them here means
+    //      a game rename fails the contract test instead of silently breaking the panel. ----
     new("NuclearOption.UI.BetterBorder", "BorderThickness", "property", Public: true),
     new("NuclearOption.UI.BetterBorder", "FillColor",       "property", Public: true),
     new("NuclearOption.UI.BetterBorder", "color",           "property", Public: true),
@@ -135,8 +123,8 @@ var deps = new List<Dep>
 
 string repoRoot = FindRepoRoot() ?? throw new Exception("Could not find repo root (lib/Assembly-CSharp.dll).");
 string dllPath = Path.Combine(repoRoot, "lib", "Assembly-CSharp.dll");
-// Core mirrors (GameEnums/GameRef, namespace Nucleus.Core.Generated) live in the extracted pure
-// leaf lib Nucleus.Domain. gameGenDir (GameSdk/NativeAssets) relocates to its lib in Phase 2.
+// Core mirrors (GameEnums/GameRef, namespace Nucleus.Core.Generated) live in the pure leaf lib
+// Nucleus.Domain; the reflection accessors + asset snapshot live in Nucleus.GameSdk.
 string coreGenDir = Path.Combine(repoRoot, "libs", "Nucleus.Domain", "Generated");
 string gameGenDir = Path.Combine(repoRoot, "libs", "Nucleus.GameSdk", "Generated");
 string testGenDir = Path.Combine(repoRoot, "tests", "GameContract");
@@ -239,8 +227,8 @@ s.AppendLine("}");
 Directory.CreateDirectory(gameGenDir);
 File.WriteAllText(Path.Combine(gameGenDir, "GameSdk.generated.cs"), s.ToString());
 
-// ---- 3b. NativeAssets snapshot (P6): typed one-shot capture of GameAssets visual resources, so the UI
-//          reads native font/colors/icons from a SINGLE source instead of hardcoding/duplicating them. ----
+// ---- 3b. NativeAssets snapshot: typed one-shot capture of GameAssets visual resources, so the UI reads
+//          native font/colors/icons from a SINGLE source instead of hardcoding/duplicating them. ----
 var assetDeps = resolved.Where(x => x.Dep.Asset).ToList();
 foreach (var (d, _, m) in assetDeps)
     if (m is not FieldDefinition) throw new Exception($"Asset member {d.Type}.{d.Member} must be a public field.");

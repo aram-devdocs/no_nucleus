@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Nucleus.Abstractions</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — host/mod contracts: IMod, IModContext, the shared ICampaign, and the bezel-button registry that the platform and mods share.</Description>
     <!-- The host API a mod implements (IMod) and the services the host exposes (IModContext). References
          Domain (the data types) + Ui (Theme) among Nucleus libs; touches Unity for RectTransform/Sprite. -->
   </PropertyGroup>

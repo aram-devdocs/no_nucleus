@@ -3,12 +3,9 @@ using UnityEngine;
 
 namespace Nucleus.Game
 {
-    /// <summary>
-    /// S0 de-risk instrumentation (behind the <c>CommanderDebug</c> config flag, default off). Logs
-    /// structured "[S0:*]" lines to the BepInEx console so ONE playtest resolves the runtime unknowns:
-    /// unit-id stability, kill/track pruning, and terrain water/land (which also seeds the P0.5 sandbox).
-    /// Throwaway / foldable once findings are recorded in PROGRESS.md.
-    /// </summary>
+    /// <summary>Optional runtime probe (behind the <c>CommanderDebug</c> config flag, default off). Logs
+    /// structured "[S0:*]" lines so a playtest can resolve runtime unknowns: unit-id stability, kill/track
+    /// pruning, and terrain water/land.</summary>
     public sealed class CommanderDebugProbe
     {
         private int _tick;
@@ -28,7 +25,7 @@ namespace Nucleus.Game
             LogRoster();   // UID stability
             LogTracking(); // KILL / prune detection
             if (!_terrainLogged) { _terrainLogged = true; LogTerrain(); } // one-shot grid for the sandbox
-            if (!_uiLogged && LogNativeUi()) _uiLogged = true;            // P6.2 harvest de-risk (one-shot)
+            if (!_uiLogged && LogNativeUi()) _uiLogged = true;            // native-UI harvest check (one-shot)
         }
 
         // One-shot, flag-free terrain map via RAYCAST (the naval map has no Unity Terrain, so SampleHeight is
@@ -75,9 +72,8 @@ namespace Nucleus.Game
                 ? hit.point.y : sea;
         }
 
-        // P6.2 UI-HARVEST: which native UI components are present & cloneable? Logs counts + scene-vs-asset
-        // split + a sample for each game UI type we want to clone, so the real NativeUi re-base targets
-        // what actually exists in a live mission. Returns true once it has logged (UI was present).
+        // Which native UI components are present & cloneable: counts + scene-vs-asset split + a sample per type.
+        // Returns true once it has logged (UI was present).
         private bool LogNativeUi()
         {
             int border = CountNative<NuclearOption.UI.BetterBorder>("BetterBorder");

@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\libs\Nucleus.Campaign\Nucleus.Campaign.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Sim\Nucleus.Sim.csproj" />
   </ItemGroup>
 </Project>

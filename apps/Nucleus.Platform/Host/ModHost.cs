@@ -5,12 +5,8 @@ using UnityEngine.EventSystems;
 
 namespace Nucleus.Host
 {
-    /// <summary>
-    /// In-process host (single plugin, Phase 3): owns the mod registry + the shared game services and drives
-    /// the per-frame tick over enabled mods. The DynamicMap.Update Harmony postfix calls <see cref="Tick"/>.
-    /// Canvas/bezel-button/loader ownership is introduced as Build/Squad arrive (Phase 4-5); for now Commander
-    /// keeps its own runtime and the host adds only the registry/tick layer.
-    /// </summary>
+    /// <summary>In-process host: owns the mod registry + shared game services and drives the per-frame tick over
+    /// enabled mods. The DynamicMap.Update Harmony postfix calls <see cref="Tick"/>.</summary>
     public sealed class ModHost
     {
         private readonly ModRegistry _registry;
@@ -19,6 +15,12 @@ namespace Nucleus.Host
         private readonly LogSink _log;
         // The shared live campaign, published once by the Commander mod and read by Build/Squad/Warfare.
         private Nucleus.Core.Command.ICampaign _campaign;
+
+        /// <summary>The shared live campaign (null until the Commander mod publishes it). For the dev harness.</summary>
+        public Nucleus.Core.Command.ICampaign Campaign => _campaign;
+
+        /// <summary>The shared game-services surface (roster/intel/join/census). For the setup controller + harness.</summary>
+        public Nucleus.Abstractions.IGameServices Game => _game;
 
         public ModHost(ManualLogSource log,
             System.Func<string, bool> readEnabled = null,
@@ -49,13 +51,14 @@ namespace Nucleus.Host
                 dt: Time.unscaledDeltaTime,
                 pointerOverUi: EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()));
 
+            // Keep bezel button "open" tints in sync with their screens' actual state (fixes the stale-open desync).
+            _buttons.RefreshTints();
+
             if (!_selfTested) TrySelfTest();
         }
 
-        // One-shot structured self-test, emitted once the mission is live (roster readable). The lines are
-        // machine-readable ([NUCLEUS:METRIC]/[NUCLEUS:SELFTEST]) so tools/Nucleus.LogAudit verifies a playtest
-        // automatically instead of by hand. Their PRESENCE proves the host tick reached this point; their
-        // ABSENCE in a future log is itself the regression signal.
+        // One-shot machine-readable self-test (once a mission's roster is readable) that tools/Nucleus.LogAudit
+        // verifies automatically; its absence in a future log is itself the regression signal.
         private void TrySelfTest()
         {
             System.Collections.Generic.IReadOnlyList<Core.Model.UnitView> roster;

@@ -4,11 +4,9 @@ using Nucleus.Abstractions;
 
 namespace Nucleus.Warfare
 {
-    /// <summary>
-    /// The Warfare mod as its own BepInEx plugin: the north-star persistent two-faction dynamic war. Registers
-    /// through <see cref="ModPlatform"/>'s pending-buffer so load order relative to the host does not matter.
-    /// Hands the mod a writable save directory under BepInEx config (never the game install).
-    /// </summary>
+    /// <summary>The Warfare mod as its own BepInEx plugin. Registers through <see cref="ModPlatform"/>'s
+    /// pending-buffer so load order relative to the host does not matter, and hands the mod a writable save
+    /// directory under BepInEx config (never the game install).</summary>
     [BepInPlugin("com.nucleus.warfare", "Nucleus Warfare", "0.1.0")]
     [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class WarfarePlugin : BaseUnityPlugin

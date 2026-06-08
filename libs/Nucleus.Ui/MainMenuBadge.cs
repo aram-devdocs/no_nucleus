@@ -21,10 +21,10 @@ namespace Nucleus.Ui
             }
 
             var theme = Theme.Default;
-            var root = UiFactory.Panel("CommanderBadge", canvas.transform, new Color(0.06f, 0.08f, 0.10f, 0.80f));
-            UiFactory.AnchorTopLeft(root, new Vector2(330f, 30f), new Vector2(16f, 16f));
+            var root = UiFactory.Panel("CommanderBadge", canvas.transform, theme.BadgeBackground);
+            UiFactory.AnchorTopLeft(root, new Vector2(UiTokens.BadgeWidth, UiTokens.BadgeHeight), new Vector2(16f, 16f));
 
-            var label = UiFactory.Label("CommanderBadgeText", root, text, 15f, theme.Accent, TextAlignmentOptions.Left);
+            var label = UiFactory.Label("CommanderBadgeText", root, text, UiTokens.FontHeader, theme.Accent, TextAlignmentOptions.Left);
             UiFactory.Stretch(label.rectTransform);
             label.margin = new Vector4(10f, 0f, 6f, 0f);
 

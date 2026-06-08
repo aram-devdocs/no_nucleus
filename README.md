@@ -72,11 +72,8 @@ a drift contract test. No magic strings; a game update fails the contract test, 
 with the platform). Reference the `Nucleus.Sdk` NuGet metapackage; run `scripts/setup-sdk.ps1 -GamePath <…>`
 to populate `lib/` with your own game DLLs (never shipped). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## Status
+## Contributing with AI agents
 
-The platform is built and headless-green on `master`. The host (`Nucleus.Platform`) runs five mods — each
-its own plugin with its own bezel button and a MODS-menu ON/OFF toggle: **Commander**, **Build**, **Squad**,
-and **Warfare** (the north-star: a persistent two-faction dynamic war with whole-campaign save/resume, proven
-deterministic headlessly). The 8 shared libraries, the SDK packages + `dotnet new` template, CI, and a 7-layer
-gate (`scripts/audit.ps1`) are all in place. Remaining work is the in-game UI layer + the Dynamic Warfare
-mission (gated on a playtest verification run) and publishing. `docs/dev/STATUS.md` is the live ledger.
+[`AGENTS.md`](AGENTS.md) is the source of truth for AI coding agents; the per-directory `AGENTS.md` files and
+[`.agents/rules/`](.agents/rules) carry the enforceable rules (determinism, layer discipline, no-legacy-code,
+testing, documentation). `CLAUDE.md` is a symlink to `AGENTS.md`.

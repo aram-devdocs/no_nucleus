@@ -6,19 +6,18 @@ using UnityEngine.UI;
 
 namespace Nucleus.Host
 {
-    /// <summary>
-    /// The host-owned map-bezel registry. Each registered mod becomes a NATIVE MFD bezel button paired with a
-    /// native <c>MFDScreen</c>: the button is cloned from one of the game's own bezel buttons (native look) and
-    /// repositioned into a free bezel slot (so they don't stack); the screen is built fresh (no game scripts to
-    /// misfire) with the green "open" highlight cloned from a real screen. Wiring the button through the game's
-    /// <c>PressLeftButton/PressRightButton</c> means the game drives toggle + highlight, and hides it on
-    /// <c>onMapMinimized</c> — so the mod's panel closes with the map. The mod fills its screen via
-    /// <see cref="MapButtonSpec.BuildContent"/>. Each mod is added once.
-    /// </summary>
+    /// <summary>The host-owned map-bezel registry. Each mod becomes a native MFD bezel button (cloned from a
+    /// game button, placed in a free slot) paired with a fresh <c>MFDScreen</c>. Wiring through the game's
+    /// <c>PressLeftButton/PressRightButton</c> lets the game drive toggle/highlight and hide on map-minimize, so
+    /// the panel closes with the map. The mod fills its screen via <see cref="MapButtonSpec.BuildContent"/>.</summary>
     public sealed class HostButtons : IButtonRegistry
     {
         private readonly List<MapButtonSpec> _specs = new List<MapButtonSpec>();
         private readonly HashSet<string> _attached = new HashSet<string>();
+        // Button + paired screen, to keep the "open" tint synced to the screen's actual isActive each frame:
+        // the game closes a same-side screen without re-running the first button's handler, so a one-shot tint desyncs.
+        private struct Tint { public Image Img; public MFDScreen Screen; public Color Open, Closed; }
+        private readonly List<Tint> _tints = new List<Tint>();
         private bool _selfTested;
         private bool _hookSeen;
 
@@ -77,10 +76,9 @@ namespace Nucleus.Host
                     // 2. Fresh native MFDScreen modelled on a real one (placement/show/hide/highlight by the game).
                     var screen = BuildScreen(mfd, screenTemplate, spec.Label, btnText, out var content);
 
-                    // 3. Register the pair so PressButton(button)'s index lands on OUR screen. The native
-                    //    button/screen lists can differ in length (blank buttons have no screen), so pad the
-                    //    screens list to the button's index first — otherwise the lookup hits the wrong/missing
-                    //    screen and the button appears dead (this is why only the aligned side worked).
+                    // 3. Register the pair so PressButton(button)'s index lands on OUR screen. The button/screen
+                    //    lists can differ in length (blank buttons have no screen), so pad screens to the button
+                    //    index first — else the lookup hits the wrong screen and the button appears dead.
                     buttons.Add(btn);
                     int idx = buttons.Count - 1;
                     while (screens.Count < idx) screens.Add(null);
@@ -97,10 +95,9 @@ namespace Nucleus.Host
                     var capId = spec.ModId;
                     var capImg = btn.image != null ? btn.image : btn.GetComponent<Image>();
                     var capOrig = capImg != null ? capImg.color : Color.white;
-                    var capGreen = new Color(0.30f, 0.95f, 0.45f, 1f);
-                    // Drop the clone's inherited persistent onClick (it would toggle the template's screen) and
-                    // drive ours: the game's PressButton toggles OUR paired screen (native highlight + hide).
-                    // Also tint the button green while its screen is open — a guaranteed "open" indicator.
+                    var capGreen = Nucleus.Ui.Theme.Default.Active;   // one canonical "open/active" cue
+                    // Drop the clone's inherited onClick (it would toggle the template's screen); drive ours via
+                    // PressButton, and tint green while open.
                     NativeButtons.Rewire(btn, () =>
                     {
                         PlatformPlugin.Log?.LogInfo($"[NUCLEUS:PROBE] click id={capId} beforeActive={capScreen.isActive}");
@@ -112,6 +109,8 @@ namespace Nucleus.Host
                     btn.enabled = true;
                     btn.interactable = true;
                     btnGo.SetActive(true);
+                    // Track for the per-frame tint sync (fixes the "first button still shows open" desync).
+                    if (capImg != null) _tints.Add(new Tint { Img = capImg, Screen = capScreen, Open = capGreen, Closed = capOrig });
 
                     // 4. Let the mod fill its screen once.
                     spec.BuildContent?.Invoke(content);
@@ -133,11 +132,9 @@ namespace Nucleus.Host
             }
         }
 
-        // Build a fresh MFDScreen modelled on `src`. The probe proved screens toggle correctly (displayPanel
-        // goes active), but a content area STRETCHED to the screen rect resolves to ZERO size and renders
-        // nothing — only a FIXED-SIZE, top-left-anchored panel renders (this is exactly why the CMD screen,
-        // which uses a fixed-size container, was the only visible one). So the displayPanel here is a fixed-size
-        // panel the mod fills, and the green highlight frames it. Returns the screen; outs the content rect.
+        // Build a fresh MFDScreen modelled on `src`. A content area STRETCHED to the screen rect resolves to
+        // ZERO size and renders nothing; only a FIXED-SIZE panel renders — so the displayPanel is a fixed-size
+        // panel the mod fills, framed by the green highlight. Outs the content rect.
         private static MFDScreen BuildScreen(VirtualMFD mfd, MFDScreen src, string label, Text bezelLabel, out RectTransform content)
         {
             var srcRt = (RectTransform)src.transform;
@@ -179,6 +176,19 @@ namespace Nucleus.Host
             if (screen.highlight != null) screen.highlight.enabled = false;
             screen.isActive = false;
             return screen;
+        }
+
+        /// <summary>Sync each bezel button's tint to its screen's actual open/closed state (called each frame),
+        /// so when the game closes one screen to open another, the closed button stops showing "open".</summary>
+        public void RefreshTints()
+        {
+            for (int i = 0; i < _tints.Count; i++)
+            {
+                var t = _tints[i];
+                if (t.Img == null || t.Screen == null) continue;
+                var want = t.Screen.isActive ? t.Open : t.Closed;
+                if (t.Img.color != want) t.Img.color = want;
+            }
         }
 
         private static Button FirstNonNull(List<Button> list)

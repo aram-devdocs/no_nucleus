@@ -11,7 +11,5 @@ namespace Nucleus.Game
         public static GlobalPosition ToGlobal(Vec3 v) => new GlobalPosition(v.X, v.Y, v.Z);
 
         public static ColorRgba ToRgba(Color c) => new ColorRgba(c.r, c.g, c.b, c.a);
-
-        public static Color ToColor(ColorRgba c) => new Color(c.R, c.G, c.B, c.A);
     }
 }

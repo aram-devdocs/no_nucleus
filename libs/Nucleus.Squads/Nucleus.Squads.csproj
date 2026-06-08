@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Nucleus.Squads</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — squad formation + roster reconciliation over the domain model (auto-forming, status, autonomy). Engine-free; depends only on Nucleus.Domain.</Description>
     <!-- Pure squad-management lib: depends only on Nucleus.Domain. No Unity. Independent of Production. -->
   </PropertyGroup>
   <ItemGroup>

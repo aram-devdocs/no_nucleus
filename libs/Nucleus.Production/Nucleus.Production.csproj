@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Nucleus.Production</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — production/reinforcement: convoy catalog, purchase queue, and the force-gap planner. Engine-free; depends only on Nucleus.Domain.</Description>
     <!-- Pure production/purchasing lib: depends only on Nucleus.Domain. No Unity. Independent of Squads. -->
   </PropertyGroup>
   <ItemGroup>

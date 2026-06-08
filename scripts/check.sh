@@ -22,6 +22,9 @@ dotnet test "$root/tests/Nucleus.Sim.Tests/Nucleus.Sim.Tests.csproj" -c Release 
 echo "[check] log-audit parser..."
 dotnet test "$root/tests/Nucleus.LogAudit.Tests/Nucleus.LogAudit.Tests.csproj" -c Release --no-build
 
+echo "[check] installer..."
+dotnet test "$root/tests/Nucleus.Installer.Tests/Nucleus.Installer.Tests.csproj" -c Release --no-build
+
 if [ -f "$root/lib/Assembly-CSharp.dll" ]; then
   echo "[check] game-contract tests..."
   dotnet test "$root/tests/GameContract/Nucleus.GameContract.Tests.csproj" -c Release --no-build

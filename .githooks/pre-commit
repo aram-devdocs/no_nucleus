@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Fast gate (headless, no game DLLs): Core logic tests + architecture rules. Keep it quick so it is
-# never bypassed; the full audit runs on pre-push.
+# Fast gate (headless, no game DLLs): the always-on canaries that must never regress —
+#   Core logic, architecture rules, the deterministic campaign sim, and the installer.
+# Kept quick (a few seconds) so it is never bypassed; the full solution build runs on pre-push.
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 echo "[pre-commit] Core logic tests..."
 dotnet test "$root/tests/Core/Nucleus.Domain.Tests.csproj" -c Release --nologo --verbosity quiet
 echo "[pre-commit] architecture rules..."
 dotnet test "$root/tests/Nucleus.Architecture.Tests/Nucleus.Architecture.Tests.csproj" -c Release --nologo --verbosity quiet
+echo "[pre-commit] campaign sim (determinism + activity canary)..."
+dotnet test "$root/tests/Nucleus.Sim.Tests/Nucleus.Sim.Tests.csproj" -c Release --nologo --verbosity quiet
+echo "[pre-commit] installer..."
+dotnet test "$root/tests/Nucleus.Installer.Tests/Nucleus.Installer.Tests.csproj" -c Release --nologo --verbosity quiet
 echo "[pre-commit] OK"

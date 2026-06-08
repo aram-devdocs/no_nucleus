@@ -1,20 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Nucleus.Core.Command;
 using Nucleus.Core.Model;
 
 namespace Nucleus.Core.Persistence
 {
-    /// <summary>
-    /// Dependency-free, versioned text (de)serializer for a <see cref="CampaignSnapshot"/>. Uses a simple
-    /// line/record, tab-delimited format — no JSON/NuGet dependency, so it is safe inside the game's
-    /// Mono/BepInEx runtime and keeps the pure Campaign lib leaf-clean. Invariant-culture and round-trippable
-    /// (floats via "R"). Enums are stored by name (tolerant of additions); unknown trailing record types are
-    /// ignored (forward-compat). Strings (squad names, ids) are escaped so tabs/newlines survive, and null is
-    /// distinguished from empty.
-    /// </summary>
+    /// <summary>Dependency-free, versioned, tab-delimited text (de)serializer for a <see cref="CampaignSnapshot"/>
+    /// (no JSON/NuGet, safe in the game's Mono/BepInEx runtime). Invariant-culture, round-trippable (floats "R"),
+    /// enums by name, unknown record types ignored (forward-compat), strings escaped with a null sentinel.</summary>
     public static class CampaignSave
     {
         private const string Header = "NUCLEUS-CAMPAIGN";
@@ -52,8 +48,8 @@ namespace Nucleus.Core.Persistence
 
             foreach (var op in s.Operations)
             {
-                Line(sb, "OP", Enc(op.Id), Enc(op.Objective?.Id), E(op.Autonomy), E(op.Status), E(op.Phase),
-                    E(op.CombatPhase), Enc(op.OrderId), op.InitialThreat != null ? "1" : "0");
+                Line(sb, "OP", Enc(op.Id), Enc(op.Objective?.Id), E(op.Autonomy), E(op.Status),
+                    E(op.CombatPhase), op.InitialThreat != null ? "1" : "0");
                 foreach (var sid in op.SquadIds)
                     Line(sb, "OPSQUAD", Enc(op.Id), Enc(sid));
                 if (op.InitialThreat != null)
@@ -64,8 +60,12 @@ namespace Nucleus.Core.Persistence
                             B(e.Accurate), F(e.StrategicPriority), I(e.ArmorTier));
             }
 
-            foreach (var id in s.ConfirmedObjectives) Line(sb, "CONFIRMED", Enc(id));
-            foreach (var kv in s.LastObjectiveByUnit) Line(sb, "LASTOBJ", Enc(kv.Key), Enc(kv.Value));
+            // Deterministic order: these come from a HashSet / Dictionary, whose enumeration order is
+            // process-randomized — sort on write so the save text is byte-identical across runs.
+            foreach (var id in s.ConfirmedObjectives.OrderBy(x => x, StringComparer.Ordinal))
+                Line(sb, "CONFIRMED", Enc(id));
+            foreach (var kv in s.LastObjectiveByUnit.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+                Line(sb, "LASTOBJ", Enc(kv.Key), Enc(kv.Value));
 
             return sb.ToString();
         }
@@ -117,18 +117,20 @@ namespace Nucleus.Core.Persistence
                         snap.DepletedFraction = PF(f, 8);
                         break;
                     case "OBJ":
+                        if (f.Length < 2) break;   // need at least the id
                         objList.Add(new Objective(Dec(f[1]), PE(f, 2, ObjectiveKind.DestroyTarget),
                             new Vec3(PF(f, 3), PF(f, 4), PF(f, 5)), PE(f, 8, ObjectiveSource.Auto),
-                            Dec(f[6]), PF(f, 7)));
+                            PS(f, 6), PF(f, 7)));
                         break;
                     case "SQUAD":
                     {
+                        if (f.Length < 3) break;   // need id + name
                         var sq = new Squad(Dec(f[1]), Dec(f[2]), PE(f, 3, RoleFamily.Other),
                             PE(f, 4, SquadOrigin.Auto))
                         {
                             Status = PE(f, 5, SquadStatus.Forming),
                             Autonomy = PE(f, 6, AutonomyLevel.Auto),
-                            AssignedOperationId = Dec(f[7]),
+                            AssignedOperationId = PS(f, 7),
                         };
                         squadList.Add(sq);
                         squadById[sq.Id] = sq;
@@ -136,6 +138,7 @@ namespace Nucleus.Core.Persistence
                     }
                     case "SQUADCOMP":
                     {
+                        if (f.Length < 2) break;   // need the squad id (dict key)
                         var id = Dec(f[1]);
                         if (!compById.TryGetValue(id, out var c)) { c = new Composition(); compById[id] = c; }
                         c.Set(PE(f, 2, RoleFamily.Other), PI(f, 3));
@@ -143,17 +146,20 @@ namespace Nucleus.Core.Persistence
                     }
                     case "SQUADMEM":
                     {
+                        if (f.Length < 3) break;   // need squad id (dict key) + member id
                         var id = Dec(f[1]);
                         if (!membersById.TryGetValue(id, out var list)) { list = new List<string>(); membersById[id] = list; }
                         list.Add(Dec(f[2]));
                         break;
                     }
                     case "OP":
+                        if (f.Length < 2) break;   // need the op id (dict key)
                         opOrder.Add(Dec(f[1]));
                         opFields[Dec(f[1])] = f;
                         break;
                     case "OPSQUAD":
                     {
+                        if (f.Length < 3) break;   // need op id (dict key) + squad id
                         var id = Dec(f[1]);
                         if (!opSquads.TryGetValue(id, out var list)) { list = new List<string>(); opSquads[id] = list; }
                         list.Add(Dec(f[2]));
@@ -161,6 +167,7 @@ namespace Nucleus.Core.Persistence
                     }
                     case "OPTHREAT":
                     {
+                        if (f.Length < 3) break;   // need op id (dict key) + enemy id
                         var id = Dec(f[1]);
                         if (!opThreat.TryGetValue(id, out var list)) { list = new List<EnemyView>(); opThreat[id] = list; }
                         var cap = new UnitCapability(PE(f, 7, Role.Unknown), PB(f, 8), PB(f, 9), PB(f, 10),
@@ -170,9 +177,11 @@ namespace Nucleus.Core.Persistence
                         break;
                     }
                     case "CONFIRMED":
+                        if (f.Length < 2) break;
                         snap.ConfirmedObjectives.Add(Dec(f[1]));
                         break;
                     case "LASTOBJ":
+                        if (f.Length < 3) break;   // need unit-id key + value
                         snap.LastObjectiveByUnit.Add(new KeyValuePair<string, string>(Dec(f[1]), Dec(f[2])));
                         break;
                     // Unknown record types are ignored (forward-compat).
@@ -196,18 +205,16 @@ namespace Nucleus.Core.Persistence
             foreach (var opId in opOrder)
             {
                 var f = opFields[opId];
-                var objId = Dec(f[2]);
+                var objId = PS(f, 2);
                 if (objId == null || !objIndex.TryGetValue(objId, out var obj)) continue;
                 var squadIds = opSquads.TryGetValue(opId, out var sl) ? sl : new List<string>();
                 var op = new Operation(opId, obj, squadIds)
                 {
                     Autonomy = PE(f, 3, AutonomyLevel.Auto),
                     Status = PE(f, 4, OperationStatus.Planning),
-                    Phase = PE(f, 5, OrderPhase.Forming),
-                    CombatPhase = PE(f, 6, CombatPhase.Recon),
-                    OrderId = Dec(f[7]),
+                    CombatPhase = PE(f, 5, CombatPhase.Recon),
                 };
-                bool hasThreat = f.Length > 8 && f[8] == "1";
+                bool hasThreat = f.Length > 6 && f[6] == "1";
                 if (hasThreat)
                     op.InitialThreat = new ThreatPicture(opThreat.TryGetValue(opId, out var en) ? en : new List<EnemyView>());
                 snap.Operations.Add(op);
@@ -256,6 +263,10 @@ namespace Nucleus.Core.Persistence
             }
             return sb.ToString();
         }
+
+        // Bounds-checked string field (decoded): null when the column is missing, so a truncated/older known
+        // record degrades gracefully instead of throwing IndexOutOfRange and aborting the whole load.
+        private static string PS(string[] f, int i) => i < f.Length ? Dec(f[i]) : null;
 
         private static int PI(string[] f, int i)
             => i < f.Length && int.TryParse(f[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;

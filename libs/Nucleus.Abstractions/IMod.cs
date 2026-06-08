@@ -36,7 +36,7 @@ namespace Nucleus.Abstractions
 
         /// <summary>The shared live campaign every mod renders a slice of (null until a provider mod — the
         /// Commander — publishes it via <see cref="ShareCampaign"/>). Build/Squad/Warfare read this.</summary>
-        Nucleus.Core.Command.ICampaign Campaign { get; }
+        Nucleus.Core.Command.ICampaign? Campaign { get; }
 
         /// <summary>Publish the shared campaign to the host so other mods can read it via <see cref="Campaign"/>.
         /// Called once by the Commander mod, which owns the live campaign service.</summary>
@@ -48,7 +48,7 @@ namespace Nucleus.Abstractions
     public interface IModUi
     {
         RectTransform CreateLayer(string name);
-        Transform MapIconLayer { get; }
+        Transform? MapIconLayer { get; }
         Theme Theme { get; }
     }
 
@@ -78,6 +78,21 @@ namespace Nucleus.Abstractions
         float Funds();
         bool TryGetLocalFaction(out FactionInfo faction);
         IMapProjection MapProjection { get; }
+        /// <summary>Per-faction live force count (alive units + held airbases) for the attrition scoreboard.
+        /// The Warfare mod diffs this tick-over-tick to feed unit/base losses into the war score.</summary>
+        IReadOnlyList<Nucleus.Core.War.FactionCensus> WarCensus();
+        /// <summary>The names of every faction in the loaded mission (e.g. for the setup screen's side list).</summary>
+        IReadOnlyList<string> FactionNames();
+        /// <summary>True once the local player has joined a side (so the setup screen can stand down).</summary>
+        bool HasLocalFaction { get; }
+        /// <summary>Join the named side as the local player (and open the map). False if it can't (no player/HQ).</summary>
+        bool JoinFaction(string factionName);
+        /// <summary>The loaded mission's name (so a mod can gate behaviour to a specific mission), or null.</summary>
+        string? CurrentMissionName { get; }
+        /// <summary>The classified roster of a SPECIFIC faction — to drive an AI commander for the enemy side.</summary>
+        IReadOnlyList<UnitView> RosterFor(string factionName);
+        /// <summary>The enemies a SPECIFIC faction has detected — to drive its AI commander's intel.</summary>
+        IReadOnlyList<EnemyView> KnownEnemiesFor(string factionName, Vec3 center, float radius);
     }
 
     /// <summary>How a mod claims its in-game buttons: a map-bezel button (CMD/BLD/SQD/...) and/or a row in the

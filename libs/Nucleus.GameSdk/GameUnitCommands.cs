@@ -13,7 +13,7 @@ namespace Nucleus.Game
             switch (task.Verb)
             {
                 case TaskVerb.MoveTo:
-                case TaskVerb.AttackTarget: // P1: drive into engagement range; the unit auto-engages. Focus-fire = P4.
+                case TaskVerb.AttackTarget: // drive into engagement range; the unit auto-engages.
                     if (u is ICommandable c && c.UnitCommand != null)
                     {
                         c.UnitCommand.SetDestination(GameConvert.ToGlobal(task.Position), playerCommand: true);
