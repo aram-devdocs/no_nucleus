@@ -22,18 +22,19 @@ namespace Nucleus.Composition
         private readonly TMPro.TextMeshProUGUI _intent;
         private readonly List<TMPro.TextMeshProUGUI> _rows = new List<TMPro.TextMeshProUGUI>();
         private readonly RectTransform _rowsParent;
+        private readonly Theme _theme;
 
         // Reused across renders so sorting allocates nothing on the hot path.
         private readonly List<Cmd.OperationView> _buf = new List<Cmd.OperationView>();
         private static readonly System.Comparison<Cmd.OperationView> ByPriorityDesc =
             (a, b) => b.Priority.CompareTo(a.Priority);
 
-        public FlightHud(Transform canvas)
+        public FlightHud(Transform canvas, Theme theme)
         {
-            // Higher opacity so the HUD stays legible over bright sky/terrain (was washing out at 0.72).
-            _root = UiFactory.Panel("NucleusFlightHud", canvas, new Color(0.04f, 0.06f, 0.08f, 0.88f));
+            _theme = theme ?? Theme.Default;
+            _root = UiFactory.Panel("NucleusFlightHud", canvas, _theme.HudBackground);
             _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(1f, 0f); // bottom-right
-            _root.sizeDelta = new Vector2(360f, 168f);
+            _root.sizeDelta = new Vector2(UiTokens.HudWidth, UiTokens.HudHeight);
             _root.anchoredPosition = new Vector2(-18f, 18f);
             _root.gameObject.GetComponent<Image>().raycastTarget = false;
             _root.SetAsLastSibling();
@@ -44,7 +45,7 @@ namespace Nucleus.Composition
             _header = UiFactory.Label("HudHeader", col.transform, "NUCLEUS", 15f, NativeColors.Friendly);
             UiFactory.PreferredHeight(_header.gameObject, 20f);
             UiFactory.Divider(col.transform, NativeColors.Friendly); // accent rule so the HUD reads as intentional
-            _intent = UiFactory.Label("HudIntent", col.transform, "", 12f, new Color(0.8f, 0.85f, 0.9f, 1f));
+            _intent = UiFactory.Label("HudIntent", col.transform, "", 12f, _theme.HudText);
             UiFactory.PreferredHeight(_intent.gameObject, 18f);
 
             var rows = UiFactory.VerticalLayout("Rows", col.transform, 1f, new RectOffset(0, 0, 2, 0));

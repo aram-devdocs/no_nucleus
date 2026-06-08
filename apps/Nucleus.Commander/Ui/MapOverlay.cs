@@ -12,6 +12,7 @@ namespace Nucleus.Ui
     {
         private readonly Transform _layer;
         private readonly IMapProjection _projection;
+        private readonly Theme _theme;
         private readonly List<Image> _markers = new List<Image>();
         private readonly List<TMPro.TextMeshProUGUI> _objLabels = new List<TMPro.TextMeshProUGUI>();
         private readonly List<Image> _labelBgs = new List<Image>();   // contrast pill behind each map label
@@ -20,9 +21,10 @@ namespace Nucleus.Ui
         private readonly List<Image> _lines = new List<Image>();
         private Image _selRing;        // ring drawn around the selected objective marker
 
-        public MapOverlay(Transform iconLayer, IMapProjection projection)
+        public MapOverlay(Transform iconLayer, IMapProjection projection, Theme theme)
         {
             _projection = projection;
+            _theme = theme ?? Theme.Default;
             // First sibling of the icon layer, so the game's own unit icons render ON TOP of our markers.
             var go = new GameObject("CommanderOverlay", typeof(RectTransform));
             var rt = (RectTransform)go.transform;
@@ -156,7 +158,7 @@ namespace Nucleus.Ui
         {
             while (_labelBgs.Count <= i)
             {
-                var img = UiFactory.LineImage("ObjLabelBg" + _labelBgs.Count, _layer, new Color(0f, 0f, 0f, 0.5f));
+                var img = UiFactory.LineImage("ObjLabelBg" + _labelBgs.Count, _layer, _theme.LabelBackdrop);
                 var rt = (RectTransform)img.transform;
                 rt.pivot = new Vector2(0f, 0.5f);
                 img.raycastTarget = false;
@@ -188,15 +190,15 @@ namespace Nucleus.Ui
             }
         }
 
-        private static Color StatusColor(Nucleus.Core.Command.SquadStatus s)
+        private Color StatusColor(Nucleus.Core.Command.SquadStatus s)
         {
             switch (s)
             {
-                case Nucleus.Core.Command.SquadStatus.Engaged: return NativeColors.Hostile;          // in contact
-                case Nucleus.Core.Command.SquadStatus.Ready: return NativeColors.Friendly;           // moving up
-                case Nucleus.Core.Command.SquadStatus.Forming: return new Color(0.6f, 0.8f, 1f);
-                case Nucleus.Core.Command.SquadStatus.Depleted: return new Color(0.6f, 0.6f, 0.6f);  // hurt
-                default: return new Color(0.5f, 0.55f, 0.6f);                                        // reserve
+                case Nucleus.Core.Command.SquadStatus.Engaged: return NativeColors.Hostile;   // in contact
+                case Nucleus.Core.Command.SquadStatus.Ready: return NativeColors.Friendly;    // moving up
+                case Nucleus.Core.Command.SquadStatus.Forming: return _theme.SquadForming;
+                case Nucleus.Core.Command.SquadStatus.Depleted: return _theme.SquadDepleted;
+                default: return _theme.SquadReserve;
             }
         }
 

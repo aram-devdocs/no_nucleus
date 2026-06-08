@@ -86,7 +86,7 @@ namespace Nucleus.Composition
             if (map != null && !ReferenceEquals(map, _lastMap))
             {
                 _lastMap = map;
-                _overlay = map.iconLayer != null ? new MapOverlay(map.iconLayer.transform, _projection) : null;
+                _overlay = map.iconLayer != null ? new MapOverlay(map.iconLayer.transform, _projection, _theme ?? Theme.Default) : null;
             }
             if (map == null) { _lastMap = null; _overlay = null; }
 
@@ -132,7 +132,7 @@ namespace Nucleus.Composition
             {
                 var canvas = FindOverlayCanvas();
                 if (canvas == null) return;
-                _hud = new FlightHud(canvas.transform);
+                _hud = new FlightHud(canvas.transform, _theme ?? Theme.Default);
                 _hudVisible = true;
             }
             if (Input.GetKeyDown(CommanderPlugin.HudToggleKey)) _hudVisible = !_hudVisible;
