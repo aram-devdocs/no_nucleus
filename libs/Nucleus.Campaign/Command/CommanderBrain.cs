@@ -125,6 +125,7 @@ namespace Nucleus.Core.Command
                 foreach (var obj in state.Objectives.OrderByDescending(o => o.Priority).ThenBy(o => o.Id))
                 {
                     if (state.OperationFor(obj.Id) != null) continue;
+                    if (OrderTakenOver(state, obj)) continue;             // the player drives this order's nodes
                     if (DependencyPending(obj, state, snapshot)) continue; // an order prerequisite isn't resolved yet
                     var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
                     if (squadIds.Count == 0) continue; // no force — recruit via ProductionNeeds below
@@ -153,7 +154,8 @@ namespace Nucleus.Core.Command
             if (state.AiAutoFill)
                 foreach (var obj in state.Objectives)
                     if (state.OperationFor(obj.Id) == null && !fieldable.Contains(obj.Id)
-                        && !DependencyPending(obj, state, snapshot))   // a gated goal isn't lacking a squad — it's waiting
+                        && !DependencyPending(obj, state, snapshot)     // a gated goal isn't lacking a squad — it's waiting
+                        && !OrderTakenOver(state, obj))                 // a player-driven order recruits on the player's call
                     {
                         state.ProductionNeeds.Add(RequiredComposition(obj.Kind));
                         state.Log.AppendDistinct(new ReportEvent(snapshot.Time, ReportKind.Blocked,
@@ -234,6 +236,16 @@ namespace Nucleus.Core.Command
                 default:
                     return false;
             }
+        }
+
+        // The player has taken this objective's parent order over (set it Manual) — the brain yields its whole
+        // tree (no auto-fill), so the player assigns + drives the nodes. Standalone objectives (no order) stay AI.
+        private static bool OrderTakenOver(CommanderState state, Objective obj)
+        {
+            if (obj.OrderId == null) return false;
+            for (int i = 0; i < state.Orders.Count; i++)
+                if (state.Orders[i].Id == obj.OrderId) return state.Orders[i].Autonomy == AutonomyLevel.Manual;
+            return false;
         }
 
         // A dependent objective waits while any prerequisite sibling is still unresolved. Evaluated against the

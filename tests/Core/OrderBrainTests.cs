@@ -115,6 +115,25 @@ namespace Nucleus.Tests
         }
 
         [Fact]
+        public void Taking_an_order_over_makes_the_brain_yield_its_nodes_and_releasing_returns_them()
+        {
+            var state = new CommanderState { AiCreatesObjectives = false };
+            state.Squads.Add(new Squad("sq-arm", "Armor", RoleFamily.Armor, SquadOrigin.Auto, new[] { "u-arm" }));
+            var roster = new List<UnitView> { Unit("u-arm", Role.Armor, UnitClass.GroundVehicle) };
+            var snap = new WorldSnapshot(roster, new List<EnemyView>(), 0f, null, 1f);
+            var goalId = CommanderBrain.CreatePlayerObjective(state, snap, ObjectiveKind.CapturePoint, new Vec3(1000, 0, 0));
+            var order = Assert.Single(state.Orders);
+
+            order.Autonomy = AutonomyLevel.Manual;                  // player takes it over
+            CommanderBrain.Tick(snap, state);
+            Assert.Null(state.OperationFor(goalId));                // brain yields — no auto-fill
+
+            order.Autonomy = AutonomyLevel.Auto;                    // player releases it
+            CommanderBrain.Tick(snap, state);
+            Assert.NotNull(state.OperationFor(goalId));             // brain fields it again
+        }
+
+        [Fact]
         public void An_order_completes_when_its_goal_is_achieved_then_fades_away()
         {
             var state = new CommanderState();
