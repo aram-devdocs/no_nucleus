@@ -62,6 +62,31 @@ namespace Nucleus.Tests
         }
 
         [Fact]
+        public void Genome_drives_the_personality_knobs_and_is_neutral_by_default()
+        {
+            // The all-0.5 default genome leaves every personality knob at its stock (no-change) value.
+            var neutral = Doctrine.FromGenome(CommanderGenome.Default);
+            Assert.Equal(1.0f, neutral.DefendWeight, 3);
+            Assert.Equal(1.0f, neutral.ObjectiveSpread, 3);
+            Assert.Equal(1.0f, neutral.Reach, 3);
+            Assert.Equal(1.0f, neutral.ReconWeight, 3);
+            Assert.Equal(1.0f, neutral.EconomyWeight, 3);
+            Assert.Equal(0.5f, neutral.AirPreference, 3);
+            Assert.Equal(0.5f, neutral.Tempo, 3);
+
+            // Distinct genes move distinct knobs in the expected direction.
+            Assert.True(Doctrine.FromGenome(new CommanderGenome { DefenseBias = 0.9f }).DefendWeight
+                      > Doctrine.FromGenome(new CommanderGenome { DefenseBias = 0.1f }).DefendWeight);
+            Assert.True(Doctrine.FromGenome(new CommanderGenome { FocusBroad = 0.9f }).ObjectiveSpread
+                      > Doctrine.FromGenome(new CommanderGenome { FocusBroad = 0.1f }).ObjectiveSpread);
+            Assert.True(Doctrine.FromGenome(new CommanderGenome { Overextension = 0.9f }).Reach
+                      > Doctrine.FromGenome(new CommanderGenome { Overextension = 0.1f }).Reach);
+            // Higher tempo commits the assault on less softening.
+            Assert.True(Doctrine.FromGenome(new CommanderGenome { Tempo = 0.9f }).SoftenThreshold
+                      < Doctrine.FromGenome(new CommanderGenome { Tempo = 0.1f }).SoftenThreshold);
+        }
+
+        [Fact]
         public void Fnv1a_is_stable_and_not_runtime_random()
         {
             // FNV-1a of a known string is a compile-time constant — proves we are NOT using string.GetHashCode().

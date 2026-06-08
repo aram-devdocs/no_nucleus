@@ -32,7 +32,7 @@ namespace Nucleus.Core.Command
             {
                 if (op.IsTerminal) continue;
                 op.SquadIds.RemoveAll(sid => state.Squads.ById(sid) == null);
-                var current = ThreatNear(snapshot, op.Objective.Position, ResolveRadius(op.Objective.Kind, state.BrainConfig));
+                var current = ThreatNear(snapshot, op.Objective.Position, ResolveRadius(op.Objective.Kind, state.BrainConfig, state.Doctrine));
                 if (IsObjectiveResolved(op.Objective.Kind, current))
                 {
                     op.Status = OperationStatus.Complete;
@@ -68,14 +68,16 @@ namespace Nucleus.Core.Command
             state.Operations.RemoveAll(op => op.IsTerminal);
             state.Objectives.RemoveAll(o => o.Source == ObjectiveSource.Auto
                 && state.OperationFor(o.Id) == null
-                && !AnyThreatNear(snapshot, o.Position, ResolveRadius(o.Kind, state.BrainConfig)));
+                && !AnyThreatNear(snapshot, o.Position, ResolveRadius(o.Kind, state.BrainConfig, state.Doctrine)));
 
             // 3. New objectives from enemy clusters (AI-created only). AddAutoObjective re-ids them monotonically;
             //    tick-local generator ids would collide across ticks.
             if (state.AiCreatesObjectives)
             {
                 int autoCount = state.Objectives.Count(o => o.Source == ObjectiveSource.Auto);
-                int room = state.BrainConfig.MaxAutoObjectives - autoCount;
+                // FocusBroad widens/narrows how many objectives the AI juggles at once (ObjectiveSpread 1.0 = stock).
+                int effectiveMax = System.Math.Max(1, (int)System.Math.Round(state.BrainConfig.MaxAutoObjectives * state.Doctrine.ObjectiveSpread));
+                int room = effectiveMax - autoCount;
                 if (room > 0)
                 {
                     var planned = new List<Objective>();
@@ -100,7 +102,7 @@ namespace Nucleus.Core.Command
                     var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
                     if (squadIds.Count == 0) continue; // no force — recruit via ProductionNeeds below
                     fieldable.Add(obj.Id);
-                    var initial = ThreatNear(snapshot, obj.Position, ResolveRadius(obj.Kind, state.BrainConfig));
+                    var initial = ThreatNear(snapshot, obj.Position, ResolveRadius(obj.Kind, state.BrainConfig, state.Doctrine));
                     var op = new Operation(state.NextOperationId(), obj, squadIds)
                     {
                         Status = OperationStatus.Active,
@@ -206,7 +208,9 @@ namespace Nucleus.Core.Command
             bool covered = state.Objectives.Any(o => o.Kind == ObjectiveKind.DefendArea
                 && o.Position.HorizontalDistanceTo(home) <= state.BrainConfig.DefendRadius);
             if (covered) return null;
-            return new Objective("auto-def", ObjectiveKind.DefendArea, home, ObjectiveSource.Auto, priority: DefendPriority);
+            // DefenseBias scales how hard the AI prioritizes home defence over offence (DefendWeight 1.0 = stock).
+            return new Objective("auto-def", ObjectiveKind.DefendArea, home, ObjectiveSource.Auto,
+                priority: DefendPriority * state.Doctrine.DefendWeight);
         }
 
         // Fnv1a over the raw float bits, never string.GetHashCode (process-randomized → breaks save/resume).
@@ -222,8 +226,8 @@ namespace Nucleus.Core.Command
         }
 
         // DefendArea advances/prunes over the same DefendRadius it was raised at; a narrower lens would flap it.
-        private static float ResolveRadius(ObjectiveKind kind, BrainConfig cfg)
-            => kind == ObjectiveKind.DefendArea ? cfg.DefendRadius : cfg.CoverageRadius;
+        private static float ResolveRadius(ObjectiveKind kind, BrainConfig cfg, Doctrine doctrine)
+            => kind == ObjectiveKind.DefendArea ? cfg.DefendRadius : cfg.CoverageRadius * doctrine.Reach;
 
         private static ThreatPicture ThreatNear(WorldSnapshot snapshot, Vec3 point, float radius)
         {

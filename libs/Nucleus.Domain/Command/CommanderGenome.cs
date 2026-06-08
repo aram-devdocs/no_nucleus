@@ -6,11 +6,13 @@ namespace Nucleus.Core.Command
     /// (→ Doctrine.RiskTolerance) and Caution (→ Doctrine.ForceRatio); the rest feed the utility/evolution passes.</summary>
     public sealed class CommanderGenome
     {
+        // 0.5 is neutral for every gene: a genome of all-0.5 reproduces the stock doctrine exactly, and each
+        // gene's effect is centered so 0.5 means "no change". Archetypes (GenomeFactory) set distinct values.
         public float Aggression { get; set; } = 0.5f;     // willingness to attack / risk
         public float Caution { get; set; } = 0.5f;        // force-sizing & gate conservatism
-        public float ReconBias { get; set; } = 0.3f;      // scout before committing
-        public float DefenseBias { get; set; } = 0.4f;    // weight on defending home/assets
-        public float EconomyBias { get; set; } = 0.4f;    // husband funds / reinforce
+        public float ReconBias { get; set; } = 0.5f;      // scout before committing
+        public float DefenseBias { get; set; } = 0.5f;    // weight on defending home/assets
+        public float EconomyBias { get; set; } = 0.5f;    // husband funds / reinforce
         public float AirGroundPref { get; set; } = 0.5f;  // 0 ground-first .. 1 air-first
         public float FocusBroad { get; set; } = 0.5f;     // 0 focus-fire .. 1 broad-front
         public float Overextension { get; set; } = 0.5f;  // reach for distant targets
