@@ -18,7 +18,7 @@ namespace Nucleus
     public class CommanderPlugin : BaseUnityPlugin
     {
         public const string Guid = "com.nucleus.commander";
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.0"; // x-release-please-version
 
         internal static ManualLogSource Log;
         internal static CommanderRuntime Runtime;

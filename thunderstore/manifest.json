@@ -1,0 +1,9 @@
+{
+  "name": "NucleusDynamicWarfare",
+  "version_number": "0.1.0",
+  "website_url": "https://github.com/aram-devdocs/no_nucleus",
+  "description": "EARLY ALPHA: fly-and-command dynamic warfare for Nuclear Option. Issue orders to an AI battlespace from the cockpit. In active development - expect breakage.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2100"
+  ]
+}

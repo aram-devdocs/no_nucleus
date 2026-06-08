@@ -18,7 +18,7 @@ namespace Nucleus
     public class PlatformPlugin : BaseUnityPlugin
     {
         public const string Guid = "com.nucleus.platform";
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.0"; // x-release-please-version
 
         internal static ManualLogSource Log;
         internal static Host.ModHost Host;
@@ -66,6 +66,11 @@ namespace Nucleus
             Nucleus.Host.MissionAutoLoader.Maybe(Log);
             // Dev VISUAL harness: optionally drive the UI + capture screenshots in-mission (trigger-gated, no-op off).
             Nucleus.Host.VisualProbe.Maybe(Log);
+
+            // Nudge players to update the mod when a newer GitHub release exists (background, fail-silent, opt-out).
+            if (Config.Bind("Updates", "CheckOnStartup", true,
+                    "Check GitHub for a newer Nucleus release on startup and log an update nudge.").Value)
+                Nucleus.Host.UpdateChecker.CheckAsync(Version, Log);
         }
 
         // Game quitting: let each mod tear down (e.g. Warfare persists the campaign so a multi-hour war survives).

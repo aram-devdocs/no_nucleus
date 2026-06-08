@@ -9,8 +9,26 @@ mod is **Commander** — an indirect, *Majesty*-style command layer (drop an obj
 own units execute) with an autonomous theater AI. The north star is **Nucleus Dynamic Warfare**: a long-lived
 campaign where both factions run AI commanders that build forces and fight.
 
+> **EARLY ALPHA / in active development.** Expect rough edges, bugs and breaking changes. Pin a release if
+> you need stability; the current version lives in `libs/Directory.Build.props` (`<Version>`).
+
 > Unofficial community mod (BepInEx + HarmonyX), not affiliated with or endorsed by Shockfront Studios.
 > The game's assemblies are its IP — `lib/`, `.sandbox/`, `decompiled/` are gitignored and never shipped.
+
+## Install
+
+Nuclear Option needs **BepInEx 5** and the Nucleus plugins under `<game>/BepInEx/plugins/`. Pick one:
+
+- **GitHub-release installer (recommended).** Download `Nucleus.Installer.exe` from the
+  [latest release](https://github.com/aram-devdocs/no_nucleus/releases/latest) and run it — it locates your
+  Nuclear Option install (Steam App `2168680`), installs BepInEx if needed, deploys the plugins, and copies
+  the demo mission into your user Missions folder.
+- **Thunderstore.** Search for **Nucleus** and install with your mod manager (e.g. r2modman / Gale), then
+  launch the game through the manager's modded profile.
+- **From source.** Clone the repo and run `make sandbox` once, then `make dev` to build, deploy and launch.
+  Use `make mission` to (re)install the demo mission. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+After installing, start the game and pick **Nucleus Dynamic Warfare** in the singleplayer mission browser.
 
 ## Layout
 

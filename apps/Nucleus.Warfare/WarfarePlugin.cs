@@ -7,7 +7,7 @@ namespace Nucleus.Warfare
     /// <summary>The Warfare mod as its own BepInEx plugin. Registers through <see cref="ModPlatform"/>'s
     /// pending-buffer so load order relative to the host does not matter, and hands the mod a writable save
     /// directory under BepInEx config (never the game install).</summary>
-    [BepInPlugin("com.nucleus.warfare", "Nucleus Warfare", "0.1.0")]
+    [BepInPlugin("com.nucleus.warfare", "Nucleus Warfare", "0.1.0")] // x-release-please-version
     [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class WarfarePlugin : BaseUnityPlugin
     {

@@ -66,6 +66,31 @@ namespace Nucleus.Installer.Tests
         }
 
         [Fact]
+        public void Mission_installer_copies_bundled_missions_to_the_user_folder()
+        {
+            var root = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            var source = Path.Combine(root, "src");
+            var profile = Path.Combine(root, "profile");
+            var missionDir = Path.Combine(source, "missions", "Nucleus Dynamic Warfare");
+            Directory.CreateDirectory(missionDir);
+            File.WriteAllText(Path.Combine(missionDir, "Nucleus Dynamic Warfare.json"), "{}");
+            var prev = System.Environment.GetEnvironmentVariable("USERPROFILE");
+            try
+            {
+                System.Environment.SetEnvironmentVariable("USERPROFILE", profile);
+                var n = MissionInstaller.Install(source, _ => { });
+                Assert.Equal(1, n);
+                Assert.True(File.Exists(Path.Combine(profile, "AppData", "LocalLow", "Shockfront",
+                    "NuclearOption", "Missions", "Nucleus Dynamic Warfare", "Nucleus Dynamic Warfare.json")));
+            }
+            finally
+            {
+                System.Environment.SetEnvironmentVariable("USERPROFILE", prev);
+                Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
         public void Shipping_version_prefers_the_payload_stamp()
         {
             var src = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

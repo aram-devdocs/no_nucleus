@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": false,
+  "tag-separator": "-",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "packages": {
+    ".": {
+      "package-name": "nucleus",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "libs/Directory.Build.props",
+        "apps/Nucleus.Platform/PlatformPlugin.cs",
+        "apps/Nucleus.Commander/CommanderPlugin.cs",
+        "apps/Nucleus.Build/BuildPlugin.cs",
+        "apps/Nucleus.Squad/SquadPlugin.cs",
+        "apps/Nucleus.Warfare/WarfarePlugin.cs"
+      ]
+    }
+  }
+}

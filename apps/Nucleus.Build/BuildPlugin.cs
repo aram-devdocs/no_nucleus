@@ -10,7 +10,7 @@ namespace Nucleus.Build
     /// installs its handler, so load order does not matter. (Soft dependency is forward-compat for when the
     /// platform is extracted as its own com.nucleus.platform plugin.)
     /// </summary>
-    [BepInPlugin("com.nucleus.build", "Nucleus Build", "0.1.0")]
+    [BepInPlugin("com.nucleus.build", "Nucleus Build", "0.1.0")] // x-release-please-version
     [BepInDependency(ModPlatform.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class BuildPlugin : BaseUnityPlugin
     {

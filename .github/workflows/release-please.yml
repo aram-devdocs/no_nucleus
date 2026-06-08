@@ -1,0 +1,116 @@
+name: Release Please
+
+# Conventional-commit driven releases. On push to master, release-please maintains a release PR; merging it
+# creates the GitHub Release + tag. In the SAME run (so no extra PAT is needed — a token-created tag would not
+# cascade to other workflows), the publish jobs fan out to GitHub release assets, NuGet, Thunderstore, and the
+# Steam Workshop mission. Every publish job NO-OPS cleanly when its prerequisite (game DLLs / a secret) is absent,
+# so the pipeline is green before any secret is configured. Plugin-bearing artifacts need lib/Assembly-CSharp.dll
+# (the licensed game IP, gitignored) — present only on a runner provisioned via scripts/setup-sandbox.ps1.
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # GitHub Release assets: the installer + plugin folders + mission, zipped. Needs game DLLs to build plugins.
+  github-assets:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Package + upload release assets (only when game DLLs are present)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          if (-not (Test-Path 'lib/Assembly-CSharp.dll')) {
+            Write-Host 'lib/Assembly-CSharp.dll absent — plugins cannot build here; skipping release assets.'
+            Write-Host 'Provision lib/ on a self-hosted runner (setup-sandbox.ps1) or run scripts/package-release.ps1 locally.'
+            exit 0
+          }
+          ./scripts/package-release.ps1
+          gh release upload "$env:TAG" (Get-ChildItem artifacts/release/* -File | ForEach-Object FullName) --clobber
+
+  nuget:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Pack + push SDK (only when game DLLs are present)
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ ! -f lib/Assembly-CSharp.dll ]; then
+            echo "lib/Assembly-CSharp.dll absent — SDK libs cannot build here; skipping NuGet."
+            exit 0
+          fi
+          dotnet build Nucleus.sln -c Release
+          dotnet pack Nucleus.sln -c Release --no-build -o artifacts/nupkg
+          if [ -n "$NUGET_API_KEY" ]; then
+            dotnet nuget push "artifacts/nupkg/*.nupkg" --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json --skip-duplicate
+          else
+            echo "NUGET_API_KEY not set — packed but did not push."
+          fi
+
+  thunderstore:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Build + (gated) publish Thunderstore package
+        shell: pwsh
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
+        run: |
+          if (-not (Test-Path 'lib/Assembly-CSharp.dll')) {
+            Write-Host 'lib/Assembly-CSharp.dll absent — plugins cannot build here; skipping Thunderstore.'
+            exit 0
+          }
+          ./scripts/package-thunderstore.ps1
+
+  steam-workshop:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish Steam Workshop mission update (gated on STEAM_* secrets)
+        shell: pwsh
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_CONFIG_VDF: ${{ secrets.STEAM_CONFIG_VDF }}
+          STEAM_WORKSHOP_ITEM_ID: ${{ secrets.STEAM_WORKSHOP_ITEM_ID }}
+        run: |
+          if (-not $env:STEAM_WORKSHOP_ITEM_ID -or -not $env:STEAM_USERNAME) {
+            Write-Host 'STEAM_* secrets not set — skipping Workshop publish (first publish is done in-game).'
+            exit 0
+          }
+          ./scripts/publish-workshop.ps1

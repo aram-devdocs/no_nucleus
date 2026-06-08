@@ -82,6 +82,7 @@ namespace Nucleus.Installer
             if (!dryRun)
             {
                 VersionStamp.Write(game, version);
+                MissionInstaller.Install(source, Log);   // installer-only users get the mission too
                 var (toolExe, iconPath) = PersistTools(game, source);
                 if (!noShortcut)
                     ShortcutFactory.Create(toolExe, $"launch --game \"{game}\"", game, iconPath, Log);

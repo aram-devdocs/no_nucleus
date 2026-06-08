@@ -1,0 +1,30 @@
+// Steam Workshop item descriptor for `steamcmd +workshop_build_item`.
+// This is a TEMPLATE: scripts/publish-workshop.ps1 fills the {PLACEHOLDERS} and
+// writes the resolved copy to the staging dir before invoking steamcmd. Do NOT
+// edit the placeholders by hand. Steam VDF uses tab-separated "key" "value" pairs.
+//
+//   appid           Nuclear Option Steam AppId (fixed: 2168680).
+//   publishedfileid The Workshop item id. MUST be 0 for the very first publish so
+//                   Steam mints a new id; afterwards set to the real id so updates
+//                   target the existing item. The publish script supplies this from
+//                   STEAM_WORKSHOP_ITEM_ID / -PublishedFileId. See note at bottom.
+//   contentfolder   Absolute path to the staged content dir (the mission folder).
+//   previewfile     Absolute path to the 256x256 preview image (PNG).
+//   visibility      0=public, 1=friends-only, 2=private, 3=unlisted.
+"workshopitem"
+{
+	"appid"		"2168680"
+	"publishedfileid"		"{PUBLISHEDFILEID}"
+	"contentfolder"		"{CONTENTFOLDER}"
+	"previewfile"		"{PREVIEWFILE}"
+	"visibility"		"0"
+	"title"		"Nucleus Dynamic Warfare [EARLY ALPHA]"
+	"description"		"[b][EARLY ALPHA][/b] Nucleus is in active development. Expect bugs, breaking changes, and missing features. This mission is a data-only discovery vehicle for the Nucleus command/AI platform — feedback welcome, but do not rely on save/mission stability yet.\n\n[b]Nucleus Dynamic Warfare[/b] is a dynamic, AI-driven warfare mission for Nuclear Option, built on the open-source Nucleus modding platform (a BepInEx mod).\n\n[b]Requirements[/b]\nThis mission needs the Nucleus platform mod installed. The mission alone will not function without it.\n\n[b]Install (pick one)[/b]\n[olist]\n[*][b]GitHub release installer (recommended)[/b] — download Nucleus.Installer.exe from the latest GitHub release and run it; it installs BepInEx + the Nucleus plugins into your Nuclear Option install automatically.\n[*][b]Thunderstore[/b] — install via the Thunderstore mod manager (search for Nucleus).\n[*][b]From source[/b] — clone the repo, run the build, and deploy the BepInEx/plugins/ output into your game folder. See the repo README.\n[/olist]\n\n[b]Repository[/b]\nhttps://github.com/aram-devdocs/no_nucleus\n\nSource, issues, and the installer live there. Contributions and bug reports are appreciated during the alpha."
+	"changenote"		"{CHANGENOTE}"
+}
+
+// FIRST PUBLISH: the very first Workshop upload for this item should be done IN-GAME
+// (Nuclear Option's mission browser -> publish to Workshop) so Steam creates the item
+// and assigns a published-file id under your account. Copy that id into the
+// STEAM_WORKSHOP_ITEM_ID secret / -PublishedFileId param; every subsequent publish then
+// goes through scripts/publish-workshop.ps1 (steamcmd) to update the existing item.
