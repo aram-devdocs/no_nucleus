@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nucleus.Core.Model;
+using Nucleus.Presentation;
 using Cmd = Nucleus.Core.Command;
 using TMPro;
 using UnityEngine;
@@ -247,25 +248,13 @@ namespace Nucleus.Ui
         public void RenderScoreboard(Cmd.WarfareCampaign.Scoreboard b)
         {
             if (_scoreBlu == null) return;
-            // Bars read as "distance to defeat": score over the starting pool (WarScore starts at 1000 and only
-            // falls), so a half-full bar means half the war's attrition budget is gone.
-            const float denom = 1000f;
-
-            _scoreBlu.text = $"{b.BluforName} [{(b.BluforAi ? "AI" : "YOU")}]  {b.BluforScore:0}  ·  ${b.BluforFunds:0}  ·  -{b.BluforUnitsLost}u/-{b.BluforBasesLost}b";
-            _scoreOp.text = $"{b.OpforName} [{(b.OpforAi ? "AI" : "YOU")}]  {b.OpforScore:0}  ·  ${b.OpforFunds:0}  ·  -{b.OpforUnitsLost}u/-{b.OpforBasesLost}b";
-            SetBar(_scoreBluBar, b.BluforScore / denom);
-            SetBar(_scoreOpBar, b.OpforScore / denom);
-
-            if (b.Over)
-            {
-                _scoreStatus.text = b.WinnerName != null ? $"WAR OVER — {b.WinnerName} WINS" : UiStrings.WarOverDraw;
-                _scoreStatus.color = _theme.Active;
-            }
-            else
-            {
-                _scoreStatus.text = UiStrings.WarInProgress;
-                _scoreStatus.color = _theme.Muted;
-            }
+            var vm = PresentationBuilder.BuildScoreboard(b);
+            _scoreBlu.text = vm.BluforLine;
+            _scoreOp.text = vm.OpforLine;
+            SetBar(_scoreBluBar, vm.BluforFraction);
+            SetBar(_scoreOpBar, vm.OpforFraction);
+            _scoreStatus.text = vm.Status;
+            _scoreStatus.color = Resolve(vm.StatusColor, default);
         }
 
         private static void SetBar(Image bar, float fraction)
@@ -297,219 +286,125 @@ namespace Nucleus.Ui
             _kindButtons.Add(new KindButton { Img = btn.GetComponent<Image>(), Kind = kind });
         }
 
-        /// <summary>Render the objective palette, live objective list, and selected-objective editor from the same
-        /// operations read-model the map markers use, so panel and map agree.</summary>
+        /// <summary>Render the objective list + selected-objective editor + assign-force list from the pure
+        /// <see cref="PanelVm"/>. The panel keeps only the palette highlight + armed-drop hint (UI-local arm state).</summary>
         public void RenderObjectives(Cmd.HqSnapshot hq)
         {
             if (_objContainer == null) return;
+            var vm = PresentationBuilder.Build(hq, new PanelInteraction(_armedObjective, _selectedObjectiveId), null, 0f);
 
             foreach (var kb in _kindButtons)
                 kb.Img.color = _armedObjective == kb.Kind ? _theme.Active : _theme.ButtonIdle;
 
             if (_objHint != null)
-            {
                 _objHint.text = _armedObjective.HasValue
                     ? $"Drop {ObjectiveVisuals.Name(_armedObjective.Value)}: click a spot on the map."
                     : UiStrings.ObjectivesHintArmedPrompt;
-            }
 
-            var ops = hq?.Operations;
-            int count = ops?.Count ?? 0;
-            EnsureEntityRows(_objRows, _objContainer, System.Math.Min(count, 8), "Obj",
+            FillRows(_objRows, _objContainer, vm.ObjectiveRows, "Obj",
                 id => { _selectedObjectiveId = id; _onSelectObjective?.Invoke(id); });
-            for (int i = 0; i < _objRows.Count; i++)
-            {
-                var r = _objRows[i];
-                if (ops != null && i < count && i < 8)
-                {
-                    var op = ops[i];
-                    r.Id = op.ObjectiveId;
-                    bool sel = op.ObjectiveId == _selectedObjectiveId;
-                    string owner = op.PlayerOwned ? "you" : "AI";
-                    r.Label.text = $"{(sel ? "▸ " : "")}{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} · {ObjectiveVisuals.PhaseLabel(op.Phase)} · {op.SquadCount} sq [{owner}]";
-                    r.Label.color = sel ? _theme.Active : _theme.Text;
-                    r.BtnLabel.text = "SELECT";
-                    r.BtnImg.color = sel ? _theme.Active : _theme.ButtonIdle;
-                    r.Go.SetActive(true);
-                    _objRows[i] = r;
-                }
-                else r.Go.SetActive(false);
-            }
 
-            if (_objEditor != null)
-            {
-                if (_selectedObjectiveId == null) { _objEditor.text = UiStrings.NoObjectiveSelected; }
-                else
-                {
-                    string text = "Editing selected objective.";
-                    if (ops != null)
-                        foreach (var o in ops)
-                            if (o.ObjectiveId == _selectedObjectiveId)
-                            {
-                                string owner = o.PlayerOwned ? "yours" : "AI";
-                                text = $"{ObjectiveVisuals.Name(o.Kind)} · {ObjectiveVisuals.PhaseLabel(o.Phase)} · {o.SquadCount} squad{(o.SquadCount == 1 ? "" : "s")} · {owner} · Priority {o.Priority:0.#} (PRIO -/+)";
-                                break;
-                            }
-                    _objEditor.text = text;
-                }
-            }
+            if (_objEditor != null) _objEditor.text = vm.ObjectiveEditor ?? UiStrings.NoObjectiveSelected;
 
-            RenderAssignList(hq);
-        }
-
-        // Free, suitable squads for the selected objective, each with an ASSIGN button. (Release is the squad
-        // card's AI/YOU toggle, not here.)
-        private void RenderAssignList(Cmd.HqSnapshot hq)
-        {
-            if (_assignContainer == null) return;
-            var ops = hq?.Operations;
-            var squads = hq?.Squads;
-
-            Cmd.ObjectiveKind? selKind = null;
-            if (_selectedObjectiveId != null && ops != null)
-                foreach (var o in ops) if (o.ObjectiveId == _selectedObjectiveId) { selKind = o.Kind; break; }
-
-            if (selKind == null || squads == null)
-            {
-                if (_assignHdr != null) _assignHdr.text = "";
-                foreach (var r in _assignRows) r.Go.SetActive(false);
-                return;
-            }
-
-            var suitable = Cmd.Families.SuitableFor(selKind.Value);
-            var candidates = new List<Cmd.SquadView>();
-            foreach (var s in squads)
-                if (string.IsNullOrEmpty(s.AssignedOperationId) && suitable.Contains(s.Family))
-                    candidates.Add(s);
-
-            if (_assignHdr != null)
-                _assignHdr.text = candidates.Count > 0 ? "ASSIGN FORCE → selected objective" : "ASSIGN FORCE — no free suitable squads";
-
-            int shown = System.Math.Min(candidates.Count, 4);
-            EnsureEntityRows(_assignRows, _assignContainer, shown, "Assign",
+            if (_assignHdr != null) _assignHdr.text = vm.AssignHeader;
+            FillRows(_assignRows, _assignContainer, vm.AssignRows, "Assign",
                 squadId => { if (_selectedObjectiveId != null) _onAssignSquad?.Invoke(_selectedObjectiveId, squadId); });
-            for (int i = 0; i < _assignRows.Count; i++)
+        }
+
+        // Map a pure VM row list onto a pooled EntityRow list: grow the pool, apply each row, hide the rest.
+        private void FillRows(List<EntityRow> pool, Transform container, IReadOnlyList<RowVm> rows, string tag, Action<string> onClick)
+        {
+            if (container == null) return;
+            EnsureEntityRows(pool, container, rows.Count, tag, onClick);
+            for (int i = 0; i < pool.Count; i++)
             {
-                var r = _assignRows[i];
-                if (i < shown)
-                {
-                    var s = candidates[i];
-                    r.Id = s.Id;
-                    string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
-                    r.Label.text = $"{s.Name} · {comp}";
-                    r.BtnLabel.text = "ASSIGN";
-                    r.BtnImg.color = _theme.Active;
-                    r.Go.SetActive(true);
-                    _assignRows[i] = r;
-                }
-                else r.Go.SetActive(false);
+                if (i < rows.Count) { var r = pool[i]; r.Id = rows[i].Id; ApplyRow(r, rows[i]); pool[i] = r; }
+                else pool[i].Go.SetActive(false);
             }
         }
 
-        /// <summary>Render the two command toggles + the HQ readout.</summary>
+        private void ApplyRow(EntityRow r, RowVm vm)
+        {
+            r.Label.text = (vm.ShowKindDot ? Dot(vm.Kind) : "") + vm.Label;
+            r.Label.color = Resolve(vm.LabelColor, vm.Kind);
+            r.BtnLabel.text = vm.Button;
+            r.BtnImg.color = Resolve(vm.ButtonColor, vm.Kind);
+            var btn = r.BtnImg.GetComponent<Button>();
+            if (btn != null) btn.interactable = vm.ButtonEnabled;
+            r.Go.SetActive(true);
+        }
+
+        // Resolve a semantic VM color role to the concrete palette color (kind colors via ObjectiveVisuals).
+        private Color Resolve(UiColor c, Cmd.ObjectiveKind kind)
+        {
+            switch (c)
+            {
+                case UiColor.Muted: return _theme.Muted;
+                case UiColor.Active: return _theme.Active;
+                case UiColor.Idle: return _theme.ButtonIdle;
+                case UiColor.Accent: return _theme.Accent;
+                case UiColor.Danger: return _theme.Danger;
+                case UiColor.Warn: return _theme.WarnText;
+                case UiColor.Kind: return ObjectiveVisuals.Color(kind);
+                default: return _theme.Text;
+            }
+        }
+
+        /// <summary>Render the two command toggles + ops/squads/build/feed from the pure <see cref="PanelVm"/>.</summary>
         public void RenderHq(Cmd.HqSnapshot hq, Cmd.ConvoyCatalog catalog, float funds)
         {
-            bool running = hq != null;
+            var vm = PresentationBuilder.Build(hq, new PanelInteraction(_armedObjective, _selectedObjectiveId), catalog, funds);
 
             if (_aiCmdImg != null && hq != null)
             {
-                _aiCommanderOn = hq.AiCreatesObjectives;
-                _autoFillOn = hq.AiAutoFill;
+                _aiCommanderOn = vm.AiCommanderOn;
+                _autoFillOn = vm.AiAutoFillOn;
                 _aiCmdImg.color = _aiCommanderOn ? _theme.Active : _theme.ButtonIdle;
                 _autoFillImg.color = _autoFillOn ? _theme.Active : _theme.ButtonIdle;
                 if (_aiCmdLabel != null) _aiCmdLabel.text = _aiCommanderOn ? "AI COMMANDER: ON" : "AI COMMANDER: OFF";
                 if (_autoFillLabel != null) _autoFillLabel.text = _autoFillOn ? "AI AUTO-FILL: ON" : "AI AUTO-FILL: OFF";
             }
 
-            // Affordability is net of already-queued spend, so the BUY tint agrees with the "After" warning below.
-            if (_buildContainer != null) RenderBuildRows(catalog, funds, hq?.QueuedCost ?? 0f);
-            if (_buildFunds != null)
+            if (_buildContainer != null)
             {
-                float after = funds - hq.QueuedCost;
-                _buildFunds.text = $"Funds: {funds:0}  ·  Queued: {hq.QueuedCost:0}  ·  After: {after:0}";
-                _buildFunds.color = after < 0f ? _theme.WarnText : _theme.Accent;
+                if (_buildEmpty != null) _buildEmpty.gameObject.SetActive(vm.BuildEmpty);
+                FillRows(_buildRows, _buildContainer, vm.BuildRows, "Build", id => _onBuyConvoy?.Invoke(id));
             }
-            if (_buildStatus != null)
+            if (_buildFunds != null) { _buildFunds.text = vm.BuildFunds; _buildFunds.color = Resolve(vm.BuildFundsColor, default); }
+            if (_buildStatus != null) _buildStatus.text = vm.BuildStatus ?? UiStrings.NoOrdersInProgress;
+
+            if (_opsContainer != null)
             {
-                var sb = new System.Text.StringBuilder();
-                if (hq != null)
-                {
-                    foreach (var line in hq.Production.Take(3)) sb.AppendLine(line);
-                    foreach (var e in hq.Recent)
-                        if (e.Kind == Cmd.ReportKind.ProductionQueued) { sb.AppendLine("· " + e.Text); break; }
-                }
-                _buildStatus.text = sb.Length > 0 ? sb.ToString().TrimEnd()
-                    : UiStrings.NoOrdersInProgress;
+                if (_opsEmpty != null) _opsEmpty.gameObject.SetActive(vm.OperationRows.Count == 0);
+                FillOpRows(vm.OperationRows);
+            }
+            if (_squadsContainer != null)
+            {
+                if (_squadsEmpty != null) _squadsEmpty.gameObject.SetActive(vm.SquadsEmpty);
+                FillRows(_squadRows, _squadsContainer, vm.SquadRows, "Squad", id => _onToggleSquadManual?.Invoke(id));
             }
 
-            if (_opsContainer != null) RenderOpRows(running ? hq.Operations : null);
-            if (_squadsContainer != null) RenderSquadRows(running ? hq.Squads : null);
-
-            if (_hqBody != null)
-            {
-                if (!running) { _hqBody.text = ""; }
-                else
-                {
-                    var sb = new System.Text.StringBuilder();
-                    foreach (var line in hq.Production.Take(3)) sb.AppendLine(line);
-                    foreach (var e in hq.Recent.Take(5)) sb.AppendLine($"· {e.Text}");
-                    _hqBody.text = sb.ToString().TrimEnd();
-                }
-            }
+            if (_hqBody != null) _hqBody.text = vm.Feed;
         }
 
-        private void RenderSquadRows(System.Collections.Generic.IReadOnlyList<Cmd.SquadView> squads)
+        // Operations use their own pool struct (OpRow) + toggle wiring, so they get a parallel filler.
+        private void FillOpRows(IReadOnlyList<RowVm> rows)
         {
-            int count = squads?.Count ?? 0;
-            if (_squadsEmpty != null) _squadsEmpty.gameObject.SetActive(count == 0);
-            EnsureEntityRows(_squadRows, _squadsContainer, System.Math.Min(count, 6), "Squad",
-                id => _onToggleSquadManual?.Invoke(id));
-            for (int i = 0; i < _squadRows.Count; i++)
+            EnsureOpRows(rows.Count);
+            for (int i = 0; i < _opRows.Count; i++)
             {
-                var r = _squadRows[i];
-                if (squads != null && i < count && i < 6)
+                if (i < rows.Count)
                 {
-                    var s = squads[i];
-                    r.Id = s.Id;
-                    string comp = !string.IsNullOrEmpty(s.Composition) ? s.Composition : $"{s.Family} ×{s.Strength}";
-                    string need = s.TargetStrength > s.Strength ? $" ({s.Strength}/{s.TargetStrength})" : "";
-                    r.Label.text = $"{s.Name} · {comp}{need} — {s.Activity}";
-                    r.Label.color = s.Depleted ? _theme.WarnText : _theme.Text;
-                    bool manual = s.Autonomy == Cmd.AutonomyLevel.Manual;
-                    r.BtnLabel.text = manual ? "YOU" : "AI";
-                    r.BtnImg.color = manual ? _theme.Accent : _theme.Active;
+                    var r = _opRows[i]; var vm = rows[i];
+                    r.OpId = vm.Id;
+                    r.Label.text = (vm.ShowKindDot ? Dot(vm.Kind) : "") + vm.Label;
+                    r.Label.color = Resolve(vm.LabelColor, vm.Kind);
+                    r.BtnLabel.text = vm.Button;
+                    r.BtnImg.color = Resolve(vm.ButtonColor, vm.Kind);
                     r.Go.SetActive(true);
-                    _squadRows[i] = r;
+                    _opRows[i] = r;
                 }
-                else r.Go.SetActive(false);
-            }
-        }
-
-        private void RenderBuildRows(Cmd.ConvoyCatalog catalog, float funds, float queuedCost)
-        {
-            var opts = catalog?.Options;
-            int count = opts?.Count ?? 0;
-            if (_buildEmpty != null) _buildEmpty.gameObject.SetActive(count == 0);
-            EnsureEntityRows(_buildRows, _buildContainer, System.Math.Min(count, 6), "Build",
-                id => _onBuyConvoy?.Invoke(id));
-            for (int i = 0; i < _buildRows.Count; i++)
-            {
-                var r = _buildRows[i];
-                if (opts != null && i < count && i < 6)
-                {
-                    var o = opts[i];
-                    r.Id = o.Name;
-                    string contents = string.IsNullOrEmpty(o.Contents) ? "" : $" [{o.Contents}]";
-                    r.Label.text = $"{o.Name}{contents} · {o.Cost:0}";
-                    bool afford = (funds - queuedCost) >= o.Cost;
-                    r.BtnLabel.text = "BUY";
-                    r.BtnImg.color = afford ? _theme.Active : _theme.ButtonIdle;   // green = go, gray = can't afford
-                    var buyBtn = r.BtnImg.GetComponent<Button>();
-                    if (buyBtn != null) buyBtn.interactable = afford;              // can't click into debt
-                    r.Go.SetActive(true);
-                    _buildRows[i] = r;
-                }
-                else r.Go.SetActive(false);
+                else _opRows[i].Go.SetActive(false);
             }
         }
 
@@ -536,32 +431,6 @@ namespace Nucleus.Ui
                 btn.onClick.AddListener(() => { var id = pool[idx].Id; if (id != null) onClick?.Invoke(id); });
                 pool.Add(new EntityRow { Go = go, Label = label, BtnImg = btn.GetComponent<Image>(),
                     BtnLabel = btn.GetComponentInChildren<TextMeshProUGUI>() });
-            }
-        }
-
-        private void RenderOpRows(IReadOnlyList<Nucleus.Core.Command.OperationView> ops)
-        {
-            int count = ops?.Count ?? 0;
-            if (_opsEmpty != null) _opsEmpty.gameObject.SetActive(count == 0);
-            EnsureOpRows(System.Math.Min(count, 5));
-            for (int i = 0; i < _opRows.Count; i++)
-            {
-                if (ops != null && i < count && i < 5)
-                {
-                    var op = ops[i];
-                    var r = _opRows[i];
-                    r.OpId = op.Id;
-                    r.Label.text = $"{Dot(op.Kind)}{ObjectiveVisuals.Name(op.Kind)} — {ObjectiveVisuals.PhaseLabel(op.Phase)} [{ObjectiveVisuals.StatusLabel(op.Status)}]";
-                    bool manual = op.Autonomy == Nucleus.Core.Command.AutonomyLevel.Manual;
-                    r.BtnLabel.text = manual ? "YOU" : "AI";
-                    r.BtnImg.color = manual ? _theme.Accent : _theme.Active;
-                    r.Go.SetActive(true);
-                    _opRows[i] = r;
-                }
-                else
-                {
-                    _opRows[i].Go.SetActive(false);
-                }
             }
         }
 

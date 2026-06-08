@@ -40,16 +40,6 @@ namespace Nucleus.Ui
         public static string Name(Cmd.ObjectiveKind kind) => Cmd.ObjectiveText.Name(kind);
 
         /// <summary>Readable operation status (not the raw enum): Planning → "Forming up", etc.</summary>
-        public static string StatusLabel(Cmd.OperationStatus s)
-        {
-            switch (s)
-            {
-                case Cmd.OperationStatus.Planning: return "Forming up";
-                case Cmd.OperationStatus.Active:   return "Active";
-                case Cmd.OperationStatus.Complete: return "Done";
-                case Cmd.OperationStatus.Failed:   return "Failed";
-                default:                           return s.ToString();
-            }
-        }
+        public static string StatusLabel(Cmd.OperationStatus s) => Cmd.OperationText.StatusLabel(s);
     }
 }

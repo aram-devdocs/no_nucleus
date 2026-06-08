@@ -23,5 +23,6 @@
     <ProjectReference Include="..\Nucleus.Domain\Nucleus.Domain.csproj" />
     <ProjectReference Include="..\Nucleus.Production\Nucleus.Production.csproj" />
     <ProjectReference Include="..\Nucleus.Campaign\Nucleus.Campaign.csproj" />
+    <ProjectReference Include="..\Nucleus.Presentation\Nucleus.Presentation.csproj" />
   </ItemGroup>
 </Project>

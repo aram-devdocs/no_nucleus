@@ -46,5 +46,6 @@ namespace Nucleus.Ui
         public const float RingThickness = 3f;        // range-ring band (px in the 128px sprite)
         public const float DashedRingThickness = 4f;
         public const int RingDashes = 32;
+        public const float LineOpacity = 0.6f;        // squad status lines — translucent so they don't block the map
     }
 }

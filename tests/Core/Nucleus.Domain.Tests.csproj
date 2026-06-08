@@ -24,5 +24,6 @@
     <ProjectReference Include="..\..\libs\Nucleus.Squads\Nucleus.Squads.csproj" />
     <ProjectReference Include="..\..\libs\Nucleus.Production\Nucleus.Production.csproj" />
     <ProjectReference Include="..\..\libs\Nucleus.Campaign\Nucleus.Campaign.csproj" />
+    <ProjectReference Include="..\..\libs\Nucleus.Presentation\Nucleus.Presentation.csproj" />
   </ItemGroup>
 </Project>

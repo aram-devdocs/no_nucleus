@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nucleus.Presentation</AssemblyName>
+    <Description>Nucleus (Nuclear Option modding) — the pure presentation layer: turns the engine-free HqSnapshot + UI interaction state into render-ready view-models (row text + semantic color roles). No Unity, unit-testable; the Ui lib renders these without display logic of its own.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nucleus.Domain\Nucleus.Domain.csproj" />
+    <ProjectReference Include="..\Nucleus.Squads\Nucleus.Squads.csproj" />
+    <ProjectReference Include="..\Nucleus.Production\Nucleus.Production.csproj" />
+    <ProjectReference Include="..\Nucleus.Campaign\Nucleus.Campaign.csproj" />
+  </ItemGroup>
+</Project>
