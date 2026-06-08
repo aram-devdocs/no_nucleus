@@ -57,9 +57,12 @@ namespace Nucleus.Core.Command
                     if (group.Threat.HasAirDefense) threatBump += 0.5f;
                     if (group.Threat.HasRadar) threatBump += 0.25f;
                 }
+                // AirGroundPref nudges an air-first commander toward enemy aircraft pockets (neutral at 0.5).
+                if (group.Dominant == RoleFamily.AirCombat)
+                    threatBump += ((doctrine?.AirPreference ?? 0.5f) - 0.5f);
 
                 float score = strategic + proximity + threatBump;
-                ranked.Add(new ScoredTarget(group, score, SuggestKind(group)));
+                ranked.Add(new ScoredTarget(group, score, SuggestKind(group, doctrine)));
             }
 
             return ranked
@@ -69,10 +72,17 @@ namespace Nucleus.Core.Command
                 .ToList();
         }
 
-        // Holdable ground (armor/infantry) -> Capture; everything else -> Destroy. Recon-on-low-confidence is
-        // left to the roster-aware pass (a pure-accuracy rule starves a force with no scout units).
-        private static ObjectiveKind SuggestKind(ThreatGroup group)
+        // Aircraft pocket -> contest the air; a pocket we can't read -> scout it (ReconBias widens that to
+        // mostly-fuzzy pockets); holdable ground (armor/infantry) -> Capture; everything else -> Destroy.
+        private static ObjectiveKind SuggestKind(ThreatGroup group, Doctrine doctrine)
         {
+            if (group.Dominant == RoleFamily.AirCombat) return ObjectiveKind.ControlAirspace;
+
+            bool allFuzzy = group.InaccurateCount >= group.Count;
+            bool mostlyFuzzy = group.InaccurateCount * 2 >= group.Count;
+            float reconWeight = doctrine?.ReconWeight ?? 1.0f;
+            if (allFuzzy || (mostlyFuzzy && reconWeight >= 1.2f)) return ObjectiveKind.Recon;
+
             switch (group.Dominant)
             {
                 case RoleFamily.Armor:

@@ -58,7 +58,10 @@ namespace Nucleus.Game
                 var gap = new Core.Command.Composition();
                 foreach (var need in _auto.ProductionNeeds)
                     foreach (var kv in need.Items) gap.Add(kv.Key, kv.Value);
-                foreach (var opt in ProductionPlanner.Plan(gap, _catalog, hq.factionFunds))
+                // EconomyBias -> EconomyWeight: a hoarder commits only a fraction of its funds per cycle
+                // (1.0 = spend freely, the stock/default). Clamped so it never exceeds the funds on hand.
+                float economy = _auto.Doctrine.EconomyWeight < 0f ? 0f : _auto.Doctrine.EconomyWeight > 1f ? 1f : _auto.Doctrine.EconomyWeight;
+                foreach (var opt in ProductionPlanner.Plan(gap, _catalog, hq.factionFunds * economy))
                 {
                     _prodQueue.Enqueue(new PurchaseRequest(opt.Name, opt.Cost, null, RoleFamily.Armor, opt.Contents, manual: false));
                     _auto.Log.Append(new ReportEvent(UnityEngine.Time.unscaledTime,

@@ -45,6 +45,35 @@ namespace Nucleus.Sim.Tests
         }
 
         [Fact]
+        public void Aircraft_pocket_becomes_a_ControlAirspace_objective()
+        {
+            var known = new List<EnemyView>
+            {
+                Enemy("f1", 4000f, 0f, Role.Fighter, false, UnitClass.Aircraft, 3f),
+                Enemy("f2", 4100f, 0f, Role.Fighter, false, UnitClass.Aircraft, 3f),
+            };
+            var objs = CommanderBrain.GenerateObjectives(known, new List<Objective>(), new BrainConfig(),
+                new Vec3(0, 0, 0), new Doctrine());
+            Assert.Contains(objs, o => o.Kind == ObjectiveKind.ControlAirspace);
+        }
+
+        [Fact]
+        public void Unidentified_pocket_becomes_a_Recon_objective()
+        {
+            // Every contact in the pocket is low-confidence (accurate:false) -> scout it before committing.
+            var fuzzy = new List<EnemyView>
+            {
+                new EnemyView("u1", new Vec3(4000f, 0f, 0f), UnitClass.GroundVehicle,
+                    new UnitCapability(Role.Armor, true, false, false, false, false), accurate: false, strategicPriority: 2f, armorTier: 3),
+                new EnemyView("u2", new Vec3(4100f, 0f, 0f), UnitClass.GroundVehicle,
+                    new UnitCapability(Role.Armor, true, false, false, false, false), accurate: false, strategicPriority: 2f, armorTier: 3),
+            };
+            var objs = CommanderBrain.GenerateObjectives(fuzzy, new List<Objective>(), new BrainConfig(),
+                new Vec3(0, 0, 0), new Doctrine());
+            Assert.Contains(objs, o => o.Kind == ObjectiveKind.Recon);
+        }
+
+        [Fact]
         public void Threat_to_home_base_triggers_a_DefendArea()
         {
             var state = new CommanderState { HomeBase = new Vec3(1000f, 0f, 1000f) };
