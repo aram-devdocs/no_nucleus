@@ -76,7 +76,7 @@ namespace Nucleus.Architecture.Tests
     /// <summary>Pure, data-driven architecture rules (no I/O) so they're independently testable.</summary>
     internal static class Rules
     {
-        public static readonly string[] PureLibs = { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign", "Nucleus.Sim" };
+        public static readonly string[] PureLibs = { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign", "Nucleus.Sim", "Nucleus.Presentation" };
         public static readonly string[] Apps = { "Nucleus.Platform", "Nucleus.Commander", "Nucleus.Build", "Nucleus.Squad", "Nucleus.Warfare" };
 
         public static readonly Dictionary<string, HashSet<string>> AllowedNucleusRefs = new()
@@ -91,8 +91,10 @@ namespace Nucleus.Architecture.Tests
             // GameSdk is the engine-access integration layer: it converts game state into the domain types
             // and executes their outputs, so it may reference all four pure domain libs (but no app).
             ["Nucleus.GameSdk"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" },
-            // Ui hosts the shared campaign panel (CommanderPanel), so it reads the campaign read models.
-            ["Nucleus.Ui"] = new() { "Nucleus.Domain", "Nucleus.Production", "Nucleus.Campaign" },
+            // The pure presentation layer: turns the campaign read-models into render-ready view-models.
+            ["Nucleus.Presentation"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" },
+            // Ui hosts the shared campaign panel (CommanderPanel) + renders the Presentation view-models.
+            ["Nucleus.Ui"] = new() { "Nucleus.Domain", "Nucleus.Production", "Nucleus.Campaign", "Nucleus.Presentation" },
             // The headless sim/self-play lib runs the pure brain over a seeded battlefield — sits atop Campaign
             // (whose closure is Domain+Squads+Production), no Unity (consumed by tests + tools/Nucleus.Evolve).
             ["Nucleus.Sim"] = new() { "Nucleus.Domain", "Nucleus.Squads", "Nucleus.Production", "Nucleus.Campaign" },

@@ -277,7 +277,7 @@ namespace Nucleus.Ui
             rt.localPosition = new Vector3(a.X, a.Y, 0f);
             rt.localRotation = Quaternion.Euler(0f, 0f, ang);
             rt.sizeDelta = new Vector2(len, 2f);
-            color.a = 0.6f;
+            color.a = UiTokens.LineOpacity;
             line.color = color;
         }
     }
