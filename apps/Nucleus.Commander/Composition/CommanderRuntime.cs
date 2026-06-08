@@ -28,6 +28,7 @@ namespace Nucleus.Composition
         private bool _dragging;                     // true once the cursor moved beyond the dead-zone
         private Nucleus.Core.Command.HqSnapshot _lastHq;
         private FlightHud _hud;                      // bottom-right objective HUD shown while flying (map closed)
+        private WorldMarkerLayer _worldMarkers;      // world-anchored objective rings out the canopy (map closed)
         private bool _hudVisible = true;
         private bool _firstTick = true;
         private bool _loggedPanel;
@@ -133,13 +134,14 @@ namespace Nucleus.Composition
                 var canvas = FindOverlayCanvas();
                 if (canvas == null) return;
                 _hud = new FlightHud(canvas.transform, _theme ?? Theme.Default);
+                _worldMarkers = new WorldMarkerLayer(canvas.transform, _theme ?? Theme.Default);
                 _hudVisible = true;
             }
             if (Input.GetKeyDown(CommanderPlugin.HudToggleKey)) _hudVisible = !_hudVisible;
 
             var map = SceneSingleton<DynamicMap>.i;
             bool open = map != null && DynamicMap.mapMaximized;
-            if (open || !_hudVisible) { _hud.SetVisible(false); return; }
+            if (open || !_hudVisible) { _hud.SetVisible(false); _worldMarkers.SetVisible(false); return; }
 
             if (Time.unscaledTime >= _nextHud)
             {
@@ -147,6 +149,8 @@ namespace Nucleus.Composition
                 _lastHq = _service.AutoHq();
                 _hud.Render(_lastHq);
             }
+            // World markers re-project EVERY frame (cached snapshot) so they track the aircraft smoothly.
+            _worldMarkers.Render(_lastHq);
         }
 
         // The active top-most screen-space overlay canvas (same pick as the host's menu/setup widgets).
