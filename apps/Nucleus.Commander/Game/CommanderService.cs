@@ -17,7 +17,6 @@ namespace Nucleus.Game
         private readonly GameProductionService _prodService = new GameProductionService();
         private readonly ProductionQueue _prodQueue = new ProductionQueue();
         private Core.Command.ConvoyCatalog _catalog = new Core.Command.ConvoyCatalog(new List<Core.Command.ConvoyOption>());
-        private int _counter;
 
         public CommanderService(CommanderConfig cfg)
         {
