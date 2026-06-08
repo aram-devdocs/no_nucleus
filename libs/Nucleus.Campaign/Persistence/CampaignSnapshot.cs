@@ -14,7 +14,7 @@ namespace Nucleus.Core.Persistence
     /// </summary>
     public sealed class CampaignSnapshot
     {
-        public const int CurrentVersion = 2; // v2: two toggles replace the autonomy enum; + ObjectiveIdSeed
+        public const int CurrentVersion = 3; // v3: + order trees (Orders, OrderId/DependsOn, OrderIdSeed)
 
         public int Version = CurrentVersion;
 
@@ -25,6 +25,7 @@ namespace Nucleus.Core.Persistence
         public int OperationIdSeed;   // last issued operation-id counter
         public int SquadBatchSeed;    // auto-form batch counter
         public int ObjectiveIdSeed;   // last issued auto-objective-id counter
+        public int OrderIdSeed;       // last issued order-id counter
 
         // Tunables (Doctrine / BrainConfig / SquadConfig).
         public float RiskTolerance = 0.5f;
@@ -38,6 +39,7 @@ namespace Nucleus.Core.Persistence
 
         // Collections (domain instances; rebuilt fresh on restore).
         public readonly List<Objective> Objectives = new List<Objective>();
+        public readonly List<Order> Orders = new List<Order>();
         public readonly List<Squad> Squads = new List<Squad>();
         public readonly List<Operation> Operations = new List<Operation>();
         public readonly List<string> ConfirmedObjectives = new List<string>();

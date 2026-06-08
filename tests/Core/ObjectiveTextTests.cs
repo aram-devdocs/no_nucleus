@@ -14,6 +14,8 @@ namespace Nucleus.Tests
         [InlineData(ObjectiveKind.ControlAirspace, "Control airspace", "AIR")]
         [InlineData(ObjectiveKind.Resupply, "Resupply", "SUPPLY")]
         [InlineData(ObjectiveKind.Recon, "Recon", "RECON")]
+        [InlineData(ObjectiveKind.SuppressAirDefense, "Suppress air defense", "SEAD")]
+        [InlineData(ObjectiveKind.NavalStrike, "Naval strike", "NAVAL")]
         public void Name_and_tag_are_readable(ObjectiveKind kind, string name, string tag)
         {
             Assert.Equal(name, ObjectiveText.Name(kind));

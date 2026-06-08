@@ -18,6 +18,7 @@ namespace Nucleus.Core.Command
     public static class CommanderBrain
     {
         private const float DefendPriority = 50f;   // outranks offensive scores so a threatened base funds first
+        private const float OrderFadeSeconds = 3f;   // grace window a completed order lingers (fade) before prune
 
         /// <summary>One decision tick (pure, mutates <paramref name="state"/>): reconcile squads, generate
         /// objectives, open/advance/prune operations, return the per-unit tasking to issue. Tasks only the
@@ -25,6 +26,7 @@ namespace Nucleus.Core.Command
         public static IReadOnlyList<UnitTask> Tick(WorldSnapshot snapshot, CommanderState state)
         {
             var tasks = new List<UnitTask>();
+            var completedChildren = new List<string>();   // resolved order-child objectives to retire this tick
             state.Squads.Reconcile(snapshot.Roster, snapshot.CommittedUnitIds);   // exclude manual units
 
             // 1. Advance live operations: drop dead squads, complete when threat is gone, fail when force is lost.
@@ -33,10 +35,11 @@ namespace Nucleus.Core.Command
                 if (op.IsTerminal) continue;
                 op.SquadIds.RemoveAll(sid => state.Squads.ById(sid) == null);
                 var current = ThreatNear(snapshot, op.Objective.Position, ResolveRadius(op.Objective.Kind, state.BrainConfig, state.Doctrine));
-                if (IsObjectiveResolved(op.Objective.Kind, current))
+                if (IsObjectiveResolved(op.Objective.Kind, current, state.Doctrine))
                 {
                     op.Status = OperationStatus.Complete;
                     state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.ObjectiveComplete, CompletionText(op.Objective.Kind), op.Id));
+                    if (op.Objective.OrderId != null) completedChildren.Add(op.Objective.Id);
                     continue;
                 }
                 if (op.SquadIds.Count == 0)
@@ -69,23 +72,45 @@ namespace Nucleus.Core.Command
             state.Objectives.RemoveAll(o => o.Source == ObjectiveSource.Auto
                 && state.OperationFor(o.Id) == null
                 && !AnyThreatNear(snapshot, o.Position, ResolveRadius(o.Kind, state.BrainConfig, state.Doctrine)));
+            // Retire resolved order-child objectives even if other threats still linger nearby, so dependents
+            // ungate cleanly and a done prerequisite isn't re-opened every tick.
+            if (completedChildren.Count > 0)
+                state.Objectives.RemoveAll(o => completedChildren.Contains(o.Id));
+            ReconcileOrders(state, snapshot);
 
             // 3. New objectives from enemy clusters (AI-created only). AddAutoObjective re-ids them monotonically;
             //    tick-local generator ids would collide across ticks.
             if (state.AiCreatesObjectives)
             {
-                int autoCount = state.Objectives.Count(o => o.Source == ObjectiveSource.Auto);
-                // FocusBroad widens/narrows how many objectives the AI juggles at once (ObjectiveSpread 1.0 = stock).
+                // Rank offensive goals BEFORE adding this tick's defence — a home-defence point near the front can
+                // sit within CoverageRadius of the enemy cluster and would otherwise mask it (no offensive ever forms).
+                var goals = GenerateObjectives(snapshot.KnownEnemies, state.Objectives, state.BrainConfig,
+                    state.HomeBase, state.Doctrine);
+
+                // Reactive home defence stays a standalone objective (no decomposition) — it's a hold, not a goal tree.
+                var defense = GenerateDefense(snapshot, state);
+                if (defense != null) AddAutoObjective(state, snapshot, defense);
+
+                // ObjectiveSpread widens/narrows how many concurrent auto goals the AI juggles (1.0 = stock). The
+                // standalone defence objective competes for the same budget so a tight cap still funds defence first.
+                int activeAutoOrders = 0;
+                foreach (var o in state.Orders)
+                    if (o.Source == ObjectiveSource.Auto && !o.IsTerminal) activeAutoOrders++;
+                int autoDefense = 0;
+                foreach (var o in state.Objectives)
+                    if (o.Source == ObjectiveSource.Auto && o.OrderId == null && o.Kind == ObjectiveKind.DefendArea) autoDefense++;
                 int effectiveMax = System.Math.Max(1, (int)System.Math.Round(state.BrainConfig.MaxAutoObjectives * state.Doctrine.ObjectiveSpread));
-                int room = effectiveMax - autoCount;
-                if (room > 0)
+                int room = effectiveMax - activeAutoOrders - autoDefense;
+
+                int made = 0;
+                foreach (var goal in goals)
                 {
-                    var planned = new List<Objective>();
-                    var defense = GenerateDefense(snapshot, state);
-                    if (defense != null) planned.Add(defense);
-                    planned.AddRange(GenerateObjectives(snapshot.KnownEnemies, state.Objectives, state.BrainConfig,
-                        state.HomeBase, state.Doctrine));
-                    foreach (var obj in planned.Take(room)) AddAutoObjective(state, snapshot, obj);
+                    if (made >= room) break;
+                    var threat = ThreatNear(snapshot, goal.Position, ResolveRadius(goal.Kind, state.BrainConfig, state.Doctrine));
+                    var plan = OrderPlanner.Decompose(goal.Kind, goal.Position, goal.Priority,
+                        ObjectiveSource.Auto, threat, state.Doctrine);
+                    CommitOrder(state, snapshot, plan);
+                    made++;
                 }
             }
 
@@ -99,6 +124,7 @@ namespace Nucleus.Core.Command
                 foreach (var obj in state.Objectives.OrderByDescending(o => o.Priority).ThenBy(o => o.Id))
                 {
                     if (state.OperationFor(obj.Id) != null) continue;
+                    if (DependencyPending(obj, state, snapshot)) continue; // an order prerequisite isn't resolved yet
                     var squadIds = MatchSquads(obj, state.Squads.Squads, state.BrainConfig);
                     if (squadIds.Count == 0) continue; // no force — recruit via ProductionNeeds below
                     fieldable.Add(obj.Id);
@@ -125,7 +151,8 @@ namespace Nucleus.Core.Command
             state.ProductionNeeds.Clear();
             if (state.AiAutoFill)
                 foreach (var obj in state.Objectives)
-                    if (state.OperationFor(obj.Id) == null && !fieldable.Contains(obj.Id))
+                    if (state.OperationFor(obj.Id) == null && !fieldable.Contains(obj.Id)
+                        && !DependencyPending(obj, state, snapshot))   // a gated goal isn't lacking a squad — it's waiting
                     {
                         state.ProductionNeeds.Add(RequiredComposition(obj.Kind));
                         state.Log.AppendDistinct(new ReportEvent(snapshot.Time, ReportKind.Blocked,
@@ -139,12 +166,15 @@ namespace Nucleus.Core.Command
             {
                 if (op.Status != OperationStatus.Active) continue;
                 if (op.Autonomy == AutonomyLevel.Manual) continue;
-                // DefendArea holds ground — it skips the offensive phase sequence, so gate its squads by the
-                // families that FILL it, not by CombatPhase. Otherwise its squads never match the active phase,
-                // zero tasks issue, and the defence is a silent in-game no-op.
-                var active = op.Objective.Kind == ObjectiveKind.DefendArea
-                    ? Families.SuitableFor(ObjectiveKind.DefendArea)
-                    : Families.ActiveInPhase(op.CombatPhase);
+                // Only the ground-assault kinds (capture/destroy) march through the combined-arms phase sequence;
+                // the single-domain objectives (defend, control airspace, SEAD, naval strike, recon, resupply)
+                // would never match the assault phases, so gate their squads by the families that FILL them — else
+                // zero tasks issue and the objective is a silent no-op.
+                bool phased = op.Objective.Kind == ObjectiveKind.CapturePoint
+                    || op.Objective.Kind == ObjectiveKind.DestroyTarget;
+                var active = phased
+                    ? Families.ActiveInPhase(op.CombatPhase)
+                    : Families.SuitableFor(op.Objective.Kind);
                 var verb = op.Objective.TargetId != null && op.Objective.Kind == ObjectiveKind.DestroyTarget
                     ? TaskVerb.AttackTarget : TaskVerb.MoveTo;
                 // Signature covers id + destination + target + verb so an in-place edit (mutating the shared
@@ -180,21 +210,120 @@ namespace Nucleus.Core.Command
                 ObjectiveBark(created.Kind, state.HomeBase, created.Position)));
         }
 
-        // Offence/defence resolve when no threat remains; Recon resolves when no fuzzy contact remains. The
-        // ground-holding kinds (Capture/ControlAirspace/Resupply) never auto-complete — the prune pass clears them.
-        private static bool IsObjectiveResolved(ObjectiveKind kind, ThreatPicture current)
+        // Offence/defence resolve when no threat remains; Recon resolves when no fuzzy contact remains; the
+        // domain-specific prerequisites resolve when their own threat is cleared (so the goal they gate ungates).
+        // The ground-holding kinds (Capture/Resupply) never auto-complete — the prune pass clears them.
+        private static bool IsObjectiveResolved(ObjectiveKind kind, ThreatPicture current, Doctrine doctrine)
         {
             switch (kind)
             {
                 case ObjectiveKind.DestroyTarget:
                 case ObjectiveKind.DefendArea:
                     return current.Count == 0;
+                case ObjectiveKind.ControlAirspace:
+                    return current.AirCount == 0;
+                case ObjectiveKind.SuppressAirDefense:
+                    // Suppressed once the belt is down to what the assault phase already tolerates.
+                    return current.AirDefenseCount <= doctrine.MaxResidualAirDefense;
+                case ObjectiveKind.NavalStrike:
+                    return current.NavalCount == 0;
                 case ObjectiveKind.Recon:
                     foreach (var e in current.Enemies) if (!e.Accurate) return false;
                     return true;
                 default:
                     return false;
             }
+        }
+
+        // A dependent objective waits while any prerequisite sibling is still unresolved. Evaluated against the
+        // CURRENT threat (not the prerequisite's operation state) so it's self-correcting: a completed-then-pruned
+        // prerequisite reads as met, and one whose threat returns re-gates the dependent. Stateless + deterministic.
+        private static bool DependencyPending(Objective obj, CommanderState state, WorldSnapshot snapshot)
+        {
+            var deps = obj.DependsOn;
+            for (int i = 0; i < deps.Count; i++)
+            {
+                Objective dep = null;
+                for (int j = 0; j < state.Objectives.Count; j++)
+                    if (state.Objectives[j].Id == deps[i]) { dep = state.Objectives[j]; break; }
+                if (dep == null) continue;   // prerequisite gone (resolved + retired) → met
+                var t = ThreatNear(snapshot, dep.Position, ResolveRadius(dep.Kind, state.BrainConfig, state.Doctrine));
+                if (!IsObjectiveResolved(dep.Kind, t, state.Doctrine)) return true;
+            }
+            return false;
+        }
+
+        // Materialize an OrderPlan: allocate the order + a monotonic id per child, resolve the dependency indices
+        // to real child ids, and add the objectives + the parent order. Ids come from the persisted seeds so they
+        // survive save/resume without colliding.
+        private static void CommitOrder(CommanderState state, WorldSnapshot snapshot, OrderPlan plan)
+        {
+            string orderId = state.NextOrderId();
+            int n = plan.Children.Count;
+            var childIds = new string[n];
+            for (int i = 0; i < n; i++) childIds[i] = state.NextObjectiveId();
+
+            for (int i = 0; i < n; i++)
+            {
+                var spec = plan.Children[i];
+                var depIdx = spec.DependsOnIndices;
+                string[] deps = depIdx.Count == 0 ? System.Array.Empty<string>() : new string[depIdx.Count];
+                for (int d = 0; d < depIdx.Count; d++) deps[d] = childIds[depIdx[d]];
+                bool isGoal = i == plan.GoalIndex;
+                state.Objectives.Add(new Objective(childIds[i], spec.Kind, spec.Position, plan.Source,
+                    isGoal ? plan.TargetId : null, plan.Priority, orderId, deps));
+            }
+
+            var order = new Order(orderId, plan.GoalKind, plan.Position, plan.Priority, plan.Source)
+            {
+                GoalObjectiveId = childIds[plan.GoalIndex],
+            };
+            order.ChildObjectiveIds.AddRange(childIds);
+            state.Orders.Add(order);
+            state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.ObjectiveAdded,
+                ObjectiveBark(plan.GoalKind, state.HomeBase, plan.Position), orderId));
+        }
+
+        // Complete an order once its goal child is gone (achieved or its area cleared), then let terminal orders
+        // fade for a deterministic grace window before pruning them + any leftover child objectives.
+        private static void ReconcileOrders(CommanderState state, WorldSnapshot snapshot)
+        {
+            foreach (var order in state.Orders)
+            {
+                if (order.IsTerminal) continue;
+                bool goalGone = true;
+                for (int i = 0; i < state.Objectives.Count; i++)
+                    if (state.Objectives[i].Id == order.GoalObjectiveId) { goalGone = false; break; }
+                if (goalGone)
+                {
+                    order.Status = OrderStatus.Complete;
+                    order.TerminalTime = snapshot.Time;
+                    state.Log.Append(new ReportEvent(snapshot.Time, ReportKind.ObjectiveComplete,
+                        "Order complete: " + ObjectiveText.Name(order.GoalKind), order.Id));
+                }
+            }
+            state.Orders.RemoveAll(order =>
+            {
+                if (!order.IsTerminal) return false;
+                if (float.IsNaN(order.TerminalTime)) { order.TerminalTime = snapshot.Time; return false; }
+                if (snapshot.Time - order.TerminalTime < OrderFadeSeconds) return false;   // still fading
+                foreach (var cid in order.ChildObjectiveIds)
+                    state.Objectives.RemoveAll(o => o.Id == cid);
+                return true;
+            });
+        }
+
+        /// <summary>Drop a player order at a world point: decompose it into the same dependency-sequenced tree
+        /// the AI uses (player drops are first-class orders), commit it, and return the goal objective's id —
+        /// what the command UI addresses for edit/move/remove. Pure; the Unity command layer calls this.</summary>
+        public static string CreatePlayerObjective(CommanderState state, WorldSnapshot snapshot, ObjectiveKind kind,
+            Vec3 world, string targetId = null, float priority = 5f)
+        {
+            var threat = ThreatNear(snapshot, world, ResolveRadius(kind, state.BrainConfig, state.Doctrine));
+            var plan = OrderPlanner.Decompose(kind, world, priority, ObjectiveSource.Player, threat, state.Doctrine, targetId);
+            CommitOrder(state, snapshot, plan);
+            // CommitOrder appends children in order with the goal last.
+            return state.Objectives[state.Objectives.Count - 1].Id;
         }
 
         // Emits one high-priority DefendArea at home when enemies press within DefendRadius and none already
@@ -247,6 +376,8 @@ namespace Nucleus.Core.Command
                 case ObjectiveKind.CapturePoint: c.Add(RoleFamily.Armor, 2); c.Add(RoleFamily.Infantry, 1); break;
                 case ObjectiveKind.DefendArea: c.Add(RoleFamily.AirDefense, 1); c.Add(RoleFamily.Armor, 1); break;
                 case ObjectiveKind.ControlAirspace: c.Add(RoleFamily.AirCombat, 2); break;
+                case ObjectiveKind.SuppressAirDefense: c.Add(RoleFamily.AirCombat, 2); break;
+                case ObjectiveKind.NavalStrike: c.Add(RoleFamily.Naval, 1); c.Add(RoleFamily.AirCombat, 1); break;
                 case ObjectiveKind.Resupply: c.Add(RoleFamily.Supply, 1); break;
                 // Must match the families MatchSquads fields for Recon, else it re-buys armor forever.
                 case ObjectiveKind.Recon: c.Add(RoleFamily.Recon, 1); c.Add(RoleFamily.AirCombat, 1); break;
@@ -297,6 +428,8 @@ namespace Nucleus.Core.Command
                 case ObjectiveKind.DestroyTarget: return "AI: strike " + Bearing(home, pos);
                 case ObjectiveKind.Recon: return "AI: scout " + Bearing(home, pos);
                 case ObjectiveKind.ControlAirspace: return "AI: air patrol " + Bearing(home, pos);
+                case ObjectiveKind.SuppressAirDefense: return "AI: SEAD " + Bearing(home, pos);
+                case ObjectiveKind.NavalStrike: return "AI: naval strike " + Bearing(home, pos);
                 case ObjectiveKind.Resupply: return "AI: resupply " + Bearing(home, pos);
                 default: return "AI: " + kind + " " + Bearing(home, pos);
             }

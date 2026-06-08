@@ -21,6 +21,8 @@ namespace Nucleus.Ui
                 case Cmd.ObjectiveKind.DefendArea:      return new Color(0.45f, 0.90f, 0.55f);
                 case Cmd.ObjectiveKind.ControlAirspace: return new Color(0.70f, 0.60f, 1.00f);
                 case Cmd.ObjectiveKind.Resupply:        return new Color(1.00f, 0.85f, 0.40f);
+                case Cmd.ObjectiveKind.SuppressAirDefense: return new Color(1.00f, 0.40f, 0.76f); // magenta #FF66C2
+                case Cmd.ObjectiveKind.NavalStrike:     return new Color(0.20f, 0.77f, 0.77f);    // teal #33C4C4
                 default:                                return new Color(0.85f, 0.85f, 0.85f); // Recon
             }
         }

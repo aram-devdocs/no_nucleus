@@ -69,12 +69,14 @@ namespace Nucleus.Core.Model
         public bool HasArmor { get; }
         public bool HasBuildings { get; }
         public bool HasAir { get; }
+        public bool HasNaval { get; }
 
         // Numeric counts the combined-arms phase gates threshold against.
         public int AirDefenseCount { get; }
         public int ArmorCount { get; }
         public int AirCount { get; }
         public int RadarCount { get; }
+        public int NavalCount { get; }
 
         public ThreatPicture(IReadOnlyList<EnemyView> enemies)
         {
@@ -84,6 +86,8 @@ namespace Nucleus.Core.Model
                 if (e.Cap.IsAirDefense) { HasAirDefense = true; AirDefenseCount++; }
                 if (e.Cap.Role == Role.GroundRadar || e.Cap.Role == Role.AwacsEw) { HasRadar = true; RadarCount++; }
                 if (e.Cap.Role == Role.Armor || e.Cap.Role == Role.Ifv) { HasArmor = true; ArmorCount++; }
+                if (e.Cap.Role == Role.Carrier || e.Cap.Role == Role.CombatShip || e.Cap.Role == Role.TransportShip)
+                    { HasNaval = true; NavalCount++; }
                 if (e.Class == UnitClass.Building) HasBuildings = true;
                 if (e.Class == UnitClass.Aircraft) { HasAir = true; AirCount++; }
             }

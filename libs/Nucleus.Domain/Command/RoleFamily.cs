@@ -61,10 +61,10 @@ namespace Nucleus.Core.Command
                 case CombatPhase.Sead:
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat };
                 case CombatPhase.Strike:
-                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat, RoleFamily.Artillery };
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat, RoleFamily.Artillery, RoleFamily.Naval };
                 case CombatPhase.Assault:
                 case CombatPhase.Capture:
-                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.Infantry };
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.Infantry, RoleFamily.Naval };
                 case CombatPhase.Hold:
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Armor, RoleFamily.AirDefense };
                 default:
@@ -88,6 +88,12 @@ namespace Nucleus.Core.Command
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirDefense, RoleFamily.Armor };
                 case ObjectiveKind.ControlAirspace:
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat };
+                case ObjectiveKind.SuppressAirDefense:
+                    // SEAD/strike aircraft roll back the SAM/AAA umbrella so the assault can go in.
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat };
+                case ObjectiveKind.NavalStrike:
+                    // Anti-ship aircraft or our own warships prosecute detected naval contacts.
+                    return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.AirCombat, RoleFamily.Naval };
                 case ObjectiveKind.Resupply:
                     return new System.Collections.Generic.HashSet<RoleFamily> { RoleFamily.Supply };
                 case ObjectiveKind.Recon:

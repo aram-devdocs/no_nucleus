@@ -22,6 +22,7 @@ namespace Nucleus.Core.Persistence
                 HomeBase = state.HomeBase,
                 OperationIdSeed = state.OperationIdSeed,
                 ObjectiveIdSeed = state.ObjectiveIdSeed,
+                OrderIdSeed = state.OrderIdSeed,
                 SquadBatchSeed = state.Squads.BatchSeed,
                 RiskTolerance = state.Doctrine.RiskTolerance,
                 ForceRatio = state.Doctrine.ForceRatio,
@@ -39,6 +40,7 @@ namespace Nucleus.Core.Persistence
             foreach (var op in state.Operations)
                 if (op.Objective != null && objIds.Add(op.Objective.Id)) snap.Objectives.Add(op.Objective);
 
+            foreach (var ord in state.Orders) snap.Orders.Add(ord);
             foreach (var s in state.Squads.Squads) snap.Squads.Add(s);
             foreach (var op in state.Operations) snap.Operations.Add(op);
             foreach (var id in state.ConfirmedObjectives) snap.ConfirmedObjectives.Add(id);
@@ -71,6 +73,7 @@ namespace Nucleus.Core.Persistence
                 HomeBase = snap.HomeBase,
                 OperationIdSeed = snap.OperationIdSeed,
                 ObjectiveIdSeed = snap.ObjectiveIdSeed,
+                OrderIdSeed = snap.OrderIdSeed,
             };
             state.Squads.BatchSeed = snap.SquadBatchSeed;
 
@@ -78,9 +81,25 @@ namespace Nucleus.Core.Persistence
             var byId = new Dictionary<string, Objective>();
             foreach (var o in snap.Objectives)
             {
-                var copy = new Objective(o.Id, o.Kind, o.Position, o.Source, o.TargetId, o.Priority);
+                var deps = o.DependsOn != null && o.DependsOn.Count > 0
+                    ? new List<string>(o.DependsOn) : (IReadOnlyList<string>)null;
+                var copy = new Objective(o.Id, o.Kind, o.Position, o.Source, o.TargetId, o.Priority, o.OrderId, deps);
                 state.Objectives.Add(copy);
                 byId[copy.Id] = copy;
+            }
+
+            // Orders — rebuilt fresh from the snapshot (children/goal reference objective ids, no object graph).
+            foreach (var o in snap.Orders)
+            {
+                var copy = new Order(o.Id, o.GoalKind, o.Position, o.Priority, o.Source)
+                {
+                    Autonomy = o.Autonomy,
+                    Status = o.Status,
+                    GoalObjectiveId = o.GoalObjectiveId,
+                    TerminalTime = o.TerminalTime,
+                };
+                copy.ChildObjectiveIds.AddRange(o.ChildObjectiveIds);
+                state.Orders.Add(copy);
             }
 
             foreach (var s in snap.Squads)

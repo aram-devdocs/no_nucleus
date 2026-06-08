@@ -13,6 +13,9 @@ namespace Nucleus.Core.Command
     {
         public List<Objective> Objectives { get; } = new List<Objective>();
         public List<Operation> Operations { get; } = new List<Operation>();
+        /// <summary>Parent goals, each decomposed into a tree of child objectives by <see cref="OrderPlanner"/>.
+        /// The brain creates/advances/retires these; objectives carry their <see cref="Objective.OrderId"/>.</summary>
+        public List<Order> Orders { get; } = new List<Order>();
         public SquadRoster Squads { get; }
         public Doctrine Doctrine { get; }
         public BrainConfig BrainConfig { get; }
@@ -37,6 +40,7 @@ namespace Nucleus.Core.Command
         private readonly List<string> _purgeScratch = new List<string>();
         private int _opId;
         private int _objId;
+        private int _orderId;
 
         /// <summary>Forget tasking memory for units not tasked this tick (reused buffer; can't remove mid-enumeration).</summary>
         public void PurgeUntaskedMemory(ICollection<string> tasked)
@@ -55,8 +59,14 @@ namespace Nucleus.Core.Command
         /// and never collide across ticks.</summary>
         internal int ObjectiveIdSeed { get => _objId; set => _objId = value; }
 
+        /// <summary>The order-id counter (last issued). Persisted so monotonic order ids survive save/resume.</summary>
+        internal int OrderIdSeed { get => _orderId; set => _orderId = value; }
+
         /// <summary>A unique, monotonic auto-objective id (never reused across ticks).</summary>
         public string NextObjectiveId() => "auto-obj-" + (++_objId);
+
+        /// <summary>A unique, monotonic order id (never reused across ticks).</summary>
+        public string NextOrderId() => "order-" + (++_orderId);
 
         public CommanderState(SquadConfig squadCfg = null, Doctrine doctrine = null, BrainConfig brainCfg = null)
         {
