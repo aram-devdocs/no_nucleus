@@ -82,11 +82,79 @@ namespace Nucleus.Core.Command
         }
     }
 
+    /// <summary>One node of an order tree (a child objective), flattened for the command-center panel + map.</summary>
+    public readonly struct OrderNodeView
+    {
+        public string ObjectiveId { get; }
+        public ObjectiveKind Kind { get; }
+        /// <summary>Live combat phase of this node's operation (Recon when not yet fielded) — shown in the detail pane.</summary>
+        public CombatPhase Phase { get; }
+        public int SquadCount { get; }
+        public AutonomyLevel Autonomy { get; }
+        public Vec3 Position { get; }
+        public bool IsGoal { get; }
+        /// <summary>This node has a live operation working it.</summary>
+        public bool Active { get; }
+        /// <summary>The goal/prereq is achieved (its objective has been retired).</summary>
+        public bool Complete { get; }
+        /// <summary>All prerequisite siblings are resolved, so this node may field. Goal nodes start blocked.</summary>
+        public bool DependenciesMet { get; }
+        /// <summary>No available force family can carry this node (domain-aware reachability badge).</summary>
+        public bool Unreachable { get; }
+
+        public OrderNodeView(string objectiveId, ObjectiveKind kind, CombatPhase phase, int squadCount,
+            AutonomyLevel autonomy, Vec3 position, bool isGoal, bool active, bool complete, bool dependenciesMet,
+            bool unreachable)
+        {
+            ObjectiveId = objectiveId;
+            Kind = kind;
+            Phase = phase;
+            SquadCount = squadCount;
+            Autonomy = autonomy;
+            Position = position;
+            IsGoal = isGoal;
+            Active = active;
+            Complete = complete;
+            DependenciesMet = dependenciesMet;
+            Unreachable = unreachable;
+        }
+    }
+
+    /// <summary>A parent order + its decomposed child nodes — the command-center's tree row + selection detail.</summary>
+    public readonly struct OrderView
+    {
+        public string Id { get; }
+        public ObjectiveKind GoalKind { get; }
+        public OrderStatus Status { get; }
+        public AutonomyLevel Autonomy { get; }
+        public bool PlayerOwned { get; }
+        public Vec3 Position { get; }
+        public float Priority { get; }
+        /// <summary>The goal objective's id — what selecting the parent row addresses.</summary>
+        public string GoalObjectiveId { get; }
+        public IReadOnlyList<OrderNodeView> Nodes { get; }
+
+        public OrderView(string id, ObjectiveKind goalKind, OrderStatus status, AutonomyLevel autonomy,
+            bool playerOwned, Vec3 position, float priority, string goalObjectiveId, IReadOnlyList<OrderNodeView> nodes)
+        {
+            Id = id;
+            GoalKind = goalKind;
+            Status = status;
+            Autonomy = autonomy;
+            PlayerOwned = playerOwned;
+            Position = position;
+            Priority = priority;
+            GoalObjectiveId = goalObjectiveId;
+            Nodes = nodes;
+        }
+    }
+
     /// <summary>Immutable, render-ready snapshot of the whole HQ — everything a panel draws in one read, with
     /// no game/state references leaking into the view layer.</summary>
     public sealed class HqSnapshot
     {
         public IReadOnlyList<OperationView> Operations { get; }
+        public IReadOnlyList<OrderView> Orders { get; }
         public IReadOnlyList<SquadView> Squads { get; }
         public IReadOnlyList<string> Production { get; }
         public IReadOnlyList<ReportEvent> Recent { get; }
@@ -97,9 +165,11 @@ namespace Nucleus.Core.Command
 
         public HqSnapshot(IReadOnlyList<OperationView> operations, IReadOnlyList<SquadView> squads,
             IReadOnlyList<string> production, IReadOnlyList<ReportEvent> recent,
-            bool aiCreatesObjectives, bool aiAutoFill, float queuedCost = 0f)
+            bool aiCreatesObjectives, bool aiAutoFill, float queuedCost = 0f,
+            IReadOnlyList<OrderView> orders = null)
         {
             Operations = operations;
+            Orders = orders ?? System.Array.Empty<OrderView>();
             Squads = squads;
             Production = production;
             Recent = recent;
@@ -158,7 +228,41 @@ namespace Nucleus.Core.Command
                 : (IReadOnlyList<ReportEvent>)new List<ReportEvent>();
 
             return new HqSnapshot(operations, squads, productionLines, recent,
-                state.AiCreatesObjectives, state.AiAutoFill, production?.QueuedCost ?? 0f);
+                state.AiCreatesObjectives, state.AiAutoFill, production?.QueuedCost ?? 0f, BuildOrders(state));
+        }
+
+        // Flatten each order into a parent + child nodes. Retired prerequisites (resolved + pruned) drop off the
+        // tree; a retired goal stays as a Complete node for the fade window so the panel can show the win.
+        private static IReadOnlyList<OrderView> BuildOrders(CommanderState state)
+        {
+            if (state.Orders.Count == 0) return System.Array.Empty<OrderView>();
+            var orders = new List<OrderView>(state.Orders.Count);
+            foreach (var ord in state.Orders)
+            {
+                var nodes = new List<OrderNodeView>(ord.ChildObjectiveIds.Count);
+                foreach (var cid in ord.ChildObjectiveIds)
+                {
+                    bool isGoal = cid == ord.GoalObjectiveId;
+                    var obj = state.Objectives.Find(o => o.Id == cid);
+                    if (obj == null)
+                    {
+                        if (isGoal)
+                            nodes.Add(new OrderNodeView(cid, ord.GoalKind, CombatPhase.Recon, 0, ord.Autonomy,
+                                ord.Position, true, false, true, true, false));
+                        continue;   // a retired prerequisite is done — drop it from the live tree
+                    }
+                    var op = state.OperationFor(cid);
+                    bool depsMet = true;
+                    foreach (var dep in obj.DependsOn)
+                        if (state.Objectives.Exists(o => o.Id == dep)) { depsMet = false; break; }
+                    nodes.Add(new OrderNodeView(cid, obj.Kind, op?.CombatPhase ?? CombatPhase.Recon,
+                        op?.SquadIds.Count ?? 0, op?.Autonomy ?? ord.Autonomy, obj.Position, isGoal,
+                        op != null && op.Status == OperationStatus.Active, false, depsMet, false));
+                }
+                orders.Add(new OrderView(ord.Id, ord.GoalKind, ord.Status, ord.Autonomy,
+                    ord.Source == ObjectiveSource.Player, ord.Position, ord.Priority, ord.GoalObjectiveId, nodes));
+            }
+            return orders;
         }
 
         // "2× MBT, 1× IFV" (top 3 by count) from a unit-id->role map; empty when no map is supplied.
